@@ -34,8 +34,8 @@ export async function authenticatedRequest(
 }
 
 export async function getServerAuth() {
-  // First await headers
-  await headers();
+  // Get headers first (await for Next.js 15+ compatibility)
+  const headersList = await headers();
   // Then get auth
   const session = await auth();
   return session;

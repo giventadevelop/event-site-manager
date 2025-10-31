@@ -10,6 +10,15 @@ export default async function handler(req: any, res: any) {
   const emailHostUrlPrefix = req.headers['x-email-host-url-prefix'] as string ||
                            getEmailHostUrlPrefix();
 
+  // Validate that we have a valid email host URL prefix
+  if (!emailHostUrlPrefix) {
+    console.error('[Send Ticket Email Proxy] No emailHostUrlPrefix available');
+    return res.status(400).json({
+      error: 'Email host URL prefix is required for proper email context',
+      details: 'Please ensure NEXT_PUBLIC_APP_URL is set in environment variables or pass x-email-host-url-prefix header'
+    });
+  }
+
   // Use Base64 encoding like the working QR code endpoint
   const encodedEmailHostUrlPrefix = Buffer.from(emailHostUrlPrefix).toString('base64');
 

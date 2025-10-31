@@ -1,4 +1,5 @@
 import { authMiddleware } from "@clerk/nextjs";
+import { NextResponse } from "next/server";
 
 export default authMiddleware({
   // Public routes that don't require authentication
@@ -7,6 +8,8 @@ export default authMiddleware({
     "/event",
     "/event/success",
     "/event/success/(.*)",
+    "/event/ticket-qr",
+    "/test-mobile",
     "/pricing",
     "/events",
     "/events/(.*)/tickets",
@@ -23,6 +26,8 @@ export default authMiddleware({
     "/api/proxy/(.*)",
     "/api/webhooks/(.*)",
     "/api/event/success/process",
+    "/api/debug/(.*)",
+    "/api/test-mobile",
     "/api/tasks",
     "/api/billing/(.*)",
     "/api/stripe/(.*)",
@@ -52,6 +57,27 @@ export default authMiddleware({
 
   // After authentication, redirect to this path if the user is not signed in
   afterAuth(auth, req) {
+    // Add CORS headers for Clerk proxy requests from satellite domains
+    if (req.nextUrl.pathname.startsWith('/__clerk')) {
+      // Handle preflight OPTIONS requests
+      if (req.method === 'OPTIONS') {
+        const response = new NextResponse(null, { status: 200 });
+        response.headers.set('Access-Control-Allow-Origin', 'https://www.mosc-temp.com');
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        response.headers.set('Access-Control-Allow-Credentials', 'true');
+        return response;
+      }
+
+      // For actual requests, add CORS headers and continue
+      const response = NextResponse.next();
+      response.headers.set('Access-Control-Allow-Origin', 'https://www.mosc-temp.com');
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
+      return response;
+    }
+
     // Handle users who aren't authenticated
     if (!auth.userId && !auth.isPublicRoute) {
       return Response.redirect(new URL('/sign-in', req.url));

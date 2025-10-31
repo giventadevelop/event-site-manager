@@ -188,7 +188,7 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
       {/* Top action row: Skip and Resubscribe */}
       <div className="flex justify-between items-center mb-6">
         <a
-          href="/dashboard"
+          href="/"
           className="text-sm font-medium text-blue-600 hover:text-blue-500"
         >
           Skip for now →

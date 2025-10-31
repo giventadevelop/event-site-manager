@@ -1,14 +1,20 @@
 # Task ID: 3
-# Title: Create Hero Section with Buy Tickets CTA
-# Status: done
-# Dependencies: None
+# Title: Implement Focus Group proxy handlers
+# Status: pending
+# Dependencies: 2 ⏱️
 # Priority: high
-# Description: Implement a visually prominent 'Buy Tickets' call-to-action in the event hero section.
+# Description: Create API proxy handlers for focus group related endpoints
 # Details:
-- Design and implement a visually appealing hero section
-- Add a prominent 'Buy Tickets' button
-- Ensure the button links to the ticketing page for the selected event
-- Make the component responsive for all device sizes
+Implement the following proxy handlers using `createProxyHandler`:
+- `GET /api/proxy/focus-groups`
+- `GET /api/proxy/focus-groups/by-slug/{slug}`
+- `GET /api/proxy/focus-group-members`
+- `POST /api/proxy/focus-groups`
+- `PATCH /api/proxy/focus-groups/{id}`
+- `POST /api/proxy/event-focus-groups`
+- `DELETE /api/proxy/event-focus-groups/{id}`
+
+Ensure all handlers properly inject tenantId, handle JWT, and forward queries to the backend.
 
 # Test Strategy:
-Verify the CTA is visually prominent, responsive, and correctly routes users to the ticketing page.
+Test each endpoint to verify proper proxy functionality, authentication, and data flow.

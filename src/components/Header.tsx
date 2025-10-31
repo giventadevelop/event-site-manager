@@ -17,18 +17,24 @@ const menuItems = [
 
 // Function to handle smooth scrolling with offset for fixed header
 const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-  if (href.startsWith('/#')) {
-    e.preventDefault();
-    const targetId = href.substring(2);
-    const targetElement = document.getElementById(targetId);
-    if (targetElement) {
-      const headerHeight = 80; // Approximate header height
-      const targetPosition = targetElement.offsetTop - headerHeight - 20; // Extra 20px for breathing room
-      window.scrollTo({
-        top: targetPosition,
-        behavior: 'smooth'
-      });
-    }
+  if (!href.startsWith('/#')) return;
+
+  // Only intercept and smooth-scroll when already on the home page.
+  // From any other route, let the default navigation to `/#section` occur
+  // so the user is taken to the correct section on the home page.
+  const isOnHomePage = typeof window !== 'undefined' && window.location.pathname === '/';
+  if (!isOnHomePage) return;
+
+  e.preventDefault();
+  const targetId = href.substring(2);
+  const targetElement = document.getElementById(targetId);
+  if (targetElement) {
+    const headerHeight = 80; // Approximate header height
+    const targetPosition = targetElement.offsetTop - headerHeight - 20; // Extra 20px for breathing room
+    window.scrollTo({
+      top: targetPosition,
+      behavior: 'smooth'
+    });
   }
 };
 
@@ -44,6 +50,36 @@ export function Header({ hideMenuItems = false }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, isLoaded: userLoaded } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Ensure hash navigation to home sections accounts for fixed header offset
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const headerHeight = 80;
+
+    const scrollToHashWithOffset = (behavior: ScrollBehavior = 'smooth') => {
+      const hash = window.location.hash;
+      if (!hash || window.location.pathname !== '/') return;
+      const targetId = hash.replace('#', '');
+      const targetElement = document.getElementById(targetId);
+      if (!targetElement) return;
+      const targetPosition = targetElement.offsetTop - headerHeight - 20;
+      window.scrollTo({ top: Math.max(0, targetPosition), behavior });
+    };
+
+    // On initial load of the home page with a hash (e.g., navigating from /events to /#team-section)
+    // defer to allow layout/images to settle, then adjust position with offset
+    if (window.location.pathname === '/' && window.location.hash) {
+      requestAnimationFrame(() => scrollToHashWithOffset('auto'));
+      // Fallback adjustment after a brief delay for late-loading content
+      const timeout = setTimeout(() => scrollToHashWithOffset('auto'), 300);
+      return () => clearTimeout(timeout);
+    }
+
+    // Handle in-page hash changes on the home page
+    const onHashChange = () => scrollToHashWithOffset('smooth');
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [pathname]);
 
   useEffect(() => {
     async function checkAdminInOrg() {

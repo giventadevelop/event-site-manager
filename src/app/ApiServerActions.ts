@@ -1,6 +1,6 @@
 'use server';
 import type { EventDetailsDTO } from '@/types';
-import { getTenantId } from '@/lib/env';
+import { getTenantId, getAppUrl } from '@/lib/env';
 
 interface EventWithMedia extends EventDetailsDTO {
   thumbnailUrl?: string;

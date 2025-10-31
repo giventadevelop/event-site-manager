@@ -2,218 +2,197 @@
   "meta": {
     "projectName": "nextjs-template",
     "version": "1.5.0",
-    "source": ".task-master/PRD.txt",
+    "source": ".task-master/PRD.md",
     "description": "Tasks generated from PRD",
-    "totalTasksGenerated": 18,
-    "tasksIncluded": 18
+    "totalTasksGenerated": 15,
+    "tasksIncluded": 15
   },
   "tasks": [
     {
       "id": 1,
-      "title": "Set up shared data models and types",
-      "description": "Create TypeScript definitions for all DTOs to be used across the application.",
-      "status": "done",
+      "title": "Update database schema for Focus Groups",
+      "description": "Add new tables to the database schema for focus groups functionality",
+      "status": "pending",
       "dependencies": [],
       "priority": "high",
-      "details": "Create the following in src/types/index.ts:\n- EventDetailsDTO\n- EventTicketTypeDTO\n- DiscountCodeDTO\n- EventTicketTransactionDTO\n- Any other supporting interfaces needed for the ticket purchasing flow",
-      "testStrategy": "Verify that all types are properly defined and exported. Ensure they match the backend API specifications."
+      "details": "Add the following tables to the schema:\n- `focus_group` (tenant_id, name, slug, description, cover_image_url, is_active, created_at, updated_at)\n- `focus_group_members` (tenant_id, focus_group_id, user_profile_id, role, status, created_at, updated_at)\n- `event_focus_groups` (tenant_id, event_id, focus_group_id)\n\nEnsure composite unique constraints are added per tenant for name/slug and joins. Set up VARCHAR(50) for role/status columns and create (but don't apply) the enums `focus_group_member_role_type` and `focus_group_member_status_type`.",
+      "testStrategy": "Verify schema changes are correctly applied and constraints are working as expected."
     },
     {
       "id": 2,
-      "title": "Implement Next.js API proxy routes",
-      "description": "Create API routes in Next.js to proxy requests to the backend Spring Boot API.",
-      "status": "done",
+      "title": "Create DTOs for Focus Group entities",
+      "description": "Define TypeScript DTOs for the Focus Group related entities",
+      "status": "pending",
       "dependencies": [
         1
       ],
       "priority": "high",
-      "details": "Create the following API routes:\n- /api/event-details/[id]\n- /api/event-ticket-types (with query param support)\n- /api/discount-codes (with query param support)\n- /api/event-ticket-transactions\n\nEnsure all routes follow the nextjs_api_routes.mdc pattern.",
-      "testStrategy": "Test each API route to ensure it correctly proxies requests to the backend and returns the expected responses."
+      "details": "Add the following DTOs to `src/types/index.ts`:\n- `FocusGroupDTO`\n- `FocusGroupMemberDTO`\n- `EventFocusGroupDTO`\n\nEnsure all DTOs are flat, serializable, and use uppercase enums for consistency.",
+      "testStrategy": "Verify the DTOs match the backend entities and include all required fields."
     },
     {
       "id": 3,
-      "title": "Create Hero Section with Buy Tickets CTA",
-      "description": "Implement a visually prominent 'Buy Tickets' call-to-action in the event hero section.",
-      "status": "done",
-      "dependencies": [],
+      "title": "Implement Focus Group proxy handlers",
+      "description": "Create API proxy handlers for focus group related endpoints",
+      "status": "pending",
+      "dependencies": [
+        2
+      ],
       "priority": "high",
-      "details": "- Design and implement a visually appealing hero section\n- Add a prominent 'Buy Tickets' button\n- Ensure the button links to the ticketing page for the selected event\n- Make the component responsive for all device sizes",
-      "testStrategy": "Verify the CTA is visually prominent, responsive, and correctly routes users to the ticketing page."
+      "details": "Implement the following proxy handlers using `createProxyHandler`:\n- `GET /api/proxy/focus-groups`\n- `GET /api/proxy/focus-groups/by-slug/{slug}`\n- `GET /api/proxy/focus-group-members`\n- `POST /api/proxy/focus-groups`\n- `PATCH /api/proxy/focus-groups/{id}`\n- `POST /api/proxy/event-focus-groups`\n- `DELETE /api/proxy/event-focus-groups/{id}`\n\nEnsure all handlers properly inject tenantId, handle JWT, and forward queries to the backend.",
+      "testStrategy": "Test each endpoint to verify proper proxy functionality, authentication, and data flow."
     },
     {
       "id": 4,
-      "title": "Build Ticketing Page layout",
-      "description": "Create the main ticketing page that displays event details and available ticket types.",
-      "status": "done",
-      "dependencies": [
-        1,
-        2
-      ],
-      "priority": "high",
-      "details": "- Create page layout with event details section\n- Implement responsive card layout for ticket types\n- Add quantity selectors for each ticket type\n- Include discount code input field\n- Add checkout button\n- Ensure all UI elements follow design guidelines",
-      "testStrategy": "Test the layout on multiple screen sizes. Verify all UI elements are displayed correctly and match the design specifications."
+      "title": "Update middleware for public Focus Group routes",
+      "description": "Add Focus Group routes to the public routes in middleware",
+      "status": "pending",
+      "dependencies": [],
+      "priority": "medium",
+      "details": "Add `/focus-groups(.*)` pattern to the `publicRoutes` array in the middleware configuration to ensure public access to focus group pages.",
+      "testStrategy": "Verify that focus group pages are accessible without authentication."
     },
     {
       "id": 5,
-      "title": "Implement ticket selection functionality",
-      "description": "Add functionality to select ticket quantities and update the UI accordingly.",
-      "status": "done",
+      "title": "Create server actions for Focus Group management",
+      "description": "Implement server actions for authenticated admin mutations",
+      "status": "pending",
       "dependencies": [
-        4
+        2,
+        3
       ],
       "priority": "high",
-      "details": "- Implement quantity selectors for each ticket type\n- Add client-side validation for maximum quantities\n- Update subtotal in real-time as quantities change\n- Disable checkout button when no tickets are selected\n- Follow custom-forms-checkbox-grid.mdc for form elements",
-      "testStrategy": "Test quantity selection with various inputs. Verify real-time updates to subtotal. Test validation for maximum quantities."
+      "details": "Create server actions for:\n- Creating focus groups\n- Updating focus groups\n- Managing focus group members\n- Linking/unlinking events to focus groups\n\nUse `fetchWithJwtRetry` for all authenticated requests and ensure all server actions handle errors appropriately.",
+      "testStrategy": "Test each server action to verify authentication, proper data handling, and error management."
     },
     {
       "id": 6,
-      "title": "Implement discount code functionality",
-      "description": "Add the ability to enter and validate discount codes with real-time price updates.",
-      "status": "done",
+      "title": "Implement Focus Groups landing page",
+      "description": "Create the public landing page for all focus groups",
+      "status": "pending",
       "dependencies": [
-        2,
-        5
+        3,
+        4
       ],
       "priority": "medium",
-      "details": "- Create discount code input field\n- Implement API call to validate discount codes\n- Update UI to show discount amount when valid code is applied\n- Show appropriate error messages for invalid codes\n- Update total price calculation to include discounts\n- Handle edge cases (expired codes, usage limits, etc.)",
-      "testStrategy": "Test with valid and invalid discount codes. Verify price updates correctly. Test all error cases and edge conditions."
+      "details": "Build the `/focus-groups` page with:\n- Hero section\n- Grid layout of active focus group cards\n- Each card should display name, image, and brief description\n- Linking to individual focus group pages\n\nEnsure the page only shows active groups and sorts them by name.",
+      "testStrategy": "Verify the page displays correctly, shows only active groups, and links work properly."
     },
     {
       "id": 7,
-      "title": "Implement real-time price calculation",
-      "description": "Create a system for calculating and displaying subtotal, discounts, and total in real-time.",
-      "status": "done",
-      "dependencies": [
-        5,
-        6
-      ],
-      "priority": "medium",
-      "details": "- Implement price calculation logic\n- Update UI components to display subtotal, discount amount, and total\n- Ensure calculations update in real-time as users change selections\n- Format currency values appropriately",
-      "testStrategy": "Test calculations with various ticket combinations and discount scenarios. Verify all displayed values are accurate and update in real-time."
-    },
-    {
-      "id": 8,
-      "title": "Set up Stripe integration",
-      "description": "Integrate with Stripe Checkout for secure payment processing.",
-      "status": "done",
-      "dependencies": [
-        2
-      ],
-      "priority": "high",
-      "details": "- Set up Stripe client and server libraries\n- Configure environment variables for Stripe API keys\n- Create helper functions for creating Stripe Checkout sessions\n- Implement redirect to Stripe Checkout\n- Handle Stripe callback URLs",
-      "testStrategy": "Test Stripe integration in test mode. Verify successful redirects to Stripe and back to the application."
-    },
-    {
-      "id": 9,
-      "title": "Implement checkout process",
-      "description": "Create the checkout flow to collect user information and initiate payment.",
-      "status": "done",
-      "dependencies": [
-        7,
-        8
-      ],
-      "priority": "high",
-      "details": "- Create checkout form to collect necessary user information\n- Implement client and server-side validation\n- Create transaction record in event_ticket_transaction with pending status\n- Initiate Stripe Checkout session\n- Redirect user to Stripe payment page\n- Follow custom-forms-checkbox-grid.mdc for form elements",
-      "testStrategy": "Test the complete checkout flow. Verify form validation works correctly. Ensure transaction is created with pending status."
-    },
-    {
-      "id": 10,
-      "title": "Implement Stripe webhook handling",
-      "description": "Create webhook endpoint to process Stripe payment events and update transaction status.",
-      "status": "done",
-      "dependencies": [
-        8,
-        9
-      ],
-      "priority": "high",
-      "details": "- Create webhook endpoint for Stripe events\n- Implement signature verification for webhook security\n- Handle payment success events\n- Handle payment failure events\n- Update transaction status based on payment events\n- Decrement ticket inventory on successful payment",
-      "testStrategy": "Test webhook with Stripe test events. Verify transaction status updates correctly. Test inventory decrements correctly."
-    },
-    {
-      "id": 11,
-      "title": "Create confirmation and error pages",
-      "description": "Implement pages to show payment confirmation or errors to users.",
-      "status": "pending",
-      "dependencies": [
-        9
-      ],
-      "priority": "medium",
-      "details": "- Create success confirmation page\n- Create error/cancellation page\n- Implement loading states during payment processing\n- Add clear messaging and next steps for users\n- Include option to retry payment on error/cancel",
-      "testStrategy": "Test both success and error flows. Verify appropriate information is displayed to users."
-    },
-    {
-      "id": 12,
-      "title": "Implement ticket issuance",
-      "description": "Create system to issue tickets after successful payment.",
-      "status": "pending",
-      "dependencies": [
-        10
-      ],
-      "priority": "medium",
-      "details": "- Update event_ticket_transaction status on successful payment\n- Create records in appropriate tables for issued tickets\n- Generate ticket identifiers/barcodes\n- Prepare ticket data for email delivery",
-      "testStrategy": "Verify tickets are correctly issued after payment. Check database records for accuracy."
-    },
-    {
-      "id": 13,
-      "title": "Implement email notification system",
-      "description": "Set up email delivery for ticket confirmations and receipts.",
-      "status": "pending",
-      "dependencies": [
-        12
-      ],
-      "priority": "medium",
-      "details": "- Integrate with email service\n- Design email templates for ticket confirmation\n- Implement email sending logic after successful payment\n- Include ticket details and receipt in email",
-      "testStrategy": "Test email delivery with various ticket scenarios. Verify all information in emails is accurate."
-    },
-    {
-      "id": 14,
-      "title": "Implement inventory management",
-      "description": "Create system to track and update ticket inventory in real-time.",
-      "status": "done",
-      "dependencies": [
-        10
-      ],
-      "priority": "high",
-      "details": "- Implement inventory checking before checkout\n- Update inventory after successful payment\n- Handle edge cases like concurrent purchases\n- Implement UI updates for sold-out tickets",
-      "testStrategy": "Test inventory updates with concurrent transactions. Verify sold-out states display correctly."
-    },
-    {
-      "id": 15,
-      "title": "Create admin reporting views",
-      "description": "Implement reporting interfaces for event organizers to track sales and inventory.",
-      "status": "pending",
-      "dependencies": [
-        12,
-        14
-      ],
-      "priority": "low",
-      "details": "- Create admin dashboard for ticket sales\n- Implement reporting on discount code usage\n- Add inventory tracking and alerts\n- Create transaction history view\n- Add export functionality for reports",
-      "testStrategy": "Verify reports show accurate data. Test with various event scenarios and data volumes."
-    },
-    {
-      "id": 16,
-      "title": "Implement comprehensive error handling",
-      "description": "Add robust error handling throughout the ticket purchasing flow.",
-      "status": "pending",
-      "dependencies": [
-        9,
-        10,
-        11,
-        12
-      ],
-      "priority": "medium",
-      "details": "- Implement client-side error handling\n- Add server-side error handling\n- Create user-friendly error messages\n- Add logging for debugging\n- Handle edge cases like network failures, timeouts, etc.",
-      "testStrategy": "Test various error scenarios. Verify appropriate error messages are displayed. Check logs for debugging information."
-    },
-    {
-      "id": 17,
-      "title": "Perform end-to-end testing",
-      "description": "Test the complete ticket purchasing flow from selection to confirmation.",
+      "title": "Implement individual Focus Group page",
+      "description": "Create the public page for individual focus groups with tabbed interface",
       "status": "pending",
       "dependencies": [
         3,
         4,
+        6
+      ],
+      "priority": "medium",
+      "details": "Build the `/focus-groups/[slug]` page with:\n- Hero section with group details\n- Tabbed interface for About, Events, and Members sections\n- About tab: Display full description and group leads\n- Events tab: List and calendar views filtered by the focus group\n- Members tab: Configurable public roster of members\n\nEnsure the page handles invalid slugs gracefully.",
+      "testStrategy": "Test with various focus groups to verify correct display of information across all tabs."
+    },
+    {
+      "id": 8,
+      "title": "Implement Focus Group admin listing page",
+      "description": "Create the admin page for managing focus groups",
+      "status": "pending",
+      "dependencies": [
+        3,
+        5
+      ],
+      "priority": "high",
+      "details": "Build the `/admin/focus-groups` page with:\n- List of all focus groups with filtering options\n- Create new focus group functionality\n- Edit and delete capabilities\n- Links to manage events and members for each group\n\nEnsure proper validation for all form inputs and confirmation for destructive actions.",
+      "testStrategy": "Test CRUD operations for focus groups and verify validation works correctly."
+    },
+    {
+      "id": 9,
+      "title": "Implement Focus Group events management page",
+      "description": "Create the admin page for linking events to focus groups",
+      "status": "pending",
+      "dependencies": [
+        3,
         5,
+        8
+      ],
+      "priority": "high",
+      "details": "Build the `/admin/focus-groups/[id]/events` page with:\n- List of currently linked events\n- Search/filter functionality to find events\n- UI for linking new events to the focus group\n- Ability to unlink events\n\nEnsure the page handles pagination for large numbers of events.",
+      "testStrategy": "Test linking and unlinking events, verify the changes are reflected in both the admin UI and public pages."
+    },
+    {
+      "id": 10,
+      "title": "Implement Focus Group members management page",
+      "description": "Create the admin page for managing focus group membership",
+      "status": "pending",
+      "dependencies": [
+        3,
+        5,
+        8
+      ],
+      "priority": "high",
+      "details": "Build the `/admin/focus-groups/[id]/members` page with:\n- List of current members with their roles and statuses\n- Add new members functionality\n- Change role and status capabilities\n- Remove members functionality\n\nEnsure proper validation for role and status values (uppercase normalization).",
+      "testStrategy": "Test adding, updating, and removing members with different roles and statuses."
+    },
+    {
+      "id": 11,
+      "title": "Update event calendar to support Focus Group filtering",
+      "description": "Enhance the event calendar to filter events by focus group",
+      "status": "pending",
+      "dependencies": [
+        3,
+        7
+      ],
+      "priority": "medium",
+      "details": "Modify the existing event calendar to:\n- Accept `?focusGroup=slug` query parameter\n- Filter events based on focus group association\n- Update UI to indicate when a filter is active\n\nEnsure backward compatibility with existing calendar functionality.",
+      "testStrategy": "Test filtering by various focus groups and verify correct events are displayed."
+    },
+    {
+      "id": 12,
+      "title": "Update event listing to show Focus Group associations",
+      "description": "Enhance event listings to display associated focus groups",
+      "status": "pending",
+      "dependencies": [
+        3,
+        7
+      ],
+      "priority": "medium",
+      "details": "Modify event listing components to:\n- Display focus group tags/badges on event cards\n- Link these tags to respective focus group pages\n- Update event detail pages to show associated focus groups\n\nEnsure consistent styling with the rest of the application.",
+      "testStrategy": "Verify focus group associations are correctly displayed on event listings and detail pages."
+    },
+    {
+      "id": 13,
+      "title": "Implement Focus Group membership controls",
+      "description": "Add UI elements for users to join/leave focus groups",
+      "status": "pending",
+      "dependencies": [
+        3,
+        5,
+        7
+      ],
+      "priority": "medium",
+      "details": "Add functionality for:\n- Authenticated users to request to join a focus group\n- Members to leave a focus group\n- Display membership status to the user\n\nEnsure proper handling of different membership statuses (ACTIVE/INACTIVE/PENDING).",
+      "testStrategy": "Test the join/leave functionality with different user accounts and verify status changes are correctly reflected."
+    },
+    {
+      "id": 14,
+      "title": "Add Focus Group filtering to event search",
+      "description": "Enhance event search functionality to filter by focus group",
+      "status": "pending",
+      "dependencies": [
+        3,
+        11,
+        12
+      ],
+      "priority": "low",
+      "details": "Update the event search component to:\n- Add focus group filter option\n- Allow multiple focus group selection\n- Maintain filter state in URL parameters\n\nEnsure the UI clearly indicates when filters are active.",
+      "testStrategy": "Test various filter combinations to verify correct results are returned."
+    },
+    {
+      "id": 15,
+      "title": "Implement comprehensive testing",
+      "description": "Create end-to-end and integration tests for Focus Group functionality",
+      "status": "pending",
+      "dependencies": [
         6,
         7,
         8,
@@ -222,24 +201,11 @@
         11,
         12,
         13,
-        14,
-        16
+        14
       ],
-      "priority": "high",
-      "details": "- Test the complete user journey\n- Verify all components work together correctly\n- Test edge cases and error scenarios\n- Verify database state after transactions\n- Test on multiple browsers and devices",
-      "testStrategy": "Perform manual and automated end-to-end testing of the complete flow. Verify all components integrate correctly."
-    },
-    {
-      "id": 18,
-      "title": "Optimize performance",
-      "description": "Optimize the ticket purchasing flow for speed and reliability.",
-      "status": "pending",
-      "dependencies": [
-        17
-      ],
-      "priority": "low",
-      "details": "- Optimize API calls\n- Implement caching where appropriate\n- Optimize client-side rendering\n- Add loading states for better UX\n- Test and optimize for mobile performance",
-      "testStrategy": "Measure performance metrics before and after optimization. Test on various devices and network conditions."
+      "priority": "medium",
+      "details": "Develop tests covering:\n- Public page rendering\n- Admin functionality\n- API integrations\n- Authentication and authorization\n- Edge cases and error handling\n\nEnsure all acceptance criteria are validated through automated tests.",
+      "testStrategy": "Run the test suite against a staging environment to verify full functionality."
     }
   ]
 }

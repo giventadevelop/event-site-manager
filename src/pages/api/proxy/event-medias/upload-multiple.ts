@@ -31,7 +31,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (qs) apiUrl += `?${qs}`;
 
   const fetch = (await import("node-fetch")).default;
-  const headers = { ...req.headers, authorization: `Bearer ${token}` };
+  // Convert headers to a plain object to avoid Next.js 15+ iteration issues
+  const headersObj: Record<string, string | string[]> = {};
+  req.headers.forEach((value, key) => {
+    headersObj[key] = value;
+  });
+  const headers = { ...headersObj, authorization: `Bearer ${token}` };
   delete headers["host"];
   delete headers["connection"];
   // Sanitize headers

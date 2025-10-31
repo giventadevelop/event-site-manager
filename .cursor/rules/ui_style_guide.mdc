@@ -245,34 +245,59 @@ function UserDetailsTooltip({ user, anchorRect, onClose }: { user: UserProfileDT
   See [`/admin/events/[id]/tickets/list`](http://localhost:3000/admin/events/1/tickets/list) for a working implementation that matches the admin dashboard.
 
 ### UI/UX Consistency
+- **CRITICAL: Always show pagination controls** - Never conditionally hide pagination based on `totalPages > 1` or `totalCount > 0`
+- Pagination controls must be visible in ALL states: loading, empty results, with data
 - Pagination controls must use:
   - Previous/Next buttons on the left/right.
   - Page status in the center ("Page X of Y").
   - Range and total count below ("Showing X to Y of Z items").
 - Use the same button and layout logic as in `src/components/EventList.tsx` and the admin dashboard.
+- **Always show grayed out buttons** when navigation is not possible (first page, last page, loading)
 
 ### Example Implementation
 ```tsx
+// ALWAYS show pagination controls - never conditionally hide
 const totalPages = Math.ceil(totalCount / pageSize);
-const hasPrevPage = currentPage > 1;
-const hasNextPage = currentPage < totalPages;
-const startItem = totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
-const endItem = (currentPage - 1) * pageSize + rows.length;
+const isPrevDisabled = currentPage === 0 || loading;
+const isNextDisabled = currentPage >= totalPages - 1 || loading;
+const startItem = totalCount > 0 ? currentPage * pageSize + 1 : 0;
+const endItem = totalCount > 0 ? currentPage * pageSize + Math.min(pageSize, totalCount - currentPage * pageSize) : 0;
 
-<div className="mt-4">
+// Always render pagination - show in ALL states (loading, empty, with data)
+<div className="mt-8">
   <div className="flex justify-between items-center">
-    <button disabled={!hasPrevPage} onClick={onPrevPage} className="...">
-      <FaChevronLeft /> Previous
+    <button 
+      disabled={isPrevDisabled} 
+      onClick={handlePrevPage}
+      className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+    >
+      <ChevronLeft className="h-5 w-5" />
+      Previous
     </button>
-    <div className="text-sm font-semibold">
-      Page {currentPage} of {totalPages}
+    <div className="text-sm font-semibold text-gray-700">
+      Page {currentPage + 1} of {totalPages}
     </div>
-    <button disabled={!hasNextPage} onClick={onNextPage} className="...">
-      Next <FaChevronRight />
+    <button 
+      disabled={isNextDisabled} 
+      onClick={handleNextPage}
+      className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+    >
+      Next
+      <ChevronRight className="h-5 w-5" />
     </button>
   </div>
   <div className="text-center text-sm text-gray-600 mt-2">
-    Showing {rows.length > 0 ? startItem : 0} to {rows.length > 0 ? endItem : 0} of {totalCount} items
+    {totalCount > 0 ? (
+      <>Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of{' '}
+      <span className="font-medium">{totalCount}</span> items</>
+    ) : (
+      <div className="flex items-center justify-center gap-2">
+        <span>No items found</span>
+        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm font-medium">
+          [No items match your criteria]
+        </span>
+      </div>
+    )}
   </div>
 </div>
 ```
@@ -281,6 +306,7 @@ const endItem = (currentPage - 1) * pageSize + rows.length;
 - Proxy handler: [`src/lib/proxyHandler.ts`](mdc:src/lib/proxyHandler.ts)
 - Example page: [`/admin/events/[id]/tickets/list`](http://localhost:3000/admin/events/1/tickets/list)
 - Admin dashboard: [`/admin`](mdc:http:/localhost:3000/admin)
+- Gallery implementation: [`src/app/gallery/components/GalleryPagination.tsx`](mdc:src/app/gallery/components/GalleryPagination.tsx)
 - CSS: `src/styles/globals.css`
 - Example Components: `src/components/EventList.tsx`, `src/app/admin/events/[id]/media/list/page.tsx`, `src/app/admin/manage-usage/page.tsx`
 

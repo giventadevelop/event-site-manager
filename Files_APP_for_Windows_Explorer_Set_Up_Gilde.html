@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Files App for Windows - Setup & Repair Guide</title>
+  <style>
+    :root { --bg:#0b0f14; --card:#10161d; --text:#e8f0f7; --muted:#a8b3bf; --accent:#42b0ff; --ok:#22c55e; --warn:#f59e0b; }
+    html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; }
+    .container { max-width: 960px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 28px; margin: 0 0 12px; }
+    h2 { font-size: 20px; margin: 28px 0 12px; }
+    p { color: var(--muted); line-height: 1.6; margin: 8px 0; }
+    .card { background: var(--card); border: 1px solid #1e2937; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .note { border-left: 4px solid var(--accent); padding-left: 12px; }
+    .step { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .badge { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#0f1725; border:1px solid #1e2937; color:var(--muted); font-size:12px; }
+    .cmd { position: relative; margin-top: 10px; }
+    pre { background:#0a1220; border:1px solid #1f2a40; color:#dbe8ff; border-radius: 8px; padding: 12px 44px 12px 12px; overflow:auto; }
+    code { white-space: pre-wrap; word-break: break-word; }
+    .copy { position:absolute; top:8px; right:8px; background:#0f1725; color:#cde5ff; border:1px solid #23344e; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:12px; }
+    .copy:hover { background:#122037; }
+    .ok { color: var(--ok); font-weight: 600; }
+    .warning { color: var(--warn); font-weight: 600; }
+    ul { margin: 6px 0 10px 22px; }
+    li { margin: 6px 0; }
+    .footer { color:#7f8a96; font-size:12px; margin-top:24px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Files App for Windows — Setup & Repair Guide</h1>
+    <p class="note">This guide fixes the “Windows cannot find ...\WindowsApps\...\Files.exe” error by fully removing broken installs and reinstalling the Files app.</p>
+
+    <div class="card">
+      <div class="step">Prerequisites</div>
+      <ul>
+        <li>Open <strong>Windows PowerShell (Admin)</strong> — right click Start → Windows PowerShell (Admin).</li>
+        <li>Run each command <strong>one by one</strong>. Most steps finish in seconds; a few can take several minutes.</li>
+        <li>Reboot if prompted and after step 6 (repairs), then retry the install step.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="step">If <code>winget</code> is not recognized — install/repair App Installer</div>
+      <p><code>winget</code> ships with <strong>App Installer</strong> (package: <code>Microsoft.DesktopAppInstaller</code>). Use the steps below to install/repair it.</p>
+      <p><span class="badge">Check status</span></p>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>Get-AppxPackage Microsoft.DesktopAppInstaller; Test-Path "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe"</code></pre>
+      </div>
+      <p><span class="badge">Reset Microsoft Store (helps install/repair)</span></p>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>wsreset.exe</code></pre>
+      </div>
+      <p><span class="badge">Install/Repair via Microsoft Store (preferred)</span></p>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>start ms-windows-store://pdp/?ProductId=9NBLGGH4NNS1</code></pre>
+      </div>
+      <p>In the Store window that opens, click <strong>Get</strong> or <strong>Install</strong> for App Installer, then close and reopen PowerShell.</p>
+      <p><span class="badge">Offline install (if Store is blocked)</span></p>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile "$env:TEMP\AppInstaller.msixbundle" -UseBasicParsing
+Add-AppxPackage -Path "$env:TEMP\AppInstaller.msixbundle"</code></pre>
+      </div>
+      <p class="warning">If Add-AppxPackage complains about missing dependencies (VCLibs/UI.Xaml), install them from Microsoft Store or official links, then rerun Add-AppxPackage.</p>
+      <p><span class="badge">Ensure WindowsApps is on PATH (optional)</span></p>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>$wa = "$env:LOCALAPPDATA\Microsoft\WindowsApps"
+if (-not (($env:PATH -split ';') -contains $wa)) { setx PATH "$env:PATH;$wa" }
+# Close and reopen PowerShell after running this</code></pre>
+      </div>
+      <p><span class="badge">Verify winget</span></p>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>winget --info</code></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step">1) Uninstall any remnants of Files (UWP and Community)</div>
+      <p>Removes per-user and provisioned packages so a clean install can succeed.</p>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>Get-AppxPackage -AllUsers | ? { $_.Name -match 'FilesUWP|FilesCommunity' } | Remove-AppxPackage -AllUsers</code></pre>
+      </div>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>Get-AppxProvisionedPackage -Online | ? { $_.DisplayName -match 'FilesUWP|FilesCommunity' } | Remove-AppxProvisionedPackage -Online</code></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step">2) Reset Microsoft Store cache</div>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>wsreset.exe</code></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step">3) Re-register Microsoft Store</div>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>Get-AppxPackage -AllUsers Microsoft.WindowsStore | % { Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppxManifest.xml" }</code></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step">4) Install Files app from Microsoft Store (via winget)</div>
+      <p>If asked to agree to terms in a window, accept and re-run the command if it doesn’t continue automatically.</p>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>winget install --id FilesCommunity.Files -s msstore</code></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step">5) Verify install (optional)</div>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>winget list --id FilesCommunity.Files</code></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step">6) If install still fails — repair Windows components, then retry step 4</div>
+      <p>These can take a while; run in this order and reboot after completion.</p>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>DISM /Online /Cleanup-Image /RestoreHealth</code></pre>
+      </div>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>sfc /scannow</code></pre>
+      </div>
+      <p>After both are <span class="ok">100% complete</span>, reboot and run the install command again.</p>
+    </div>
+
+    <div class="card">
+      <div class="step">Optional diagnostics</div>
+      <ul>
+        <li>Confirm Files package exists in winget catalog.</li>
+      </ul>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>winget search FilesCommunity</code></pre>
+      </div>
+      <ul>
+        <li>Basic DNS connectivity check (not required, just a sanity test).</li>
+      </ul>
+      <div class="cmd">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><code>nslookup files.community</code></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step">Tips</div>
+      <ul>
+        <li>Ensure new apps install to <strong>C:</strong> — Settings → System → Storage → Advanced storage settings → “Where new content is saved”.</li>
+        <li>Install pending Windows Updates and reboot.</li>
+      </ul>
+    </div>
+
+    <p class="footer">Generated helper page — copy buttons use your clipboard API. If a button doesn’t work, manually select and copy the command.</p>
+  </div>
+
+  <script>
+    function copyCode(btn) {
+      try {
+        var code = btn.parentElement.querySelector('code');
+        var text = code ? code.innerText : '';
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(function(){
+          var old = btn.textContent; btn.textContent = 'Copied';
+          setTimeout(function(){ btn.textContent = old; }, 1400);
+        }).catch(function(){
+          var range = document.createRange();
+          range.selectNodeContents(code);
+          var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+          try { document.execCommand('copy'); } catch(e) {}
+          sel.removeAllRanges();
+          var old = btn.textContent; btn.textContent = 'Copied';
+          setTimeout(function(){ btn.textContent = old; }, 1400);
+        });
+      } catch (e) { console.error('Copy failed', e); }
+    }
+  </script>
+</body>
+</html>
+
+
+

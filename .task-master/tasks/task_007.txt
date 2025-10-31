@@ -1,14 +1,18 @@
 # Task ID: 7
-# Title: Implement real-time price calculation
-# Status: done
-# Dependencies: 5 ✅, 6 ✅
+# Title: Implement individual Focus Group page
+# Status: pending
+# Dependencies: 3 ⏱️, 4 ⏱️, 6 ⏱️
 # Priority: medium
-# Description: Create a system for calculating and displaying subtotal, discounts, and total in real-time.
+# Description: Create the public page for individual focus groups with tabbed interface
 # Details:
-- Implement price calculation logic
-- Update UI components to display subtotal, discount amount, and total
-- Ensure calculations update in real-time as users change selections
-- Format currency values appropriately
+Build the `/focus-groups/[slug]` page with:
+- Hero section with group details
+- Tabbed interface for About, Events, and Members sections
+- About tab: Display full description and group leads
+- Events tab: List and calendar views filtered by the focus group
+- Members tab: Configurable public roster of members
+
+Ensure the page handles invalid slugs gracefully.
 
 # Test Strategy:
-Test calculations with various ticket combinations and discount scenarios. Verify all displayed values are accurate and update in real-time.
+Test with various focus groups to verify correct display of information across all tabs.

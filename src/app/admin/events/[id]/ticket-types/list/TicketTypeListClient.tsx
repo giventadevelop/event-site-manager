@@ -63,7 +63,7 @@ function TicketTypeDetailsTooltip({ ticketType, anchorRect, onClose }: { ticketT
           &times;
         </button>
       </div>
-      
+
       {/* Tooltip content */}
       <div className="space-y-3">
         <div>
@@ -96,11 +96,10 @@ function TicketTypeDetailsTooltip({ ticketType, anchorRect, onClose }: { ticketT
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Status:</span>
-            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-              ticketType.isActive 
-                ? 'bg-green-100 text-green-800' 
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticketType.isActive
+                ? 'bg-green-100 text-green-800'
                 : 'bg-red-100 text-red-800'
-            }`}>
+              }`}>
               {ticketType.isActive ? 'Active' : 'Inactive'}
             </span>
           </div>
@@ -292,7 +291,7 @@ export default function TicketTypeListClient({ eventId, eventDetails, ticketType
             <FaPlus /> Add New Ticket Type
           </button>
         </div>
-        
+
         {/* Hint message */}
         <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
           <div className="flex">
@@ -306,7 +305,7 @@ export default function TicketTypeListClient({ eventId, eventDetails, ticketType
             </div>
           </div>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -331,11 +330,10 @@ export default function TicketTypeListClient({ eventId, eventDetails, ticketType
                     {ticketType.availableQuantity}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      ticketType.isActive 
-                        ? 'bg-green-100 text-green-800' 
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticketType.isActive
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
-                    }`}>
+                      }`}>
                       {ticketType.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
@@ -370,16 +368,21 @@ export default function TicketTypeListClient({ eventId, eventDetails, ticketType
             }, 200);
           }}
         >
-          <TicketTypeDetailsTooltip 
-            ticketType={hoveredTicketType} 
-            anchorRect={popoverAnchor} 
-            onClose={closeTooltip} 
+          <TicketTypeDetailsTooltip
+            ticketType={hoveredTicketType}
+            anchorRect={popoverAnchor}
+            onClose={closeTooltip}
           />
         </div>
       )}
 
       {deletingTicketType && (
-        <Modal open={!!deletingTicketType} onClose={() => setDeletingTicketType(null)} title="Confirm Deletion">
+        <Modal
+          open={!!deletingTicketType}
+          onClose={() => setDeletingTicketType(null)}
+          title="Confirm Deletion"
+          preventBackdropClose={true}
+        >
           <div className="text-center">
             <p className="text-lg">
               Are you sure you want to delete the ticket type: <strong>{deletingTicketType.name}</strong>?
@@ -405,7 +408,12 @@ export default function TicketTypeListClient({ eventId, eventDetails, ticketType
         </Modal>
       )}
 
-      <Modal open={isModalOpen} onClose={handleModalClose} title={editingTicketType ? "Edit Ticket Type" : "Add Ticket Type"}>
+      <Modal
+        open={isModalOpen}
+        onClose={handleModalClose}
+        title={editingTicketType ? "Edit Ticket Type" : "Add Ticket Type"}
+        preventBackdropClose={true}
+      >
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="text-red-500 bg-red-100 p-3 rounded-md">{error}</div>}
 

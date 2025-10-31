@@ -36,11 +36,14 @@ export function getTenantId() {
  * Get the app URL for port-agnostic configuration
  * This is used for server-side API calls to ensure the application works on any port
  * Returns the full URL including protocol (e.g., "http://localhost:3000" or "https://mcefee.org")
+ *
+ * IMPORTANT: This function should NOT have hardcoded fallbacks. The actual host should be
+ * determined from the request context or environment variables to avoid hardcoding issues.
  */
 export function getAppUrl(): string {
-  // In production, use the actual domain
+  // In production, use the actual domain from environment variable
   if (process.env.NODE_ENV === 'production') {
-    return process.env.NEXT_PUBLIC_APP_URL || 'https://mcefee.org';
+    return process.env.NEXT_PUBLIC_APP_URL || '';
   }
   // In development, use localhost with dynamic port detection
   return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -50,12 +53,15 @@ export function getAppUrl(): string {
  * Get the email host URL prefix for QR code generation
  * This is used to ensure QR codes work properly in email contexts
  * Returns the full URL including protocol (e.g., "http://localhost:3000" or "https://mcefee.org")
+ *
+ * IMPORTANT: This function should NOT have hardcoded fallbacks. The actual host should be
+ * determined from the request context or environment variables to avoid hardcoding issues.
  */
 export function getEmailHostUrlPrefix(): string {
-  // In production, use the actual domain
+  // In production, use the actual domain from environment variable
   if (process.env.NODE_ENV === 'production') {
-    return process.env.NEXT_PUBLIC_APP_URL || 'https://mcefee.org';
+    return process.env.NEXT_PUBLIC_APP_URL || '';
   }
-  // In development, use localhost
+  // In development, use localhost with dynamic port detection
   return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 }

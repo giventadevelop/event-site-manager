@@ -39,6 +39,17 @@ export default async function TicketTypeListPage({ params }: Props) {
         </p>
       </div>
 
+      {/* Concise Event Summary */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-gray-700">
+          <div><span className="font-semibold text-gray-600">Event ID:</span> {event.id}</div>
+          <div className="sm:col-span-2"><span className="font-semibold text-gray-600">Title:</span> {event.title}</div>
+          <div><span className="font-semibold text-gray-600">Start Date:</span> {event.startDate}</div>
+          <div><span className="font-semibold text-gray-600">End Date:</span> {event.endDate || event.startDate}</div>
+          <div><span className="font-semibold text-gray-600">Time:</span> {event.startTime} {event.endTime ? `- ${event.endTime}` : ''}</div>
+        </div>
+      </div>
+
       {/* Button Group */}
       <div className="w-full overflow-x-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-6 justify-items-center mx-auto max-w-6xl">

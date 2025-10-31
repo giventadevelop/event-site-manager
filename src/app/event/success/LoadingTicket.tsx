@@ -14,59 +14,48 @@ export default function LoadingTicket({ sessionId }: LoadingTicketProps) {
   console.log('LoadingTicket received sessionId:', sessionId);
   console.log('LoadingTicket image status - loaded:', isLoaded, 'error:', hasError);
 
-  // Fetch hero image data using sessionId - get eventId from Stripe session and fetch hero image directly
+  // Fetch hero image data using the success process endpoint
   useEffect(() => {
     if (sessionId) {
       const fetchHeroImage = async () => {
         try {
           console.log('LoadingTicket: Fetching hero image for session:', sessionId);
+          
+          // Get the pi parameter from URL if available
+          const url = new URL(window.location.href);
+          const pi = url.searchParams.get('pi');
+          const qs = sessionId ? `session_id=${encodeURIComponent(sessionId)}` : (pi ? `pi=${encodeURIComponent(pi)}` : '');
+          
+          if (!qs) {
+            console.log('LoadingTicket: No session_id or pi available');
+            return;
+          }
 
-          // First, try to get eventId from Stripe session
-          const stripeResponse = await fetch('/api/stripe/get-session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session_id: sessionId })
+          // Use the same endpoint as the success page to get event details and hero image
+          const response = await fetch(`/api/event/success/process?${qs}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            }
           });
 
-          if (stripeResponse.ok) {
-            const stripeData = await stripeResponse.json();
-            const eventId = stripeData.metadata?.eventId;
-            console.log('LoadingTicket: Got eventId from Stripe:', eventId);
-
-            if (eventId) {
-              // Fetch hero image like tickets page does
-              const eventIdNum = parseInt(eventId);
-              let imageUrl = null;
-
-              // Try flyer first
-              const flyerRes = await fetch(`/api/proxy/event-medias?eventId.equals=${eventIdNum}&eventFlyer.equals=true`, { cache: 'no-store' });
-              if (flyerRes.ok) {
-                const flyerData = await flyerRes.json();
-                if (Array.isArray(flyerData) && flyerData.length > 0 && flyerData[0].fileUrl) {
-                  imageUrl = flyerData[0].fileUrl;
-                }
-              }
-
-              // Try featured image if no flyer
-              if (!imageUrl) {
-                const featuredRes = await fetch(`/api/proxy/event-medias?eventId.equals=${eventIdNum}&isFeaturedImage.equals=true`, { cache: 'no-store' });
-                if (featuredRes.ok) {
-                  const featuredData = await featuredRes.json();
-                  if (Array.isArray(featuredData) && featuredData.length > 0 && featuredData[0].fileUrl) {
-                    imageUrl = featuredData[0].fileUrl;
-                  }
-                }
-              }
-
-              if (imageUrl) {
-                setHeroImageUrl(imageUrl);
-                console.log('LoadingTicket: Successfully fetched hero image URL:', imageUrl);
-              } else {
-                console.log('LoadingTicket: No hero image found for eventId:', eventId);
-              }
+          if (response.ok) {
+            const data = await response.json();
+            console.log('LoadingTicket: Response data:', { 
+              hasTransaction: !!data.transaction,
+              hasEventDetails: !!data.eventDetails,
+              hasHeroImageUrl: !!data.heroImageUrl 
+            });
+            
+            if (data.heroImageUrl) {
+              setHeroImageUrl(data.heroImageUrl);
+              console.log('LoadingTicket: Successfully fetched hero image URL:', data.heroImageUrl);
+            } else {
+              console.log('LoadingTicket: No hero image URL in response');
             }
           } else {
-            console.error('LoadingTicket: Failed to get Stripe session data');
+            console.error('LoadingTicket: Failed to get success process data:', response.status);
           }
         } catch (error) {
           console.error('LoadingTicket: Failed to fetch hero image:', error);
@@ -186,8 +175,8 @@ export default function LoadingTicket({ sessionId }: LoadingTicketProps) {
           className="mb-4 rounded shadow-lg"
           priority
         />
-        <div className="text-xl font-bold text-teal-700 mb-2">Please wait while your ticket is generated</div>
-        <div className="text-gray-600 text-base text-center">It may take a few minutes.<br />Do not close this page.</div>
+        <div className="text-xl font-bold text-teal-700 mb-2">Processing your payment and generating your QR code</div>
+        <div className="text-gray-600 text-base text-center">This may take a few moments.<br />Please do not close or refresh this page.</div>
       </div>
 
 

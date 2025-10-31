@@ -1,16 +1,17 @@
 # Task ID: 10
-# Title: Implement Stripe webhook handling
-# Status: done
-# Dependencies: 8 ✅, 9 ✅
+# Title: Implement Focus Group members management page
+# Status: pending
+# Dependencies: 3 ⏱️, 5 ⏱️, 8 ⏱️
 # Priority: high
-# Description: Create webhook endpoint to process Stripe payment events and update transaction status.
+# Description: Create the admin page for managing focus group membership
 # Details:
-- Create webhook endpoint for Stripe events
-- Implement signature verification for webhook security
-- Handle payment success events
-- Handle payment failure events
-- Update transaction status based on payment events
-- Decrement ticket inventory on successful payment
+Build the `/admin/focus-groups/[id]/members` page with:
+- List of current members with their roles and statuses
+- Add new members functionality
+- Change role and status capabilities
+- Remove members functionality
+
+Ensure proper validation for role and status values (uppercase normalization).
 
 # Test Strategy:
-Test webhook with Stripe test events. Verify transaction status updates correctly. Test inventory decrements correctly.
+Test adding, updating, and removing members with different roles and statuses.

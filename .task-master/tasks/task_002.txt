@@ -1,17 +1,16 @@
 # Task ID: 2
-# Title: Implement Next.js API proxy routes
-# Status: done
-# Dependencies: 1 ✅
+# Title: Create DTOs for Focus Group entities
+# Status: pending
+# Dependencies: 1 ⏱️
 # Priority: high
-# Description: Create API routes in Next.js to proxy requests to the backend Spring Boot API.
+# Description: Define TypeScript DTOs for the Focus Group related entities
 # Details:
-Create the following API routes:
-- /api/event-details/[id]
-- /api/event-ticket-types (with query param support)
-- /api/discount-codes (with query param support)
-- /api/event-ticket-transactions
+Add the following DTOs to `src/types/index.ts`:
+- `FocusGroupDTO`
+- `FocusGroupMemberDTO`
+- `EventFocusGroupDTO`
 
-Ensure all routes follow the nextjs_api_routes.mdc pattern.
+Ensure all DTOs are flat, serializable, and use uppercase enums for consistency.
 
 # Test Strategy:
-Test each API route to ensure it correctly proxies requests to the backend and returns the expected responses.
+Verify the DTOs match the backend entities and include all required fields.

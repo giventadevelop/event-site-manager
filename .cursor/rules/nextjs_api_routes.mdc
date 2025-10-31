@@ -564,6 +564,188 @@ alwaysApply: true
   - **References:**
     - See `src/app/page.tsx` for graceful error handling example
 
+- **Public Page API Call Pattern: Avoid Server Actions from Client Components**
+  - For public pages (like homepage) that don't require authentication, avoid calling server actions from client components to prevent Next.js 15+ `headers()` async context errors.
+  - Instead, use direct `fetch()` calls to proxy endpoints that are listed in the public routes.
+  - **Rationale:** Server actions called from client components can trigger `headers()` without awaiting, causing runtime errors in Next.js 15+.
+  - **DO:**
+    ```typescript
+    // ✅ DO: Use direct fetch to proxy endpoints from client components on public pages
+    'use client';
+    export function TeamSection() {
+      useEffect(() => {
+        const loadData = async () => {
+          const baseUrl = getAppUrl();
+          const response = await fetch(
+            `${baseUrl}/api/proxy/executive-committee-team-members?isActive.equals=true&sort=priorityOrder,asc`,
+            {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json' },
+              cache: 'no-store',
+            }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            setData(Array.isArray(data) ? data : []);
+          }
+        };
+        loadData();
+      }, []);
+    }
+    ```
+  - **DON'T:**
+    ```typescript
+    // ❌ DON'T: Call server actions from client components on public pages
+    'use client';
+    export function TeamSection() {
+      useEffect(() => {
+        const loadData = async () => {
+          const data = await fetchExecutiveTeamMembersServer(); // Server action - causes headers() error
+          setData(data);
+        };
+        loadData();
+      }, []);
+    }
+    ```
+  - **When to Use This Pattern:**
+    - Public pages (homepage, event pages, etc.) that don't require authentication
+    - Client components that need to fetch data on mount
+    - When the proxy endpoint is in the public routes list
+  - **When NOT to Use:**
+    - Protected/admin pages that require authentication
+    - Server components (use server actions normally)
+    - When you need JWT authentication (use server actions with proper auth)
+  - **References:**
+    - See `src/components/TeamSection.tsx` for correct implementation
+    - See `src/components/charity-sections/TeamSection.tsx` for correct implementation
+    - See `src/middleware.ts` for public routes configuration
+
+- **STRICT RULE: All Server Actions Must Use fetchWithJwtRetry for Backend API Calls**
+  - **CRITICAL**: All server actions that make backend API calls MUST use `fetchWithJwtRetry` from `@/lib/proxyHandler`.
+  - **NEVER** use direct `fetch()` calls to backend APIs in server actions.
+  - **NEVER** implement custom JWT retry logic in server actions.
+  - **Rationale**: This ensures consistent authentication, error handling, and prevents `headers()` async context errors in Next.js 15+.
+  - **DO:**
+    ```typescript
+    // ✅ DO: Use fetchWithJwtRetry for all backend API calls
+    import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+
+    export async function fetchDataServer() {
+      const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/some-endpoint`, {
+        cache: 'no-store',
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    }
+    ```
+  - **DON'T:**
+    ```typescript
+    // ❌ DON'T: Use direct fetch with custom JWT logic
+    let token = await getCachedApiJwt();
+    let res = await fetch(`${API_BASE_URL}/api/some-endpoint`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (res.status === 401) {
+      token = await generateApiJwt();
+      res = await fetch(`${API_BASE_URL}/api/some-endpoint`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+    }
+
+    // ❌ DON'T: Use direct fetch without JWT
+    const res = await fetch(`${API_BASE_URL}/api/some-endpoint`);
+    ```
+  - **Exception**: Only use direct `fetch()` for proxy endpoints (e.g., `/api/proxy/...`) that are in the public routes list.
+  - **Enforcement**: This rule applies to ALL server actions in the codebase. Any server action found using direct `fetch()` to backend APIs will be flagged for immediate correction.
+  - **References:**
+    - See `src/lib/proxyHandler.ts` for the `fetchWithJwtRetry` implementation
+    - See `src/app/admin/events/[id]/media/ApiServerActions.ts` for correct usage
+    - See `src/app/admin/ApiServerActions.ts` for correct usage
+
+---
+**Clerk Middleware Public Routes Configuration**
+- **CRITICAL**: When using Clerk authentication with satellite domain support, the `publicRoutes` array in `src/middleware.ts` must include `/api/proxy(.*)` to allow public API data access.
+- **Problem Solved**: Without this configuration, ALL `/api/proxy/` calls (even for public data like events, gallery, polls) will return 401 Unauthorized errors for unauthenticated users, breaking public pages.
+- **Architecture Decision**:
+  - **Clerk Middleware**: Handles user authentication and session management ONLY
+  - **Backend API**: Handles data authorization via JWT authentication
+  - **Public Data**: All `/api/proxy/` routes are public by default - backend determines what data requires authentication
+- **Required Configuration** in `src/middleware.ts`:
+  ```typescript
+  import { authMiddleware } from "@clerk/nextjs/server";
+  import { NextResponse } from "next/server";
+
+  export default authMiddleware({
+    // Define public routes that don't require authentication
+    // IMPORTANT: Public API routes allow unauthenticated users to fetch public data
+    publicRoutes: [
+      '/',
+      '/sign-in(.*)',
+      '/sign-up(.*)',
+      '/sso-callback(.*)',
+      '/api/webhooks(.*)',
+      '/api/public(.*)',
+      '/api/proxy(.*)',  // Public API proxy routes for public data (events, etc.)
+      '/mosc(.*)',
+      '/events(.*)',
+      '/gallery(.*)',
+      '/about(.*)',
+      '/contact(.*)',
+      '/polls(.*)',
+      '/charity-theme(.*)',
+    ],
+
+    // Satellite domain configuration for multi-domain support
+    isSatellite: process.env.NEXT_PUBLIC_APP_URL?.includes('mosc-temp.com') || false,
+    domain: process.env.NEXT_PUBLIC_APP_URL?.includes('mosc-temp.com') ? 'www.mosc-temp.com' : undefined,
+
+    signInUrl: process.env.NEXT_PUBLIC_APP_URL?.includes('amplifyapp.com') || process.env.NEXT_PUBLIC_APP_URL?.includes('mosc-temp.com')
+      ? 'https://www.adwiise.com/sign-in'
+      : '/sign-in',
+
+    afterAuth(auth, req) {
+      const response = NextResponse.next();
+      response.headers.set('x-pathname', req.nextUrl.pathname);
+      return response;
+    }
+  });
+  ```
+- **Why This Works**:
+  - Public pages (home, events, gallery, polls) can fetch data without requiring Clerk login
+  - Admin/protected routes are still protected by backend JWT authentication
+  - Separation of concerns: Clerk = user auth, Backend = data authorization
+  - Satellite domain authentication flow remains intact
+- **DO:**
+  ```typescript
+  // ✅ DO: Add /api/proxy(.*) to publicRoutes
+  publicRoutes: [
+    '/',
+    '/api/proxy(.*)',  // Allows public data access
+    // ... other public routes
+  ],
+  ```
+- **DON'T:**
+  ```typescript
+  // ❌ DON'T: Omit /api/proxy(.*) from publicRoutes
+  publicRoutes: [
+    '/',
+    '/sign-in(.*)',
+    // Missing /api/proxy(.*) - will cause 401 errors on all public pages
+  ],
+  ```
+- **Symptoms of Missing Configuration**:
+  - Console errors: `GET /api/proxy/event-details 401 (Unauthorized)`
+  - Public pages not loading data (events, gallery, polls)
+  - Backend JWT authentication working but Clerk blocking all requests
+- **Testing**:
+  - Sign out completely and visit public pages (home, events, gallery)
+  - Verify that data loads without authentication
+  - Verify that admin pages still require login
+- **References:**
+  - See `src/middleware.ts` for complete implementation
+  - See `src/app/layout.tsx` for satellite domain ClerkProvider configuration
+  - See ByteRover memory for architectural decision details
+
 
 
 

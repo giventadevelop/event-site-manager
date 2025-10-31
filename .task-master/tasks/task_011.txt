@@ -1,15 +1,16 @@
 # Task ID: 11
-# Title: Create confirmation and error pages
+# Title: Update event calendar to support Focus Group filtering
 # Status: pending
-# Dependencies: 9 ✅
+# Dependencies: 3 ⏱️, 7 ⏱️
 # Priority: medium
-# Description: Implement pages to show payment confirmation or errors to users.
+# Description: Enhance the event calendar to filter events by focus group
 # Details:
-- Create success confirmation page
-- Create error/cancellation page
-- Implement loading states during payment processing
-- Add clear messaging and next steps for users
-- Include option to retry payment on error/cancel
+Modify the existing event calendar to:
+- Accept `?focusGroup=slug` query parameter
+- Filter events based on focus group association
+- Update UI to indicate when a filter is active
+
+Ensure backward compatibility with existing calendar functionality.
 
 # Test Strategy:
-Test both success and error flows. Verify appropriate information is displayed to users.
+Test filtering by various focus groups and verify correct events are displayed.

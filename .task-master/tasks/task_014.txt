@@ -1,14 +1,16 @@
 # Task ID: 14
-# Title: Implement inventory management
-# Status: done
-# Dependencies: 10 ✅
-# Priority: high
-# Description: Create system to track and update ticket inventory in real-time.
+# Title: Add Focus Group filtering to event search
+# Status: pending
+# Dependencies: 3 ⏱️, 11 ⏱️, 12 ⏱️
+# Priority: low
+# Description: Enhance event search functionality to filter by focus group
 # Details:
-- Implement inventory checking before checkout
-- Update inventory after successful payment
-- Handle edge cases like concurrent purchases
-- Implement UI updates for sold-out tickets
+Update the event search component to:
+- Add focus group filter option
+- Allow multiple focus group selection
+- Maintain filter state in URL parameters
+
+Ensure the UI clearly indicates when filters are active.
 
 # Test Strategy:
-Test inventory updates with concurrent transactions. Verify sold-out states display correctly.
+Test various filter combinations to verify correct results are returned.

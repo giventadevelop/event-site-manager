@@ -1,16 +1,16 @@
 # Task ID: 1
-# Title: Set up shared data models and types
-# Status: done
+# Title: Update database schema for Focus Groups
+# Status: pending
 # Dependencies: None
 # Priority: high
-# Description: Create TypeScript definitions for all DTOs to be used across the application.
+# Description: Add new tables to the database schema for focus groups functionality
 # Details:
-Create the following in src/types/index.ts:
-- EventDetailsDTO
-- EventTicketTypeDTO
-- DiscountCodeDTO
-- EventTicketTransactionDTO
-- Any other supporting interfaces needed for the ticket purchasing flow
+Add the following tables to the schema:
+- `focus_group` (tenant_id, name, slug, description, cover_image_url, is_active, created_at, updated_at)
+- `focus_group_members` (tenant_id, focus_group_id, user_profile_id, role, status, created_at, updated_at)
+- `event_focus_groups` (tenant_id, event_id, focus_group_id)
+
+Ensure composite unique constraints are added per tenant for name/slug and joins. Set up VARCHAR(50) for role/status columns and create (but don't apply) the enums `focus_group_member_role_type` and `focus_group_member_status_type`.
 
 # Test Strategy:
-Verify that all types are properly defined and exported. Ensure they match the backend API specifications.
+Verify schema changes are correctly applied and constraints are working as expected.

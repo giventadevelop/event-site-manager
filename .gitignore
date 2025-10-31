@@ -20,6 +20,12 @@ out/
 .env.production
 .env.production.*
 .env.local*
+.task-master/.env
+.task-master/.env.local
+.env.amplify
+.env.amplify.example
+env-vars.json
+current-env.json
 
 # Editor directories and files
 .idea
@@ -45,3 +51,12 @@ wasm-edge-light-loader.*
 # Ignore the task-master dev script
 .task-master/dev.js
 dev.js
+.clinerules/byterover-rules.md
+.kilocode/rules/byterover-rules.md
+.roo/rules/byterover-rules.md
+.windsurf/rules/byterover-rules.md
+.cursor/rules/byterover-rules.mdc
+.kiro/steering/byterover-rules.md
+.qoder/rules/byterover-rules.md
+.augment/rules/byterover-rules.md# Clerk credentials
+.clerk/

@@ -122,7 +122,19 @@ export default function DiscountCodeListClient({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-8 py-8">
+    <div className="max-w-5xl mx-auto px-8" style={{ paddingTop: '118px', paddingBottom: '32px' }}>
+      {/* Concise Event Summary */}
+      {eventDetails && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-gray-700">
+            <div><span className="font-semibold text-gray-600">Event ID:</span> {eventDetails.id}</div>
+            <div className="sm:col-span-2"><span className="font-semibold text-gray-600">Title:</span> {eventDetails.title}</div>
+            <div><span className="font-semibold text-gray-600">Start Date:</span> {eventDetails.startDate}</div>
+            <div><span className="font-semibold text-gray-600">End Date:</span> {eventDetails.endDate || eventDetails.startDate}</div>
+            <div><span className="font-semibold text-gray-600">Time:</span> {eventDetails.startTime} {eventDetails.endTime ? `- ${eventDetails.endTime}` : ''}</div>
+          </div>
+        </div>
+      )}
       <div className="flex justify-center mb-8">
         <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 justify-items-center mx-auto">

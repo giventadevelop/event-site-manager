@@ -1,5 +1,5 @@
 import { EventCalendarEntryDTO, EventTypeDetailsDTO } from '@/types';
-import { getTenantId } from '@/lib/env';
+import { getTenantId, getAppUrl } from '@/lib/env';
 
 export async function fetchCalendarEventsServer(): Promise<EventCalendarEntryDTO[]> {
   const baseUrl = getAppUrl();

@@ -1,14 +1,16 @@
 # Task ID: 12
-# Title: Implement ticket issuance
+# Title: Update event listing to show Focus Group associations
 # Status: pending
-# Dependencies: 10 ✅
+# Dependencies: 3 ⏱️, 7 ⏱️
 # Priority: medium
-# Description: Create system to issue tickets after successful payment.
+# Description: Enhance event listings to display associated focus groups
 # Details:
-- Update event_ticket_transaction status on successful payment
-- Create records in appropriate tables for issued tickets
-- Generate ticket identifiers/barcodes
-- Prepare ticket data for email delivery
+Modify event listing components to:
+- Display focus group tags/badges on event cards
+- Link these tags to respective focus group pages
+- Update event detail pages to show associated focus groups
+
+Ensure consistent styling with the rest of the application.
 
 # Test Strategy:
-Verify tickets are correctly issued after payment. Check database records for accuracy.
+Verify focus group associations are correctly displayed on event listings and detail pages.

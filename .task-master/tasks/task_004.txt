@@ -1,16 +1,11 @@
 # Task ID: 4
-# Title: Build Ticketing Page layout
-# Status: done
-# Dependencies: 1 ✅, 2 ✅
-# Priority: high
-# Description: Create the main ticketing page that displays event details and available ticket types.
+# Title: Update middleware for public Focus Group routes
+# Status: pending
+# Dependencies: None
+# Priority: medium
+# Description: Add Focus Group routes to the public routes in middleware
 # Details:
-- Create page layout with event details section
-- Implement responsive card layout for ticket types
-- Add quantity selectors for each ticket type
-- Include discount code input field
-- Add checkout button
-- Ensure all UI elements follow design guidelines
+Add `/focus-groups(.*)` pattern to the `publicRoutes` array in the middleware configuration to ensure public access to focus group pages.
 
 # Test Strategy:
-Test the layout on multiple screen sizes. Verify all UI elements are displayed correctly and match the design specifications.
+Verify that focus group pages are accessible without authentication.
