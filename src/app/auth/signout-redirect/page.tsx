@@ -47,8 +47,9 @@ export default function SignOutRedirect() {
 
         console.log('[SignOut Redirect] Calling Clerk signOut...');
 
-        // Sign out (without redirect parameter - Clerk handles it differently)
-        await signOut();
+        // Sign out - CRITICAL: Pass redirectUrl as undefined to prevent Clerk from auto-redirecting
+        // We want to manually redirect with our custom flag
+        await signOut({ redirectUrl: undefined });
 
         console.log('[SignOut Redirect] Sign out complete, manually redirecting to:', redirectUrl);
 
