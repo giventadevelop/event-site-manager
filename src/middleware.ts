@@ -60,10 +60,15 @@ export default authMiddleware({
   afterAuth(auth, req) {
     // Add CORS headers for Clerk proxy requests from satellite domains
     if (req.nextUrl.pathname.startsWith('/__clerk')) {
+      const origin = req.headers.get('origin');
+      const allowedOrigins = ['https://www.mcefee-temp.com', 'https://www.md-strikers.com'];
+
       // Handle preflight OPTIONS requests
       if (req.method === 'OPTIONS') {
         const response = new NextResponse(null, { status: 200 });
-        response.headers.set('Access-Control-Allow-Origin', 'https://www.mcefee-temp.com');
+        if (origin && allowedOrigins.includes(origin)) {
+          response.headers.set('Access-Control-Allow-Origin', origin);
+        }
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         response.headers.set('Access-Control-Allow-Credentials', 'true');
@@ -72,7 +77,9 @@ export default authMiddleware({
 
       // For actual requests, add CORS headers and continue
       const response = NextResponse.next();
-      response.headers.set('Access-Control-Allow-Origin', 'https://www.mcefee-temp.com');
+      if (origin && allowedOrigins.includes(origin)) {
+        response.headers.set('Access-Control-Allow-Origin', origin);
+      }
       response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       response.headers.set('Access-Control-Allow-Credentials', 'true');

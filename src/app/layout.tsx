@@ -65,7 +65,10 @@ export default function RootLayout({
 
   // Primary domain configuration - allow redirects from satellite domains
   const clerkProps = {
-    allowedRedirectOrigins: ['https://www.mcefee-temp.com'],
+    allowedRedirectOrigins: [
+      'https://www.mcefee-temp.com',
+      'https://www.md-strikers.com'
+    ],
   };
 
   return (

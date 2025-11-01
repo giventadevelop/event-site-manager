@@ -33,7 +33,7 @@ export default function SignOutRedirect() {
           // Relative URL, use as-is
         } else if (redirectUrl) {
           // Absolute URL - validate it's one of our domains
-          const allowedDomains = ['mcefee-temp.com', 'event-site-manager.com'];
+          const allowedDomains = ['mcefee-temp.com', 'md-strikers.com', 'event-site-manager.com'];
           const url = new URL(redirectUrl);
           const isAllowed = allowedDomains.some(domain => url.hostname.includes(domain));
 
