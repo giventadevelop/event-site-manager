@@ -23,6 +23,7 @@ export default authMiddleware({
     "/events/(.*)/success",
     "/events/(.*)/success/(.*)",
     "/events/(.*)",
+    "/auth/signout-redirect",  // Sign-out redirect page for satellite domains
     "/api/proxy/(.*)",
     "/api/webhooks/(.*)",
     "/api/event/success/process",
