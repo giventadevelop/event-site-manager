@@ -14,16 +14,17 @@ node_modules/
 out/
 
 # Environment variables
-.env
-.env.local
-.env.development
-.env.production
-.env.production.*
-.env.local*
-.task-master/.env
-.task-master/.env.local
-.env.amplify
-.env.amplify.example
+# Ignore all .env files
+.env*
+
+# Except .env.example (keep as template)
+!.env.example
+
+# Task master env files
+.task-master/.env*
+!.task-master/.env.example
+
+# Other env-related files
 env-vars.json
 current-env.json
 

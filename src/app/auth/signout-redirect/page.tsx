@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useClerk } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
-import { getSatelliteHostnames, extractSatelliteDomain, getSatelliteDomainName } from '@/lib/env';
+import { getSatelliteHostnames } from '@/lib/env';
+import { extractSatelliteConfig } from '@/lib/satelliteConfig';
 
 /**
  * Dedicated sign-out page for handling satellite domain sign-outs
@@ -22,8 +23,9 @@ export default function SignOutRedirect() {
 
   // Get redirect URL and extract satellite domain info for display
   const redirectUrl = searchParams.get('redirect_url') || '/';
-  const satelliteHostname = extractSatelliteDomain(redirectUrl);
-  const satelliteName = satelliteHostname ? getSatelliteDomainName(satelliteHostname) : null;
+  const satelliteConfig = extractSatelliteConfig(redirectUrl);
+  const satelliteName = satelliteConfig?.displayName || null;
+  const satelliteHostname = satelliteConfig?.hostname || null;
 
   useEffect(() => {
     const performSignOut = async () => {

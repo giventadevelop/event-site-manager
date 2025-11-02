@@ -8,7 +8,37 @@
       "displayName": "MCEFEE Temp",
       "tenantId": "tenant_demo_001",
       "enabled": true,
-      "addedDate": "2025-11-01"
+      "addedDate": "2025-11-01",
+      "branding": {
+        "orgName": "MCEFEE",
+        "fullName": "Malayalee Cultural Events Federation for Education & Empowerment",
+        "tagline": "A NONPROFIT CORPORATION",
+        "logo": {
+          "type": "text",
+          "primaryColor": "#9333ea",
+          "secondaryColor": "#a855f7"
+        },
+        "theme": {
+          "primaryColor": "#60a5fa",
+          "hoverColor": "#3b82f6",
+          "activeColor": "#2563eb"
+        },
+        "contact": {
+          "address": "123 Cultural Lane, Hope City, HC 12345, United States",
+          "phone": "+1 (555) 123-4567",
+          "email": "contact@mcefee-temp.com"
+        },
+        "social": {
+          "facebook": "#",
+          "twitter": "#",
+          "linkedin": "#",
+          "youtube": "#"
+        },
+        "showOnAuth": {
+          "header": true,
+          "footer": true
+        }
+      }
     },
     {
       "id": "mosc-temp",
@@ -17,7 +47,38 @@
       "displayName": "MOSC Temp",
       "tenantId": "tenant_demo_002",
       "enabled": true,
-      "addedDate": "2025-11-01"
+      "addedDate": "2025-11-01",
+      "branding": {
+        "orgName": "Unite India",
+        "fullName": "Unite India - Bringing Communities Together",
+        "tagline": "A NONPROFIT CORPORATION",
+        "logo": {
+          "type": "text",
+          "primaryColor": "#9333ea",
+          "secondaryColor": "#a855f7"
+        },
+        "theme": {
+          "primaryColor": "#60a5fa",
+          "hoverColor": "#3b82f6",
+          "activeColor": "#2563eb"
+        },
+        "contact": {
+          "address": "123 Charity Lane, Hope City, HC 12345, United States",
+          "phone": "+1 (555) 123-4567",
+          "tollFree": "1-800-555-1234",
+          "email": "contact@mosc-temp.com"
+        },
+        "social": {
+          "facebook": "#",
+          "twitter": "#",
+          "linkedin": "#",
+          "youtube": "#"
+        },
+        "showOnAuth": {
+          "header": true,
+          "footer": true
+        }
+      }
     },
     {
       "id": "md-strikers",
@@ -26,7 +87,37 @@
       "displayName": "MD Strikers",
       "tenantId": "tenant_demo_003",
       "enabled": true,
-      "addedDate": "2025-11-01"
+      "addedDate": "2025-11-01",
+      "branding": {
+        "orgName": "MD Strikers",
+        "fullName": "Maryland Strikers Sports Association",
+        "tagline": "A NONPROFIT SPORTS ORGANIZATION",
+        "logo": {
+          "type": "text",
+          "primaryColor": "#dc2626",
+          "secondaryColor": "#ef4444"
+        },
+        "theme": {
+          "primaryColor": "#60a5fa",
+          "hoverColor": "#3b82f6",
+          "activeColor": "#2563eb"
+        },
+        "contact": {
+          "address": "456 Stadium Road, Baltimore, MD 21201, United States",
+          "phone": "+1 (555) 987-6543",
+          "email": "contact@md-strikers.com"
+        },
+        "social": {
+          "facebook": "#",
+          "twitter": "#",
+          "linkedin": "#",
+          "youtube": "#"
+        },
+        "showOnAuth": {
+          "header": true,
+          "footer": true
+        }
+      }
     }
 
   ],

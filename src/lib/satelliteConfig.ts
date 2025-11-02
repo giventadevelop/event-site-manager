@@ -10,6 +10,39 @@
 
 import satellitesConfig from '../../config/satellites.json';
 
+export interface SatelliteBranding {
+  orgName: string;
+  fullName: string;
+  tagline: string;
+  logo: {
+    type: 'text' | 'image';
+    url?: string;
+    primaryColor: string;
+    secondaryColor: string;
+  };
+  theme: {
+    primaryColor: string;
+    hoverColor: string;
+    activeColor: string;
+  };
+  contact: {
+    address: string;
+    phone: string;
+    tollFree?: string;
+    email: string;
+  };
+  social: {
+    facebook?: string;
+    twitter?: string;
+    linkedin?: string;
+    youtube?: string;
+  };
+  showOnAuth: {
+    header: boolean;
+    footer: boolean;
+  };
+}
+
 export interface SatelliteConfig {
   id: string;
   domain: string;
@@ -18,6 +51,7 @@ export interface SatelliteConfig {
   tenantId?: string;
   enabled: boolean;
   addedDate: string;
+  branding?: SatelliteBranding;
 }
 
 /**
