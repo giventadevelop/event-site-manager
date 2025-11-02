@@ -1,5 +1,6 @@
 import { authMiddleware } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
+import { getSatelliteDomains } from "@/lib/env";
 
 export default authMiddleware({
   // Public routes that don't require authentication
@@ -61,7 +62,10 @@ export default authMiddleware({
     // Add CORS headers for Clerk proxy requests from satellite domains
     if (req.nextUrl.pathname.startsWith('/__clerk')) {
       const origin = req.headers.get('origin');
-      const allowedOrigins = ['https://www.mcefee-temp.com', 'https://www.md-strikers.com'];
+
+      // Get allowed origins from environment variable
+      // Read from NEXT_PUBLIC_SATELLITE_DOMAINS: "https://www.mosc-temp.com,https://www.md-strikers.com,..."
+      const allowedOrigins = getSatelliteDomains();
 
       // Handle preflight OPTIONS requests
       if (req.method === 'OPTIONS') {

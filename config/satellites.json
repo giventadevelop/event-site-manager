@@ -1,0 +1,35 @@
+{
+  "satellites": [
+
+    {
+      "id": "mcefee-temp",
+      "domain": "https://www.mcefee-temp.com",
+      "hostname": "www.mcefee-temp.com",
+      "displayName": "MCEFEE Temp",
+      "tenantId": "tenant_demo_001",
+      "enabled": true,
+      "addedDate": "2025-11-01"
+    },
+    {
+      "id": "mosc-temp",
+      "domain": "https://www.mosc-temp.com",
+      "hostname": "www.mosc-temp.com",
+      "displayName": "MOSC Temp",
+      "tenantId": "tenant_demo_002",
+      "enabled": true,
+      "addedDate": "2025-11-01"
+    },
+    {
+      "id": "md-strikers",
+      "domain": "https://www.md-strikers.com",
+      "hostname": "www.md-strikers.com",
+      "displayName": "MD Strikers",
+      "tenantId": "tenant_demo_003",
+      "enabled": true,
+      "addedDate": "2025-11-01"
+    }
+
+  ],
+  "version": "1.0.0",
+  "lastUpdated": "2025-11-02"
+}

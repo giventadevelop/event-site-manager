@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useClerk } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
+import { getSatelliteHostnames, extractSatelliteDomain, getSatelliteDomainName } from '@/lib/env';
 
 /**
  * Dedicated sign-out page for handling satellite domain sign-outs
@@ -19,6 +20,11 @@ export default function SignOutRedirect() {
   const [status, setStatus] = useState<'processing' | 'error'>('processing');
   const [error, setError] = useState<string>('');
 
+  // Get redirect URL and extract satellite domain info for display
+  const redirectUrl = searchParams.get('redirect_url') || '/';
+  const satelliteHostname = extractSatelliteDomain(redirectUrl);
+  const satelliteName = satelliteHostname ? getSatelliteDomainName(satelliteHostname) : null;
+
   useEffect(() => {
     const performSignOut = async () => {
       try {
@@ -32,14 +38,22 @@ export default function SignOutRedirect() {
         if (redirectUrl && !redirectUrl.startsWith('http')) {
           // Relative URL, use as-is
         } else if (redirectUrl) {
-          // Absolute URL - validate it's one of our domains
-          const allowedDomains = ['mcefee-temp.com', 'md-strikers.com', 'event-site-manager.com'];
+          // Absolute URL - validate it's one of our satellite domains
+          // Read from NEXT_PUBLIC_SATELLITE_DOMAINS environment variable
+          const allowedHostnames = getSatelliteHostnames();
+
+          // Also allow redirects to the primary domain itself
+          allowedHostnames.push('event-site-manager.com', 'www.event-site-manager.com');
+
           const url = new URL(redirectUrl);
-          const isAllowed = allowedDomains.some(domain => url.hostname.includes(domain));
+          const isAllowed = allowedHostnames.some(hostname =>
+            url.hostname === hostname || url.hostname.includes(hostname)
+          );
 
           if (!isAllowed) {
             console.error('[SignOut Redirect] Invalid redirect URL:', redirectUrl);
-            setError('Invalid redirect URL');
+            console.error('[SignOut Redirect] Allowed hostnames:', allowedHostnames);
+            setError('Invalid redirect URL - not in allowed satellite domains');
             setStatus('error');
             return;
           }
@@ -91,13 +105,29 @@ export default function SignOutRedirect() {
         {status === 'processing' && (
           <>
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
               <h2 className="mt-6 text-2xl font-bold text-gray-900">
                 Signing out...
               </h2>
-              <p className="mt-2 text-sm text-gray-600">
-                Please wait while we sign you out.
-              </p>
+              {satelliteName ? (
+                <div className="mt-4">
+                  <div className="inline-flex items-center px-4 py-2 bg-red-50 border border-red-200 rounded-lg">
+                    <svg className="w-4 h-4 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span className="text-sm font-medium text-red-700">
+                      Signing out from <span className="font-bold">{satelliteName}</span>
+                    </span>
+                  </div>
+                  <p className="mt-3 text-xs text-gray-500">
+                    You'll be redirected to {satelliteHostname}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-gray-600">
+                  Please wait while we sign you out.
+                </p>
+              )}
             </div>
           </>
         )}

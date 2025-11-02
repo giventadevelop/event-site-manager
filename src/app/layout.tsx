@@ -6,6 +6,7 @@ import Script from "next/script";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import type { Metadata } from 'next';
+import { getSatelliteDomains } from "@/lib/env";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -64,12 +65,18 @@ export default function RootLayout({
   const isAuthRoute = false; // We'll handle this in the Header component
 
   // Primary domain configuration - allow redirects from satellite domains
+  // Read from NEXT_PUBLIC_SATELLITE_DOMAINS environment variable
+  // Format: "https://www.mosc-temp.com,https://www.md-strikers.com,..."
+  const satelliteDomains = getSatelliteDomains();
+
   const clerkProps = {
-    allowedRedirectOrigins: [
-      'https://www.mcefee-temp.com',
-      'https://www.md-strikers.com'
-    ],
+    allowedRedirectOrigins: satelliteDomains,
   };
+
+  // Log satellite domains for debugging (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Layout] Configured satellite domains:', satelliteDomains);
+  }
 
   return (
     <html lang="en" suppressHydrationWarning>
