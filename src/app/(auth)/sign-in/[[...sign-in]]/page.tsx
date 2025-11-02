@@ -24,7 +24,7 @@ export default function SignInPage() {
         />
       )}
 
-      <main className={`flex flex-col items-center justify-center flex-1 py-2 ${shouldShowSatelliteBranding?.header ? 'mt-20' : ''}`}>
+      <main className={`flex flex-col items-center justify-center flex-1 py-12 ${shouldShowSatelliteBranding?.header ? 'pt-28' : ''}`}>
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-center text-gray-900">Welcome Back</h1>
           {satelliteConfig ? (

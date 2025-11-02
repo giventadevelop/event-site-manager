@@ -5,6 +5,8 @@ import { useClerk } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
 import { getSatelliteHostnames } from '@/lib/env';
 import { extractSatelliteConfig } from '@/lib/satelliteConfig';
+import SatelliteHeader from '@/components/auth/SatelliteHeader';
+import SatelliteFooter from '@/components/auth/SatelliteFooter';
 
 /**
  * Dedicated sign-out page for handling satellite domain sign-outs
@@ -101,9 +103,20 @@ export default function SignOutRedirect() {
     performSignOut();
   }, [signOut, searchParams]);
 
+  const shouldShowSatelliteBranding = satelliteConfig?.branding?.showOnAuth;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
+    <>
+      {/* Conditionally render satellite header */}
+      {shouldShowSatelliteBranding?.header && satelliteConfig?.branding && (
+        <SatelliteHeader
+          branding={satelliteConfig.branding}
+          satelliteDomain={satelliteConfig.domain}
+        />
+      )}
+
+      <div className={`flex-1 flex items-center justify-center bg-gray-50 ${shouldShowSatelliteBranding?.header ? 'pt-20' : ''}`}>
+        <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
         {status === 'processing' && (
           <>
             <div className="text-center">
@@ -154,7 +167,16 @@ export default function SignOutRedirect() {
             </div>
           </>
         )}
+        </div>
       </div>
-    </div>
+
+      {/* Conditionally render satellite footer */}
+      {shouldShowSatelliteBranding?.footer && satelliteConfig?.branding && (
+        <SatelliteFooter
+          branding={satelliteConfig.branding}
+          satelliteDomain={satelliteConfig.domain}
+        />
+      )}
+    </>
   );
 }
