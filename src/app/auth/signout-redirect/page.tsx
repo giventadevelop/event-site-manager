@@ -106,7 +106,7 @@ export default function SignOutRedirect() {
   const shouldShowSatelliteBranding = satelliteConfig?.branding?.showOnAuth;
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Conditionally render satellite header */}
       {shouldShowSatelliteBranding?.header && satelliteConfig?.branding && (
         <SatelliteHeader
@@ -115,7 +115,7 @@ export default function SignOutRedirect() {
         />
       )}
 
-      <div className={`flex-1 flex items-center justify-center bg-gray-50 ${shouldShowSatelliteBranding?.header ? 'pt-20' : ''}`}>
+      <div className={`flex-1 flex items-center justify-center ${shouldShowSatelliteBranding?.header ? 'pt-8' : ''}`}>
         <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
         {status === 'processing' && (
           <>
@@ -177,6 +177,6 @@ export default function SignOutRedirect() {
           satelliteDomain={satelliteConfig.domain}
         />
       )}
-    </>
+    </div>
   );
 }

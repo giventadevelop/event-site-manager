@@ -5,6 +5,7 @@ import TrpcProvider from "@/lib/trpc/Provider";
 import Script from "next/script";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import ConditionalAuthLayout from "@/components/ConditionalAuthLayout";
 import type { Metadata } from 'next';
 import { getSatelliteDomains } from "@/lib/env";
 
@@ -125,11 +126,12 @@ export default function RootLayout({
           }}
         >
           <TrpcProvider>
-            <Header hideMenuItems={isAuthRoute} />
-            <div className="flex-1 flex flex-col">
+            <ConditionalAuthLayout
+              header={<Header hideMenuItems={false} />}
+              footer={<Footer />}
+            >
               {children}
-            </div>
-            <Footer />
+            </ConditionalAuthLayout>
           </TrpcProvider>
         </ClerkProvider>
         <Script

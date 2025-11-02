@@ -20,7 +20,7 @@ export default function SignUpPage() {
   console.log('[SignUpPage] 🌐 Satellite Config:', satelliteConfig);
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Conditionally render satellite header */}
       {shouldShowSatelliteBranding?.header && satelliteConfig?.branding && (
         <SatelliteHeader
@@ -29,7 +29,7 @@ export default function SignUpPage() {
         />
       )}
 
-      <main className={`flex flex-col items-center justify-center flex-1 py-12 ${shouldShowSatelliteBranding?.header ? 'pt-28' : ''}`}>
+      <main className={`flex flex-col items-center justify-center flex-1 py-12 ${shouldShowSatelliteBranding?.header ? 'pt-8' : ''}`}>
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-center text-gray-900">Create Account</h1>
           {satelliteConfig ? (
@@ -63,6 +63,6 @@ export default function SignUpPage() {
           satelliteDomain={satelliteConfig.domain}
         />
       )}
-    </>
+    </div>
   );
 }
