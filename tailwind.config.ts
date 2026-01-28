@@ -51,6 +51,15 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Add custom color variables
+        "dark-background": "var(--color-dark-background)",
+        "medium-gray": "var(--color-medium-gray)",
+        "yellow-accent": "var(--color-yellow-accent)",
+        "blue-accent": "var(--color-blue-accent)",
+        "green-accent": "var(--color-green-accent)",
+        "pink-accent": "var(--color-pink-accent)",
+        "cyan-accent": "var(--color-cyan-accent)",
+        "progress-background": "var(--color-progress-background)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -66,10 +75,20 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "marquee-slow": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-100%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "marquee-slow": "marquee-slow 30s linear infinite",
+      },
+      fontFamily: {
+        display: "var(--font-display)",
+        body: "var(--font-body)",
+        script: "var(--font-script)",
       },
     },
   },

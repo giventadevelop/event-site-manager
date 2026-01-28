@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -22,18 +22,50 @@ type Props = {
   discountCodeId?: number | null;
   enabled: boolean;
   amountCents: number;
+  publishableKey?: string; // Backend-provided publishable key (domain-agnostic)
+  clientSecret?: string; // Backend-provided client secret (skip PaymentIntent creation)
+  transactionId?: string; // Backend transaction ID for success page lookup
   onInvalidClick?: () => void;
   onLoadingChange?: (loading: boolean) => void;
 };
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string);
+// Default Stripe promise (fallback for backward compatibility)
+const defaultStripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
-function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecret, onLoadingChange }: Props & { clientSecret: string }) {
+// CRITICAL FIX: Memoize Inner component to prevent unnecessary re-renders and flickering
+// React.memo prevents this component from re-rendering when parent re-renders
+// unless the actual props have changed (deep comparison for cart, shallow for others)
+const InnerDesktopCheckout = React.memo(function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecret, transactionId, onLoadingChange }: Props & { clientSecret: string }) {
   const stripe = useStripe();
   const elements = useElements();
   const [confirming, setConfirming] = useState(false);
   const [expressCheckoutReady, setExpressCheckoutReady] = useState(false);
   const [paymentMethodSelected, setPaymentMethodSelected] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+
+  // CRITICAL: Detect mobile to hide ExpressCheckoutElement (use PaymentRequestButton instead)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const mobileWidth = window.innerWidth <= 768;
+      const isMobileDetected = mobileUA || mobileWidth;
+      setIsMobile(isMobileDetected);
+      console.log('[DESKTOP ECE] Mobile detection:', { mobileUA, mobileWidth, isMobile: isMobileDetected });
+
+      // CRITICAL: On mobile, skip ExpressCheckoutElement loading - set ready immediately
+      if (isMobileDetected) {
+        console.log('[DESKTOP ECE] Mobile detected - skipping ExpressCheckoutElement, setting ready state');
+        setExpressCheckoutReady(true);
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Add timeout to prevent stuck loading state
   useEffect(() => {
@@ -48,12 +80,26 @@ function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecr
   }, [expressCheckoutReady]);
 
   // Notify parent component of loading state changes
+  // CRITICAL FIX: Use ref to prevent callback dependency from causing re-runs
+  // onLoadingChange callback reference might change, but we only care about expressCheckoutReady
+  const onLoadingChangeRef = useRef(onLoadingChange);
   useEffect(() => {
-    onLoadingChange?.(!expressCheckoutReady);
-  }, [expressCheckoutReady, onLoadingChange]);
+    onLoadingChangeRef.current = onLoadingChange;
+  }, [onLoadingChange]);
+
+  useEffect(() => {
+    onLoadingChangeRef.current?.(!expressCheckoutReady);
+  }, [expressCheckoutReady]); // Only depend on expressCheckoutReady, not the callback
 
   const handleConfirm = async () => {
     if (!stripe || !elements || !clientSecret) return;
+
+    // Prevent double submission
+    if (confirming) {
+      console.log('[DESKTOP ECE] Payment confirmation already in progress, ignoring duplicate click');
+      return;
+    }
+
     setConfirming(true);
 
     try {
@@ -65,7 +111,8 @@ function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecr
         // Handle empty error object case (common when no payment method selected)
         if (!submitError.type && !submitError.message) {
           console.warn("[DESKTOP ECE] Payment validation failed: No payment method selected");
-          alert("Please select a payment method before proceeding. You can choose from the Link, Cash App, or credit card options above.");
+          setValidationErrors(['Please select a payment method before proceeding']);
+          setShowValidationErrors(true);
           setConfirming(false);
           return;
         }
@@ -78,38 +125,65 @@ function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecr
           fullError: submitError
         });
 
-        // Provide more specific error messages based on error type
-        let errorMessage = "Please check your payment details and try again.";
+        // Parse validation errors to provide specific field feedback
+        const errors: string[] = [];
 
         if (submitError.type === 'validation_error') {
-          if (submitError.message?.includes('payment_method') || submitError.message?.includes('method')) {
-            errorMessage = "Please select a payment method before proceeding.";
-          } else if (submitError.message?.includes('card')) {
-            errorMessage = "Please check your card details and try again.";
-          } else {
-            errorMessage = submitError.message || "Please complete all required fields.";
+          const message = submitError.message || '';
+
+          // Check for common missing fields based on error message
+          if (message.toLowerCase().includes('card number') || message.toLowerCase().includes('card_number')) {
+            errors.push('Card number is required');
+          }
+          if (message.toLowerCase().includes('expir') || message.toLowerCase().includes('expiry')) {
+            errors.push('Expiration date is required');
+          }
+          if (message.toLowerCase().includes('cvc') || message.toLowerCase().includes('security') || message.toLowerCase().includes('cvv')) {
+            errors.push('Security code (CVC) is required');
+          }
+          if (message.toLowerCase().includes('postal') || message.toLowerCase().includes('zip') || message.toLowerCase().includes('postal_code')) {
+            errors.push('ZIP code is required');
+          }
+          if (message.toLowerCase().includes('payment_method') || message.toLowerCase().includes('method')) {
+            errors.push('Please select a payment method before proceeding');
+          }
+
+          // If no specific errors found, use generic message
+          if (errors.length === 0) {
+            errors.push(message || 'Please complete all required payment fields');
           }
         } else if (submitError.type === 'card_error') {
-          errorMessage = submitError.message || "Card validation failed. Please check your details.";
+          errors.push(submitError.message || 'Card validation failed. Please check your details.');
         } else if (submitError.type === 'api_error') {
-          errorMessage = "Payment service error. Please try again.";
+          errors.push('Payment service error. Please try again.');
+        } else {
+          errors.push(submitError.message || 'Please check your payment details and try again.');
         }
 
-        // Show user-friendly error message
-        alert(errorMessage);
+        // Show validation errors in UI instead of alert
+        // CRITICAL FIX: Removed manual DOM manipulation of Stripe Elements
+        // Stripe Elements are in an iframe - we can't access their internal DOM
+        // Let Stripe handle its own validation and error display
+        setValidationErrors(errors);
+        setShowValidationErrors(true);
+
+        // Scroll to validation errors container
+        setTimeout(() => {
+          const errorElement = document.querySelector('.validation-errors-container');
+          if (errorElement) {
+            errorElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 100);
+
         setConfirming(false);
         return;
       }
 
       console.log('[DESKTOP ECE] Elements validation successful, confirming payment...');
-      const returnUrl = typeof window !== 'undefined' ? `${window.location.origin}/event/success` : '/event/success';
-
       const result = await stripe.confirmPayment({
         elements,
         clientSecret,
-        confirmParams: {
-          return_url: returnUrl, // absolute URL for redirect-based wallets (Link, 3DS)
-        },
+        redirect: 'if_required', // Use redirect: 'if_required' instead of return_url
       });
 
       if ((result as any)?.error) {
@@ -126,12 +200,86 @@ function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecr
         } else if (paymentError?.type === 'api_error') {
           errorMessage = "Payment service error. Please try again later.";
         } else if (paymentError?.code === 'payment_intent_unexpected_state') {
+          // Payment already processed - try to redirect to success page
           errorMessage = "Payment already processed. Please check your email for confirmation.";
+
+          // Build success URL with transactionId if available (preferred), otherwise use Payment Intent ID
+          const params = new URLSearchParams();
+          if (transactionId) {
+            params.set('transactionId', transactionId);
+            console.log("[DESKTOP ECE] Payment already processed, redirecting with transactionId:", transactionId);
+          } else {
+            // Extract Payment Intent ID from clientSecret if available
+            const paymentIntentId = clientSecret?.split('_secret_')[0] || null;
+            if (paymentIntentId) {
+              params.set('pi', paymentIntentId);
+              console.log("[DESKTOP ECE] Payment already processed, redirecting with Payment Intent ID:", paymentIntentId);
+            }
+          }
+          if (eventId) params.set('eventId', String(eventId));
+          if (params.toString()) {
+            // Keep confirming state true during redirect
+            window.location.href = `/event/success?${params.toString()}`;
+            return; // Don't reset confirming state, redirect will happen
+          }
         }
 
         alert(errorMessage);
+        setConfirming(false);
       } else {
         console.log("[DESKTOP ECE] Payment confirmed successfully:", result);
+
+        // Extract Payment Intent ID from result and redirect to success page
+        const paymentIntent = (result as any)?.paymentIntent;
+        if (paymentIntent?.id) {
+          console.log("[DESKTOP ECE] Payment confirmed successfully, redirecting to success page with Payment Intent ID:", paymentIntent.id);
+          // Build success URL with transactionId if available (preferred), otherwise use Payment Intent ID
+          const params = new URLSearchParams();
+          if (transactionId) {
+            params.set('transactionId', transactionId);
+            console.log("[DESKTOP ECE] Using transactionId for success page:", transactionId);
+          } else {
+            params.set('pi', paymentIntent.id);
+            console.log("[DESKTOP ECE] Using Payment Intent ID for success page lookup:", paymentIntent.id);
+          }
+          if (eventId) params.set('eventId', String(eventId));
+          // CRITICAL: Keep confirming state true during redirect - don't reset it
+          // The redirect will happen immediately, keeping the button in "Processing" state
+          window.location.href = `/event/success?${params.toString()}`;
+          // Don't reset confirming state here - let redirect happen while button shows "Processing"
+          return;
+        } else {
+          // Fallback: try to extract from clientSecret
+          const paymentIntentIdFromSecret = clientSecret?.split('_secret_')[0] || null;
+          if (paymentIntentIdFromSecret) {
+            console.log("[DESKTOP ECE] No Payment Intent in result, using clientSecret to extract ID:", paymentIntentIdFromSecret);
+            const params = new URLSearchParams();
+            if (transactionId) {
+              params.set('transactionId', transactionId);
+            } else {
+              params.set('pi', paymentIntentIdFromSecret);
+            }
+            if (eventId) params.set('eventId', String(eventId));
+            // Keep confirming state during redirect
+            window.location.href = `/event/success?${params.toString()}`;
+            return;
+          } else {
+            console.warn("[DESKTOP ECE] No Payment Intent ID found in result or clientSecret");
+            if (transactionId) {
+              // If we have transactionId, use it directly
+              const params = new URLSearchParams({ transactionId });
+              if (eventId) params.set('eventId', String(eventId));
+              // Keep confirming state during redirect
+              window.location.href = `/event/success?${params.toString()}`;
+              return;
+            } else {
+              console.warn("[DESKTOP ECE] No transactionId or Payment Intent ID, redirecting without parameters");
+              // Keep confirming state during redirect
+              window.location.href = '/event/success';
+              return;
+            }
+          }
+        }
       }
     } catch (e: any) {
       console.error("[DESKTOP ECE] confirmPayment threw:", e);
@@ -148,9 +296,10 @@ function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecr
       }
 
       alert(errorMessage);
-    } finally {
       setConfirming(false);
     }
+    // Note: We don't reset confirming state in finally block for successful redirects
+    // This keeps the button in "Processing" state until the redirect completes
   };
 
   // Handle cancellation more robustly
@@ -188,8 +337,9 @@ function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecr
   // Render Express Checkout Element if available; provide a fallback Pay button using PaymentElement
   return (
     <div className="w-full relative">
-      {/* Loading overlay while Express Checkout initializes - covers entire payment section */}
-      {!expressCheckoutReady && (
+      {/* Loading overlay while Express Checkout initializes - DESKTOP ONLY */}
+      {/* CRITICAL: Don't show loading overlay on mobile - PaymentRequestButton handles its own loading */}
+      {!isMobile && !expressCheckoutReady && (
         <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-20 rounded-lg" style={{ minHeight: '400px' }}>
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto mb-2"></div>
@@ -199,192 +349,156 @@ function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecr
         </div>
       )}
 
-      {/* Express Checkout Section */}
-      <div className="relative">
-        {/* @ts-ignore - element may lack TS in some versions */}
-        <ExpressCheckoutElement
-        onConfirm={async () => {
-          // CRITICAL: Call elements.submit() first for validation
-          if (!elements) {
-            console.error('[DESKTOP ECE] Elements not available for validation');
-            alert("Payment system not ready. Please refresh the page and try again.");
-            return;
-          }
+      {/* Express Checkout Section - DESKTOP ONLY */}
+      {/* CRITICAL FIX: Hide ExpressCheckoutElement on mobile - use PaymentRequestButton instead */}
+      {!isMobile && (
+        <div className="relative">
+          {/* @ts-ignore - element may lack TS in some versions */}
+          <ExpressCheckoutElement
+            onConfirm={async (event: any) => {
+            console.log('[DESKTOP ECE] ⚡ EXPRESS CHECKOUT onConfirm TRIGGERED', {
+              hasElements: !!elements,
+              hasStripe: !!stripe,
+              hasClientSecret: !!clientSecret,
+              event,
+              timestamp: new Date().toISOString(),
+            });
 
-          try {
-            console.log('[DESKTOP ECE] Express Checkout onConfirm - validating elements...');
-            const { error: submitError } = await elements.submit();
-
-            if (submitError) {
-              // Handle empty error object case (common when no payment method selected)
-              if (!submitError.type && !submitError.message) {
-                console.warn("[DESKTOP ECE] Express Checkout validation failed: No payment method selected");
-                alert("Please select a payment method before proceeding. You can choose from the Link, Cash App, or credit card options below.");
-                return;
-              }
-
-              // Log the actual error details for debugging
-              console.error("[DESKTOP ECE] Express Checkout validation failed:", {
-                type: submitError.type || 'unknown',
-                message: submitError.message || 'No message provided',
-                code: submitError.code || 'No code provided',
-                fullError: submitError
-              });
-
-              // Provide specific error message for validation failures
-              let errorMessage = "Please check your payment details and try again.";
-
-              if (submitError.type === 'validation_error') {
-                if (submitError.message?.includes('payment_method') || submitError.message?.includes('method')) {
-                  errorMessage = "Please select a payment method before proceeding.";
-                } else if (submitError.message?.includes('card')) {
-                  errorMessage = "Please check your card details and try again.";
-                } else {
-                  errorMessage = submitError.message || "Please complete all required fields.";
-                }
-              } else if (submitError.type === 'card_error') {
-                errorMessage = submitError.message || "Card payment failed. Please check your card details.";
-              } else if (submitError.type === 'api_error') {
-                errorMessage = "Payment service error. Please try again.";
-              }
-
-              alert(errorMessage);
+            // CRITICAL: Call elements.submit() first for validation
+            if (!elements) {
+              console.error('[DESKTOP ECE] ❌ Elements not available for validation');
+              alert("Payment system not ready. Please refresh the page and try again.");
               return;
             }
 
-            console.log('[DESKTOP ECE] Elements validation successful for Express Checkout');
-          } catch (e) {
-            console.error("[DESKTOP ECE] Elements validation error for Express Checkout:", e);
-            alert("Payment validation failed. Please try again.");
-            return;
-          }
+            try {
+              console.log('[DESKTOP ECE] Express Checkout onConfirm - validating elements...');
+              const { error: submitError } = await elements.submit();
 
-          // Now proceed with the Express Checkout confirmation
-          await handleConfirm();
-        }}
-        onCancel={handleCancel}
-        onReady={({ availablePaymentMethods }) => {
-          console.log('[DESKTOP ECE] Express Checkout ready');
-          console.log('[DESKTOP ECE] Available payment methods:', availablePaymentMethods);
-          setExpressCheckoutReady(true);
+              if (submitError) {
+                // Handle empty error object case (common when no payment method selected)
+                if (!submitError.type && !submitError.message) {
+                  console.warn("[DESKTOP ECE] Express Checkout validation failed: No payment method selected");
+                  alert("Please select a payment method before proceeding. You can choose from the Link, Cash App, or credit card options below.");
+                  return;
+                }
 
-          // Enhanced debugging for payment methods
-          if (availablePaymentMethods) {
-            console.log('[DESKTOP ECE] === PAYMENT METHODS DEBUG ===');
-            console.log('[DESKTOP ECE] Available methods:', Object.keys(availablePaymentMethods));
+                // Log the actual error details for debugging
+                console.error("[DESKTOP ECE] Express Checkout validation failed:", {
+                  type: submitError.type || 'unknown',
+                  message: submitError.message || 'No message provided',
+                  code: submitError.code || 'No code provided',
+                  fullError: submitError
+                });
 
-            // Check specific payment methods
-            if (availablePaymentMethods.applePay) {
-              console.log('[DESKTOP ECE] ✅ Apple Pay: Available');
+                // Provide specific error message for validation failures
+                let errorMessage = "Please check your payment details and try again.";
+
+                if (submitError.type === 'validation_error') {
+                  if (submitError.message?.includes('payment_method') || submitError.message?.includes('method')) {
+                    errorMessage = "Please select a payment method before proceeding.";
+                  } else if (submitError.message?.includes('card')) {
+                    errorMessage = "Please check your card details and try again.";
+                  } else {
+                    errorMessage = submitError.message || "Please complete all required fields.";
+                  }
+                } else if (submitError.type === 'card_error') {
+                  errorMessage = submitError.message || "Card payment failed. Please check your card details.";
+                } else if (submitError.type === 'api_error') {
+                  errorMessage = "Payment service error. Please try again.";
+                }
+
+                alert(errorMessage);
+                return;
+              }
+
+              console.log('[DESKTOP ECE] Elements validation successful for Express Checkout');
+            } catch (e) {
+              console.error("[DESKTOP ECE] Elements validation error for Express Checkout:", e);
+              alert("Payment validation failed. Please try again.");
+              return;
+            }
+
+            // Now proceed with the Express Checkout confirmation
+            await handleConfirm();
+          }}
+          onCancel={handleCancel}
+          onReady={({ availablePaymentMethods }) => {
+            console.log('[DESKTOP ECE] ⚡ EXPRESS CHECKOUT READY', {
+              timestamp: new Date().toISOString(),
+              hasAvailablePaymentMethods: !!availablePaymentMethods,
+              paymentMethodKeys: availablePaymentMethods ? Object.keys(availablePaymentMethods) : [],
+            });
+            console.log('[DESKTOP ECE] Available payment methods:', availablePaymentMethods);
+            setExpressCheckoutReady(true);
+
+            // Enhanced debugging for payment methods
+            if (availablePaymentMethods) {
+              console.log('[DESKTOP ECE] ========== PAYMENT METHODS DEBUG ==========');
+              console.log('[DESKTOP ECE] Available methods:', Object.keys(availablePaymentMethods));
+
+              // Check specific payment methods
+              if (availablePaymentMethods.applePay) {
+                console.log('[DESKTOP ECE] ✅ Apple Pay: Available');
+              } else {
+                console.log('[DESKTOP ECE] ❌ Apple Pay: Not available');
+                console.log('[DESKTOP ECE]    - Requires HTTPS in production');
+                console.log('[DESKTOP ECE]    - Requires supported browser (Safari, Chrome on MacOS)');
+              }
+
+              if (availablePaymentMethods.googlePay) {
+                console.log('[DESKTOP ECE] ✅ Google Pay: Available');
+              } else {
+                console.log('[DESKTOP ECE] ❌ Google Pay: Not available');
+                console.log('[DESKTOP ECE]    - Requires domain verification in Stripe Dashboard');
+                console.log('[DESKTOP ECE]    - Requires HTTPS in production');
+                console.log('[DESKTOP ECE]    - Requires supported browser (Chrome, Edge, Firefox)');
+              }
+
+              if (availablePaymentMethods.link) {
+                console.log('[DESKTOP ECE] ✅ Link: Available');
+              } else {
+                console.log('[DESKTOP ECE] ❌ Link: Not available');
+              }
+
+              if (availablePaymentMethods.cashApp) {
+                console.log('[DESKTOP ECE] ✅ Cash App: Available');
+              } else {
+                console.log('[DESKTOP ECE] ❌ Cash App: Not available');
+              }
+
+              if (availablePaymentMethods.amazonPay) {
+                console.log('[DESKTOP ECE] ✅ Amazon Pay: Available');
+              } else {
+                console.log('[DESKTOP ECE] ❌ Amazon Pay: Not available');
+              }
+
+              console.log('[DESKTOP ECE] ============================================');
             } else {
-              console.log('[DESKTOP ECE] ❌ Apple Pay: Not available');
-              console.log('[DESKTOP ECE]    - Requires HTTPS in production');
-              console.log('[DESKTOP ECE]    - Requires supported browser (Safari, Chrome on MacOS)');
+              console.log('[DESKTOP ECE] ⚠️ WARNING: No payment methods available');
+              console.log('[DESKTOP ECE] Check Stripe Dashboard → Settings → Payment methods');
             }
 
-            if (availablePaymentMethods.googlePay) {
-              console.log('[DESKTOP ECE] ✅ Google Pay: Available');
-            } else {
-              console.log('[DESKTOP ECE] ❌ Google Pay: Not available');
-              console.log('[DESKTOP ECE]    - Requires domain verification in Stripe Dashboard');
-              console.log('[DESKTOP ECE]    - Requires HTTPS in production');
-              console.log('[DESKTOP ECE]    - Requires supported browser (Chrome, Edge, Firefox)');
-            }
+            // Log available payment methods for debugging
+            console.log('[DESKTOP ECE] Note: Google Pay manifest errors in console are expected if domain not verified in Stripe');
 
-            if (availablePaymentMethods.link) {
-              console.log('[DESKTOP ECE] ✅ Link: Available');
-            } else {
-              console.log('[DESKTOP ECE] ❌ Link: Not available');
-            }
-
-            console.log('[DESKTOP ECE] ================================');
-          } else {
-            console.log('[DESKTOP ECE] ⚠️ No payment methods available');
-            console.log('[DESKTOP ECE] Check Stripe Dashboard → Settings → Payment methods');
-          }
-
-          // Log available payment methods for debugging
-          console.log('[DESKTOP ECE] Note: Google Pay manifest errors in console are expected if domain not verified in Stripe');
-
-          // Debug: Check what payment methods are available
-          console.log('[DESKTOP ECE] Available payment methods should include: Apple Pay, Google Pay, Link, Cash App');
-          console.log('[DESKTOP ECE] If only Link/Cash App show, check Stripe domain verification for Google Pay');
-        }}
-        options={{
-          layout: 'horizontal' as any
-        }}
-      />
-
-      {/* Custom CSS for Express Checkout button layout */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          /* Ensure Express Checkout buttons display horizontally */
-          .ElementsApp .ExpressCheckoutElement {
-            width: 100% !important;
-            max-width: 100% !important;
-          }
-
-          /* Force horizontal layout for Express Checkout buttons */
-          .ElementsApp .ExpressCheckoutElement button {
-            display: inline-block !important;
-            margin-right: 8px !important;
-            margin-bottom: 8px !important;
-            min-width: auto !important;
-            flex: 0 0 auto !important;
-          }
-
-          /* Desktop: Full-width horizontal layout with proper spacing */
-          @media (min-width: 768px) {
-            .ElementsApp .ExpressCheckoutElement {
-              display: flex !important;
-              flex-wrap: wrap !important;
-              gap: 12px !important;
-              justify-content: flex-start !important;
-              align-items: center !important;
-            }
-
-            .ElementsApp .ExpressCheckoutElement button {
-              flex: 0 0 auto !important;
-              margin: 0 !important;
-              min-width: 140px !important;
-              height: 48px !important;
-            }
-
-            /* Ensure all payment method buttons are visible */
-            .ElementsApp .ExpressCheckoutElement button[data-testid*="link"],
-            .ElementsApp .ExpressCheckoutElement button[data-testid*="google"],
-            .ElementsApp .ExpressCheckoutElement button[data-testid*="apple"],
-            .ElementsApp .ExpressCheckoutElement button[data-testid*="amazon"] {
-              display: inline-block !important;
-              visibility: visible !important;
-              opacity: 1 !important;
-            }
-          }
-
-          /* Mobile: Stack vertically but maintain button visibility */
-          @media (max-width: 767px) {
-            .ElementsApp .ExpressCheckoutElement {
-              display: block !important;
-            }
-
-            .ElementsApp .ExpressCheckoutElement button {
-              display: block !important;
-              width: 100% !important;
-              margin-bottom: 8px !important;
-            }
-          }
-
-          /* Override any Stripe default hiding */
-          .ElementsApp .ExpressCheckoutElement {
-            overflow: visible !important;
-          }
-
-          .ElementsApp .ExpressCheckoutElement * {
-            overflow: visible !important;
-          }
-        `
-      }} />
+            // Debug: Check what payment methods are available
+            console.log('[DESKTOP ECE] Expected payment methods: Apple Pay, Google Pay, Link, Cash App, Amazon Pay');
+            console.log('[DESKTOP ECE] If only Link/Cash App show, check Stripe domain verification for Google Pay');
+          }}
+          onClick={(event: any) => {
+            console.log('[DESKTOP ECE] ⚡ EXPRESS CHECKOUT BUTTON CLICKED', {
+              event,
+              timestamp: new Date().toISOString(),
+              eventType: event?.resolve ? 'resolve function available' : 'no resolve function',
+            });
+          }}
+          options={{
+            layout: 'horizontal' as any
+          }}
+        />
       </div>
+      )}
 
       {/* PaymentElement Section */}
       <div className="mt-3 bg-white border rounded-lg p-3 relative">
@@ -403,60 +517,66 @@ function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecr
           )}
         </div>
 
+        {/* Validation Errors Container */}
+        <div className="validation-errors-container">
+          {showValidationErrors && validationErrors.length > 0 && (
+            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex items-start">
+                <span className="text-red-600 mr-2">⚠️</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-red-800 mb-1">Please complete the following fields:</p>
+                  <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                    {validationErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* PaymentElement with improved styling for better visibility */}
-        <div className="payment-element-container" style={{
+        <div className={`payment-element-container ${showValidationErrors ? 'field-validation-active' : ''}`} style={{
           minHeight: '200px',
           position: 'relative',
           zIndex: 1
         }}>
-          <style dangerouslySetInnerHTML={{
-            __html: `
-              .payment-element-container {
-                width: 100%;
-                max-width: 100%;
-              }
-
-              /* Ensure payment methods are visible and properly spaced */
-              .payment-element-container .ElementsApp {
-                width: 100% !important;
-                max-width: 100% !important;
-              }
-
-              /* Make payment method tabs more horizontal on desktop */
-              @media (min-width: 768px) {
-                .payment-element-container .ElementsApp .Tab {
-                  display: inline-block !important;
-                  margin-right: 10px !important;
-                  margin-bottom: 10px !important;
-                }
-              }
-
-              /* Mobile-friendly payment method display */
-              @media (max-width: 767px) {
-                .payment-element-container .ElementsApp .Tab {
-                  display: block !important;
-                  width: 100% !important;
-                  margin-bottom: 8px !important;
-                }
-              }
-            `
-          }} />
+          {/* CRITICAL FIX: Removed ALL CSS manipulation of Stripe Elements
+               * Stripe Elements render in an iframe and handle their own styling
+               * CSS with !important flags causes flickering and layout conflicts
+               * Let Stripe handle all internal styling automatically
+               */}
           <PaymentElement
             onReady={() => {
               console.log('[DESKTOP ECE] PaymentElement ready');
               console.log('[DESKTOP ECE] PaymentElement should show: Credit Card, Link, Cash App Pay');
             }}
-            onChange={(event) => {
+            onChange={async (event) => {
               console.log('[DESKTOP ECE] PaymentElement changed:', event);
               console.log('[DESKTOP ECE] PaymentElement complete status:', event.complete);
               console.log('[DESKTOP ECE] PaymentElement value:', event.value);
+              console.log('[DESKTOP ECE] PaymentElement error:', event.error);
 
               // Track if a payment method is selected
               if (event.complete) {
                 setPaymentMethodSelected(true);
+                setValidationErrors([]);
+                setShowValidationErrors(false);
                 console.log('[DESKTOP ECE] ✅ Payment method selected and complete');
               } else {
                 setPaymentMethodSelected(false);
+
+                // CRITICAL FIX: Simplified to only use Stripe's built-in validation
+                // Removed all DOM manipulation - Stripe Elements are in an iframe and handle their own validation
+
+                // Clear validation errors when user starts typing (form is being edited)
+                if (showValidationErrors && event.value?.type) {
+                  // User is actively editing, clear error display
+                  setShowValidationErrors(false);
+                  setValidationErrors([]);
+                }
+
                 console.log('[DESKTOP ECE] ⚠️ Payment method not complete or not selected');
               }
             }}
@@ -472,25 +592,116 @@ function InnerDesktopCheckout({ cart, eventId, email, discountCodeId, clientSecr
         </div>
         <button
           type="button"
-          onClick={paymentMethodSelected ? handleConfirm : () => {
-            alert("Please select a payment method first. You can choose from the Link, Cash App, or credit card options below.");
+          onClick={paymentMethodSelected ? handleConfirm : async () => {
+            // When button is clicked but disabled, check validation and show specific errors
+            if (!elements) {
+              alert("Payment system not ready. Please refresh the page and try again.");
+              return;
+            }
+
+            try {
+              // Try to submit to get specific validation errors
+              const { error: submitError } = await elements.submit();
+
+              if (submitError) {
+                const errors: string[] = [];
+
+                // Parse validation errors to provide specific field feedback
+                if (submitError.type === 'validation_error') {
+                  const message = submitError.message || '';
+
+                  // Check for common missing fields based on error message
+                  if (message.toLowerCase().includes('card number') || message.toLowerCase().includes('card_number')) {
+                    errors.push('Card number is required');
+                  }
+                  if (message.toLowerCase().includes('expir') || message.toLowerCase().includes('expiry')) {
+                    errors.push('Expiration date is required');
+                  }
+                  if (message.toLowerCase().includes('cvc') || message.toLowerCase().includes('security') || message.toLowerCase().includes('cvv')) {
+                    errors.push('Security code (CVC) is required');
+                  }
+                  if (message.toLowerCase().includes('postal') || message.toLowerCase().includes('zip') || message.toLowerCase().includes('postal_code')) {
+                    errors.push('ZIP code is required');
+                  }
+                  if (message.toLowerCase().includes('payment_method') || message.toLowerCase().includes('method')) {
+                    errors.push('Please select a payment method first');
+                  }
+
+                  // If no specific errors found, use generic message
+                  if (errors.length === 0) {
+                    errors.push('Please complete all required payment fields');
+                  }
+                } else {
+                  errors.push(submitError.message || 'Please check your payment details');
+                }
+
+                // CRITICAL FIX: Removed manual DOM manipulation of Stripe Elements
+                // Let Stripe handle its own field validation and error display
+                setValidationErrors(errors);
+                setShowValidationErrors(true);
+
+                // Scroll to validation errors container
+                setTimeout(() => {
+                  const errorElement = document.querySelector('.validation-errors-container');
+                  if (errorElement) {
+                    errorElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  }
+                }, 100);
+              } else {
+                // If validation passes but button is still disabled, it might be a state issue
+                alert("Please select a payment method first. You can choose from the Link, Cash App, or credit card options below.");
+              }
+            } catch (e) {
+              console.error('[DESKTOP ECE] Error checking validation:', e);
+              alert("Please select a payment method first. You can choose from the Link, Cash App, or credit card options below.");
+            }
           }}
           className="mt-3 w-full inline-flex items-center justify-center bg-gradient-to-r from-teal-500 to-green-500 text-white font-bold py-3 px-4 rounded-md hover:from-teal-600 hover:to-green-600 disabled:opacity-60 disabled:cursor-not-allowed"
-          disabled={confirming || !paymentMethodSelected}
+          disabled={confirming || !paymentMethodSelected || !expressCheckoutReady}
         >
           {confirming ? 'Processing…' :
+            !expressCheckoutReady ? 'Loading payment options...' :
             !paymentMethodSelected ? 'Select a payment method first' : 'Pay Now'}
         </button>
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders
+  // Only re-render if these specific props change
+  return (
+    prevProps.clientSecret === nextProps.clientSecret &&
+    prevProps.enabled === nextProps.enabled &&
+    prevProps.amountCents === nextProps.amountCents &&
+    prevProps.email === nextProps.email &&
+    prevProps.eventId === nextProps.eventId &&
+    prevProps.discountCodeId === nextProps.discountCodeId &&
+    JSON.stringify(prevProps.cart) === JSON.stringify(nextProps.cart) // Deep comparison for cart
+  );
+});
 
 export default function StripeDesktopCheckout(props: Props) {
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(props.clientSecret || null);
   const [creating, setCreating] = useState(false);
 
+  // Use backend-provided publishable key or fallback to env var
+  const publishableKey = props.publishableKey || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  const stripePromise = useMemo(() => {
+    if (!publishableKey) {
+      console.warn('[StripeDesktopCheckout] No publishable key provided');
+      return defaultStripePromise;
+    }
+    return loadStripe(publishableKey);
+  }, [publishableKey]);
+
+  // Only create PaymentIntent if clientSecret is not provided (backward compatibility)
   useEffect(() => {
+    if (props.clientSecret) {
+      // Backend-provided client secret, skip PaymentIntent creation
+      setClientSecret(props.clientSecret);
+      return;
+    }
+
     let cancelled = false;
     async function createPi() {
       if (!props.enabled) { setClientSecret(null); return; }
@@ -518,7 +729,7 @@ export default function StripeDesktopCheckout(props: Props) {
     }
     createPi();
     return () => { cancelled = true; };
-  }, [props.enabled, props.amountCents, JSON.stringify(props.cart), props.eventId, props.email, props.discountCodeId]);
+  }, [props.enabled, props.amountCents, JSON.stringify(props.cart), props.eventId, props.email, props.discountCodeId, props.clientSecret]);
 
   const options = useMemo(() => ({ appearance: { theme: "stripe" }, clientSecret: clientSecret || undefined }), [clientSecret]);
 
@@ -540,10 +751,18 @@ export default function StripeDesktopCheckout(props: Props) {
     );
   }
 
+  if (!stripePromise) {
+    return (
+      <div className="w-full border rounded-lg p-3 text-sm text-gray-600 bg-white">
+        Stripe is not configured. Please provide a publishable key.
+      </div>
+    );
+  }
+
   return (
     <Elements stripe={stripePromise} options={options as any}>
       {/* @ts-ignore */}
-      <InnerDesktopCheckout {...props} clientSecret={clientSecret} />
+      <InnerDesktopCheckout {...props} clientSecret={clientSecret || undefined} />
     </Elements>
   );
 }

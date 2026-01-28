@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FaMapMarkerAlt, FaCopy, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaCopy, FaExternalLinkAlt } from 'react-icons/fa';
 
 interface LocationDisplayProps {
   location: string;
@@ -36,25 +36,24 @@ export default function LocationDisplay({ location, venueName, className = '' }:
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <FaMapMarkerAlt className="text-red-500 flex-shrink-0" />
       <span className="font-semibold flex-1">{location}</span>
 
       {/* Copy Button */}
       <button
         onClick={handleCopy}
-        className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+        className="flex-shrink-0 w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
         title="Copy address"
       >
-        <FaCopy className="w-4 h-4" />
+        <FaCopy className="w-6 h-6 text-blue-500" />
       </button>
 
       {/* Google Maps Button */}
       <button
         onClick={handleGoogleMaps}
-        className="p-1 text-gray-500 hover:text-green-600 transition-colors"
+        className="flex-shrink-0 w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
         title="Open in Google Maps"
       >
-        <FaExternalLinkAlt className="w-4 h-4" />
+        <FaExternalLinkAlt className="w-6 h-6 text-green-500" />
       </button>
 
       {/* Copy Success Indicator */}

@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import type { DiscountCodeDTO, EventDetailsDTO } from '@/types';
 import Link from 'next/link';
-import { FaPhotoVideo, FaTicketAlt, FaTags, FaPlus, FaEdit, FaTrashAlt, FaSave, FaBan, FaTimes } from 'react-icons/fa';
+import { FaPhotoVideo, FaTicketAlt, FaTags, FaTrashAlt, FaTimes } from 'react-icons/fa';
 import { Modal } from '@/components/Modal';
 import { deleteDiscountCodeServer, patchDiscountCodeServer, createDiscountCodeServer } from './ApiServerActions';
 
@@ -25,6 +25,8 @@ export default function DiscountCodeListClient({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [page, setPage] = useState(0); // 0-based for calculations
+  const pageSize = 10;
 
   const handleAddNewClick = () => {
     setEditingCode(null);
@@ -80,6 +82,8 @@ export default function DiscountCodeListClient({
             ...formData,
             eventId: parseInt(eventId, 10),
             createdAt: editingCode.createdAt, // preserve original
+            validFrom: formData.validFrom || undefined,
+            validTo: formData.validTo || undefined,
           };
           updatedCode = await patchDiscountCodeServer(editingCode.id!, payload);
           setSuccessMessage(`Discount code "${updatedCode.code}" updated successfully!`);
@@ -98,6 +102,8 @@ export default function DiscountCodeListClient({
             maxUses: formData.maxUses,
             usesCount: formData.usesCount,
             isActive: formData.isActive,
+            validFrom: formData.validFrom || undefined,
+            validTo: formData.validTo || undefined,
           };
           updatedCode = await createDiscountCodeServer(payload, eventId);
           setSuccessMessage(`Discount code "${updatedCode.code}" created successfully!`);
@@ -121,6 +127,18 @@ export default function DiscountCodeListClient({
     });
   };
 
+  // Pagination calculations
+  const totalCount = discountCodes.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = page + 1; // 1-based for display
+  const startItem = totalCount > 0 ? page * pageSize + 1 : 0;
+  const endItem = totalCount > 0 ? page * pageSize + Math.min(pageSize, totalCount - page * pageSize) : 0;
+  const isPrevDisabled = page === 0;
+  const isNextDisabled = page >= totalPages - 1 || totalCount === 0;
+  const prevPage = Math.max(0, page - 1);
+  const nextPage = page + 1 < totalPages ? page + 1 : page;
+  const paginatedCodes = discountCodes.slice(page * pageSize, (page + 1) * pageSize);
+
   return (
     <div className="max-w-5xl mx-auto px-8" style={{ paddingTop: '118px', paddingBottom: '32px' }}>
       {/* Concise Event Summary */}
@@ -137,35 +155,64 @@ export default function DiscountCodeListClient({
       )}
       <div className="flex justify-center mb-8">
         <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 justify-items-center mx-auto">
-            <Link href={`/admin/events/${eventId}/media/list`} className="w-48 max-w-xs mx-auto flex flex-col items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md shadow p-1 sm:p-2 text-xs sm:text-xs transition-all">
-              <FaPhotoVideo className="text-base sm:text-lg mb-1 mx-auto" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <Link
+              href={`/admin/events/${eventId}/media/list`}
+              className="flex flex-col items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-lg shadow-md p-3 text-xs transition-all group"
+              title="Manage Media Files"
+              aria-label="Manage Media Files"
+            >
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                <FaPhotoVideo className="w-8 h-8 text-blue-500" />
+              </div>
               <span className="font-semibold text-center leading-tight">Manage Media Files</span>
             </Link>
-            <Link href={`/admin/events/${eventId}/ticket-types/list`} className="w-48 max-w-xs mx-auto flex flex-col items-center justify-center bg-green-50 hover:bg-green-100 text-green-700 rounded-md shadow p-1 sm:p-2 text-xs sm:text-xs transition-all">
-              <FaTicketAlt className="text-base sm:text-lg mb-1 mx-auto" />
+            <Link
+              href={`/admin/events/${eventId}/ticket-types/list`}
+              className="flex flex-col items-center justify-center bg-green-50 hover:bg-green-100 text-green-800 rounded-lg shadow-md p-3 text-xs transition-all group"
+              title="Manage Ticket Types"
+              aria-label="Manage Ticket Types"
+            >
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-green-100 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                <FaTicketAlt className="w-8 h-8 text-green-500" />
+              </div>
               <span className="font-semibold text-center leading-tight">Manage Ticket Types</span>
             </Link>
-            <Link href={`/admin/events/${eventId}/discount-codes/list`} className="w-48 max-w-xs mx-auto flex flex-col items-center justify-center bg-yellow-50 hover:bg-yellow-100 text-yellow-700 rounded-md shadow p-1 sm:p-2 text-xs sm:text-xs transition-all">
-              <FaTags className="text-base sm:text-lg mb-1 mx-auto" />
+            <Link
+              href={`/admin/events/${eventId}/discount-codes/list`}
+              className="flex flex-col items-center justify-center bg-yellow-50 hover:bg-yellow-100 text-yellow-800 rounded-lg shadow-md p-3 text-xs transition-all group"
+              title="Manage Discount Codes"
+              aria-label="Manage Discount Codes"
+            >
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-yellow-100 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300">
+                <FaTags className="w-8 h-8 text-yellow-500" />
+              </div>
               <span className="font-semibold text-center leading-tight">Manage Discount Codes</span>
             </Link>
           </div>
         </div>
       </div>
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold text-gray-800 break-words">
               Discount Codes for {eventDetails?.title}
             </h1>
             <p className="text-gray-600 mt-1">Manage discount codes for this event</p>
           </div>
           <button
             onClick={handleAddNewClick}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-3 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="flex-shrink-0 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6 w-full sm:w-auto whitespace-nowrap"
+            title="Add New Discount Code"
+            aria-label="Add New Discount Code"
+            type="button"
           >
-            <FaPlus className="text-lg" /> Add New Discount Code
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-200 flex items-center justify-center">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+            <span className="font-semibold text-blue-700">Add New Discount Code</span>
           </button>
         </div>
 
@@ -193,8 +240,110 @@ export default function DiscountCodeListClient({
           </div>
         )}
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+        {/* Rainbow Gradient Scrollbar CSS */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            .table-scroll-container {
+              overflow-x: scroll !important;
+              overflow-y: visible !important;
+              scrollbar-width: thin !important;
+              scrollbar-color: #EC4899 #FCE7F3 !important; /* Pink thumb, pink track (Firefox) */
+              -ms-overflow-style: -ms-autohiding-scrollbar !important;
+            }
+
+            /* WebKit browsers (Chrome, Safari, Edge) */
+            .table-scroll-container::-webkit-scrollbar {
+              height: 20px !important; /* Larger for visibility */
+              display: block !important;
+              -webkit-appearance: none !important;
+              appearance: none !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-track {
+              background: linear-gradient(90deg, #DBEAFE, #E9D5FF, #FCE7F3, #FED7AA) !important;
+              border-radius: 10px !important;
+              -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.15) !important;
+              box-shadow: inset 0 0 6px rgba(0,0,0,0.15) !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-thumb {
+              background: linear-gradient(90deg, #3B82F6, #8B5CF6, #EC4899, #F97316) !important;
+              border-radius: 10px !important;
+              border: 4px solid #F3F4F6 !important;
+              -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.4) !important;
+              box-shadow: inset 0 0 6px rgba(0,0,0,0.4) !important;
+              min-width: 50px !important; /* CRITICAL: Ensures thumb is always visible */
+              background-clip: padding-box !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-thumb:hover {
+              background: linear-gradient(90deg, #2563EB, #7C3AED, #DB2777, #EA580C) !important;
+              border-color: #E5E7EB !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-thumb:active {
+              background: linear-gradient(90deg, #1D4ED8, #6D28D9, #BE185D, #C2410C) !important;
+              border-color: #D1D5DB !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-button {
+              display: none !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-corner {
+              background: #E0E7FF !important;
+            }
+
+            /* Flexbox spacer for right-side centering */
+            .table-scroll-container::after {
+              content: '';
+              display: block;
+              width: 100vw; /* Full viewport width of scrollable space */
+              height: 1px;
+              flex-shrink: 0;
+            }
+
+            .table-scroll-container {
+              display: flex !important;
+            }
+          `
+        }} />
+
+        {/* Outer wrapper with gradient border */}
+        <div className="rounded-lg shadow w-full overflow-hidden" style={{
+          background: 'linear-gradient(to right, #3B82F6, #8B5CF6, #EC4899, #F97316)',
+          padding: '4px'
+        }}>
+          {/* Inner scroll container with gradient background */}
+          <div
+            className="w-full table-scroll-container"
+            style={{
+              overflowX: 'scroll',
+              overflowY: 'visible',
+              WebkitOverflowScrolling: 'touch',
+              maxWidth: '100%',
+              display: 'flex',
+              position: 'relative',
+              width: '100%',
+              minHeight: '1px',
+              scrollbarGutter: 'stable',
+              background: 'linear-gradient(to right, #3B82F6, #8B5CF6, #EC4899, #F97316)',
+              borderRadius: '8px',
+              padding: '20px'
+            }}
+          >
+            {/* Table with semi-transparent white background */}
+            <table
+              className="divide-y divide-gray-200"
+              style={{
+                width: 'max-content',
+                minWidth: 'fit-content', /* Responsive: fits content naturally */
+                flexShrink: 0,
+                background: 'rgba(255, 255, 255, 0.95)', /* Semi-transparent white */
+                borderRadius: '8px',
+                overflow: 'hidden'
+              }}
+            >
             <thead className="bg-gray-50">
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
@@ -206,7 +355,7 @@ export default function DiscountCodeListClient({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {discountCodes.map((code) => (
+                {paginatedCodes.map((code) => (
                 <tr key={code.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{code.code}</div>
@@ -216,23 +365,103 @@ export default function DiscountCodeListClient({
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{code.discountValue}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{code.usesCount} / {code.maxUses || '∞'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${code.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      <span className={`px-3 py-1.5 inline-flex text-sm leading-5 font-semibold rounded-full ${code.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {code.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => handleEditClick(code)} className="text-indigo-600 hover:text-indigo-900 mr-4"><FaEdit className="w-5 h-5" /></button>
-                    <button onClick={() => handleDeleteClick(code)} className="text-red-600 hover:text-red-900"><FaTrashAlt className="w-5 h-5" /></button>
+                      <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={() => handleEditClick(code)}
+                          className="flex-shrink-0 w-14 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                          title="Edit Discount Code"
+                          aria-label="Edit Discount Code"
+                          type="button"
+                      >
+                          <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(code)}
+                          className="flex-shrink-0 w-14 h-14 rounded-xl bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                          title="Delete Discount Code"
+                          aria-label="Delete Discount Code"
+                          type="button"
+                      >
+                          <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        </div>
 
-        {discountCodes.length === 0 && (
-          <p className="mt-4 text-center text-gray-500">No discount codes found for this event.</p>
+        {/* Pagination Controls - Always visible, matching admin page style */}
+        <div className="mt-8">
+          <div className="flex justify-between items-center">
+            {/* Previous Button */}
+            <button
+              onClick={() => setPage(prevPage)}
+              disabled={isPrevDisabled}
+              className="px-5 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg shadow-sm border-2 border-blue-400 hover:border-blue-500 disabled:bg-blue-100 disabled:border-blue-300 disabled:text-blue-500 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-md"
+              title="Previous Page"
+              aria-label="Previous Page"
+              type="button"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>Previous</span>
+            </button>
+
+            {/* Page Info */}
+            <div className="px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+              <span className="text-sm font-bold text-blue-700">
+                Page <span className="text-blue-600">{currentPage}</span> of <span className="text-blue-600">{totalPages}</span>
+              </span>
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => setPage(nextPage)}
+              disabled={isNextDisabled}
+              className="px-5 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg shadow-sm border-2 border-blue-400 hover:border-blue-500 disabled:bg-blue-100 disabled:border-blue-300 disabled:text-blue-500 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-md"
+              title="Next Page"
+              aria-label="Next Page"
+              type="button"
+            >
+              <span>Next</span>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Item Count Text */}
+          <div className="text-center mt-3">
+            {totalCount > 0 ? (
+              <div className="inline-flex items-center px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+                <span className="text-sm text-gray-700">
+                  Showing <span className="font-bold text-blue-600">{startItem}</span> to <span className="font-bold text-blue-600">{endItem}</span> of <span className="font-bold text-blue-600">{totalCount}</span> discount codes
+                </span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 border-2 border-orange-300 rounded-lg shadow-sm">
+                <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-medium text-orange-700">No discount codes found</span>
+                <span className="text-sm text-orange-600">[No discount codes match your criteria]</span>
+              </div>
         )}
+          </div>
+        </div>
       </div>
 
       <DiscountCodeModal
@@ -295,6 +524,8 @@ function DiscountCodeModal({ open, onClose, onSave, code, isPending, error }: {
         discountValue: code.discountValue || 0,
         maxUses: code.maxUses || 100,
         isActive: code.isActive !== undefined ? code.isActive : true,
+        validFrom: code.validFrom || '',
+        validTo: code.validTo || '',
       });
     } else {
       // Add new mode - set clean defaults
@@ -305,6 +536,8 @@ function DiscountCodeModal({ open, onClose, onSave, code, isPending, error }: {
         discountValue: 10,
         maxUses: 100,
         isActive: true,
+        validFrom: '',
+        validTo: '',
       });
     }
   }, [code]);
@@ -366,9 +599,16 @@ function DiscountCodeModal({ open, onClose, onSave, code, isPending, error }: {
             <button
               type="button"
               onClick={generateRandomCode}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-3 rounded-md text-sm transition-colors"
+              className="w-full flex-shrink-0 h-14 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105"
+              title="Generate Code"
+              aria-label="Generate Code"
             >
-              Generate Code
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <span className="font-semibold text-gray-700">Generate Code</span>
             </button>
           </div>
         </div>
@@ -450,6 +690,50 @@ function DiscountCodeModal({ open, onClose, onSave, code, isPending, error }: {
           <p className="mt-1 text-xs text-gray-500">Leave empty or set to 0 for unlimited uses</p>
         </div>
 
+        {/* Valid From and Valid To Dates */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="validFrom" className="block text-sm font-medium text-gray-700 mb-1">
+              Valid From (Optional)
+            </label>
+            <input
+              type="datetime-local"
+              name="validFrom"
+              id="validFrom"
+              value={formData.validFrom ? new Date(formData.validFrom).toISOString().slice(0, 16) : ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData(prev => ({
+                  ...prev,
+                  validFrom: value ? new Date(value).toISOString() : ''
+                }));
+              }}
+              className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            />
+            <p className="mt-1 text-xs text-gray-500">Leave empty for no start date restriction</p>
+          </div>
+          <div>
+            <label htmlFor="validTo" className="block text-sm font-medium text-gray-700 mb-1">
+              Valid To (Optional)
+            </label>
+            <input
+              type="datetime-local"
+              name="validTo"
+              id="validTo"
+              value={formData.validTo ? new Date(formData.validTo).toISOString().slice(0, 16) : ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData(prev => ({
+                  ...prev,
+                  validTo: value ? new Date(value).toISOString() : ''
+                }));
+              }}
+              className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            />
+            <p className="mt-1 text-xs text-gray-500">Leave empty for no end date restriction</p>
+          </div>
+        </div>
+
         {/* Active Status */}
         <div className="flex items-center">
           <input
@@ -466,21 +750,42 @@ function DiscountCodeModal({ open, onClose, onSave, code, isPending, error }: {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <div className="flex flex-row gap-3 sm:gap-4 pt-4 border-t border-gray-200">
           <button
             type="button"
             onClick={onClose}
             disabled={isPending}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-md flex items-center gap-2 transition-colors disabled:opacity-50"
+            className="flex-1 flex-shrink-0 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            title="Cancel"
+            aria-label="Cancel"
           >
-            <FaBan /> Cancel
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-200 flex items-center justify-center">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <span className="font-semibold text-blue-700">Cancel</span>
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md flex items-center gap-2 transition-colors disabled:opacity-50"
+            className="flex-1 flex-shrink-0 h-14 rounded-xl bg-green-100 hover:bg-green-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            title={isPending ? 'Saving...' : 'Save'}
+            aria-label={isPending ? 'Saving...' : 'Save'}
           >
-            {isPending ? 'Saving...' : 'Save'} <FaSave />
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-200 flex items-center justify-center">
+              {isPending ? (
+                <svg className="animate-spin w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className="font-semibold text-green-700">{isPending ? 'Saving...' : 'Save'}</span>
           </button>
         </div>
       </form>

@@ -2,7 +2,6 @@ import { auth } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getAuth } from "@clerk/nextjs/server";
-import { headers } from "next/headers";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -34,9 +33,7 @@ export async function authenticatedRequest(
 }
 
 export async function getServerAuth() {
-  // Get headers first (await for Next.js 15+ compatibility)
-  const headersList = await headers();
-  // Then get auth
+  // Get auth directly - no need to await headers() if not using them
   const session = await auth();
   return session;
 }

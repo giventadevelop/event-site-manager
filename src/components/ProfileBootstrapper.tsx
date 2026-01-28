@@ -8,9 +8,17 @@ export function ProfileBootstrapper() {
   const { user } = useUser();
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn || !userId) return;
+    if (!isLoaded || !isSignedIn || !userId || !user) return;
     console.log("ProfileBootstrapper useEffect running", { isLoaded, isSignedIn, userId, user });
-    bootstrapUserProfile({ userId, user })
+    // Extract serializable data from user object (client reference)
+    // This prevents "Cannot access primaryEmailAddress on the server" errors
+    const userData = {
+      email: user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress || "",
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      imageUrl: user.imageUrl || "",
+    };
+    bootstrapUserProfile({ userId, userData })
       .catch((err) => {
         console.error("Profile bootstrap failed:", err);
       });

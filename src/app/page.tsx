@@ -1,1317 +1,561 @@
-import Link from "next/link";
-import { UserRoleDisplay } from "@/components/UserRoleDisplay";
-import { EventCard } from "@/components/EventCard";
-import Image from "next/image";
-import type { EventDetailsDTO } from '@/types';
-import { TeamImage } from '@/components/TeamImage';
-import { getTenantId } from '@/lib/env';
-import { formatDateLocal } from '@/lib/date';
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
-import VideoSection from '@/components/VideoSection';
+'use client';
 
-export default function Page() {
-  // Use static hero image - no backend dependencies
-  const heroImage = `/images/side_images/chilanka_2025.webp?v=${Date.now()}`;
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { usePathname } from 'next/navigation';
+import HeroSection from '../components/HeroSection';
+import LiveEventsSection from '../components/LiveEventsSection';
+import FeaturedEventsSection from '../components/FeaturedEventsSection';
+import ServicesSection from '../components/ServicesSection';
+import AboutSection from '../components/AboutSection';
+import UpcomingEventsSection from '../components/UpcomingEventsSection';
+import CausesSection from '../components/CausesSection';
+import TeamSection from '../components/TeamSection';
+import OurSponsorsSection from '../components/OurSponsorsSection';
+import ProjectsSection from '../components/ProjectsSection';
+import TestimonialsSection from '../components/TestimonialsSection';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { useTenantSettings } from '@/components/TenantSettingsProvider';
+import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
+import Link from 'next/link';
+
+// Fallback components for when data is not available
+const EventsFallback = () => (
+  <section className="py-24 bg-gray-50">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-12">
+        <div className="flex items-center justify-center space-x-2 mb-4">
+          <div className="w-5 h-2 bg-yellow-400 rounded"></div>
+          <p className="text-gray-600 font-medium">Upcoming Events</p>
+        </div>
+        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          Our Upcoming Events
+        </h2>
+      </div>
+      <div className="text-center text-gray-500 py-8">
+        <div className="bg-white rounded-lg shadow-sm p-8 max-w-md mx-auto">
+          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Upcoming Events Information Temporarily Unavailable</h3>
+          <p className="text-gray-500">We're currently updating our upcoming events information. Please check back later.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+const TeamFallback = () => (
+  <section id="team-section" className="py-24 bg-gray-50">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-12">
+        <div className="flex items-center justify-center space-x-2 mb-4">
+          <div className="w-5 h-2 bg-yellow-400 rounded"></div>
+          <p className="text-gray-600 font-medium">Our Team</p>
+        </div>
+        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          Meet Our Team
+        </h2>
+      </div>
+      <div className="text-center text-gray-500 py-8">
+        <div className="bg-white rounded-lg shadow-sm p-8 max-w-md mx-auto">
+          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Team Members Information Temporarily Unavailable</h3>
+          <p className="text-gray-500">We're currently updating our team members information. Please check back later.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+// Main content component that uses tenant settings
+function HomePageContent() {
+  const { showEventsSection, showTeamSection, showSponsorsSection, loading } = useTenantSettings();
+
+  // Handle hash navigation on page load and hash changes
+  useEffect(() => {
+    const handleHashNavigation = () => {
+      const hash = window.location.hash;
+      if (hash) {
+        const targetId = hash.substring(1);
+
+        // Show loading indicator for team section
+        if (targetId === 'team-section') {
+          showNavigationLoading();
+        }
+
+        // Wait for element to exist before scrolling (especially important for dynamically loaded sections)
+        // CRITICAL: For team-section, also wait for tenant settings to load
+        const maxWaitTime = 15000; // 15 seconds max wait (increased for team section)
+        const pollInterval = 100; // Check every 100ms
+        const startTime = Date.now();
+        const headerHeight = 80;
+
+        const waitForElementAndScroll = () => {
+          const element = document.getElementById(targetId);
+
+          if (element) {
+            // CRITICAL: For team-section, ensure it's fully rendered and visible
+            // Check if element has content (not just the container)
+            if (targetId === 'team-section') {
+              // Wait for tenant settings to load first
+              if (loading) {
+                const elapsed = Date.now() - startTime;
+                if (elapsed < maxWaitTime) {
+                  setTimeout(waitForElementAndScroll, pollInterval);
+                  return;
+                }
+              }
+
+              // Check if team section is actually shown (not hidden by settings)
+              if (!showTeamSection) {
+                console.warn('[HomePage] Team section is not enabled in tenant settings');
+                hideNavigationLoading();
+                return;
+              }
+
+              // Check if element has actual content (team members loaded)
+              const hasContent = element.querySelector('.max-w-7xl') &&
+                                 (element.querySelector('.grid') || element.querySelector('.flex'));
+              if (!hasContent) {
+                // Element exists but content not loaded yet, keep waiting
+                const elapsed = Date.now() - startTime;
+                if (elapsed < maxWaitTime) {
+                  setTimeout(waitForElementAndScroll, pollInterval);
+                  return;
+                }
+              }
+            }
+
+            // Element exists and is ready, scroll to it with proper offset
+            // Use larger offset to ensure section is fully visible above the fold
+            const scrollOffset = targetId === 'team-section' ? headerHeight + 40 : headerHeight + 20;
+            const targetPosition = element.offsetTop - scrollOffset;
+
+            // Ensure we scroll to the correct element by verifying the ID matches
+            if (element.id === targetId) {
+              // Small delay to ensure layout is stable before scrolling
+              setTimeout(() => {
+                window.scrollTo({
+                  top: Math.max(0, targetPosition),
+                  behavior: 'smooth'
+                });
+                hideNavigationLoading();
+                console.log('[HomePage] Successfully scrolled to:', targetId, 'at position:', targetPosition);
+              }, 100);
+              return;
+            }
+          }
+
+          // Element doesn't exist yet
+          const elapsed = Date.now() - startTime;
+          if (elapsed < maxWaitTime) {
+            // Keep waiting
+            setTimeout(waitForElementAndScroll, pollInterval);
+          } else {
+            // Timeout reached
+            console.warn('[HomePage] Timeout waiting for element:', targetId);
+            hideNavigationLoading();
+          }
+        };
+
+        // Start waiting for element
+        waitForElementAndScroll();
+      } else {
+        // No hash, hide any existing loading indicator
+        hideNavigationLoading();
+      }
+    };
+
+    // Helper functions for loading indicator
+    const showNavigationLoading = () => {
+      if (typeof window === 'undefined') return;
+
+      // Remove existing indicator if any
+      hideNavigationLoading();
+
+      // Create loading indicator
+      const loadingIndicator = document.createElement('div');
+      loadingIndicator.id = 'navigation-loading-indicator';
+      loadingIndicator.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        backdrop-filter: blur(4px);
+      `;
+
+      // Create spinner
+      const spinner = document.createElement('div');
+      spinner.style.cssText = `
+        width: 48px;
+        height: 48px;
+        border: 4px solid #e5e7eb;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      `;
+
+      // Add keyframes if not already present
+      if (!document.getElementById('navigation-loading-styles')) {
+        const style = document.createElement('style');
+        style.id = 'navigation-loading-styles';
+        style.textContent = `
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // Create text
+      const text = document.createElement('div');
+      text.textContent = 'Loading team members...';
+      text.style.cssText = `
+        margin-top: 16px;
+        font-size: 16px;
+        font-weight: 500;
+        color: #3b82f6;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      `;
+
+      loadingIndicator.appendChild(spinner);
+      loadingIndicator.appendChild(text);
+      document.body.appendChild(loadingIndicator);
+    };
+
+    const hideNavigationLoading = () => {
+      const indicator = document.getElementById('navigation-loading-indicator');
+      if (indicator && indicator.parentNode) {
+        indicator.parentNode.removeChild(indicator);
+      }
+    };
+
+    // Handle initial page load with hash
+    handleHashNavigation();
+
+    // Handle hash changes (back/forward navigation)
+    window.addEventListener('hashchange', handleHashNavigation);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashNavigation);
+      hideNavigationLoading();
+    };
+  }, []);
 
   return (
-    <div className="w-full overflow-x-hidden">
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          /* Mobile-specific hero adjustments */
-          @media (max-width: 767px) {
-            .hero-section {
-              min-height: 180px !important;
-              height: 180px !important;
-              padding-top: 80px !important;
-              background-color: #000 !important;
-              margin: 0 !important;
-              padding: 80px 0 0 0 !important;
-            }
-            /* Prevent horizontal overflow */
-            body {
-              overflow-x: hidden !important;
-            }
-            /* Ensure content fits mobile viewport */
-            .container {
-              max-width: 100vw !important;
-              padding-left: 15px !important;
-              padding-right: 15px !important;
-            }
-            /* Ensure mobile text doesn't duplicate */
-            .hero-title {
-              display: none !important;
-            }
-            /* Ensure mobile text stays within hero bounds */
-            .hero-section h1 {
-              margin-bottom: 0 !important;
-              padding-bottom: 0 !important;
-            }
-            /* Mobile feature box spacing - increased significantly */
-            .feature-boxes-container {
-              margin-top: 110px !important;
-            }
-            /* Mobile feature box spacing */
-            .feature-box-left {
-              margin-bottom: 20px !important;
-            }
-            .feature-box-right {
-              margin-bottom: 0 !important;
-            }
-            /* Ensure mobile hero has solid black background */
-            .flex.md\\:hidden {
-              background-color: #000 !important;
-              padding: 0 !important;
-              margin: 0 !important;
-              border: none !important;
-              outline: none !important;
-            }
-            /* Force all mobile hero elements to have black background */
-            .flex.md\\:hidden * {
-              background-color: #000 !important;
-            }
-            /* Ensure no white spaces in mobile hero */
-            .flex.md\\:hidden img {
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-            .flex.md\\:hidden div {
-              margin: 0 !important;
-              padding: 0 !important;
-              border: none !important;
-            }
-            .flex.md\\:hidden h1 {
-              margin: 0 !important;
-              padding: 0 !important;
-              background-color: #000 !important;
-            }
-          }
-          /* Desktop-specific adjustments */
-          @media (min-width: 768px) {
-            .hero-section {
-              min-height: 320px !important;
-              height: 320px !important;
-              padding-top: 100px !important;
-            }
-            .feature-boxes-container {
-              margin-top: 55px !important;
-            }
-            /* Ensure desktop doesn't show mobile elements */
-            .flex.md\\:hidden {
-              display: none !important;
-            }
-            /* Desktop feature box height */
-            .feature-box-left {
-              height: 1200px !important;
-              margin-bottom: 0 !important;
-            }
-            .feature-box-right {
-              height: 1200px !important;
-              margin-bottom: 0 !important;
-            }
-          }
-        `
-      }} />
-      <section className="hero-section events-hero-section" style={{
-        height: '320px',
-        minHeight: '320px',
-        position: 'relative',
-        overflow: 'visible',
-        backgroundColor: '#000',
-        marginBottom: 0,
-        paddingBottom: 0,
-        paddingTop: '100px',
-        marginTop: 0
-      }}>
-        {/* Desktop Layout */}
-        <div className="hidden md:flex hero-content" style={{
-          position: 'relative',
-          zIndex: 3,
-          padding: '0 20px',
-          maxWidth: 1200,
-          margin: '0 auto',
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          height: '100%',
-          minHeight: 200,
-          gap: '40px',
-          paddingTop: '50px',
-          paddingBottom: '70px'
-        }}>
-          <img src="/images/mcefee_logo_black_border_transparent.png" className="hero-mcafee-logo" alt="MCEFEE Logo" style={{ width: 240, height: 'auto', opacity: 0.6, marginLeft: -200 }} />
-          <h1 className="hero-title" style={{
-            fontSize: 26,
-            lineHeight: 1.4,
-            color: 'white',
-            maxWidth: 450,
-            fontFamily: 'Sora, sans-serif',
-            marginLeft: -20,
-            marginRight: 40,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px'
-          }}>
-            <span>Connecting Cultures,</span>
-            <span>Empowering Generations –</span>
-            <span style={{ color: '#ffce59', fontSize: 26 }}>Celebrating Malayali Roots in the USA</span>
-          </h1>
-        </div>
-        {/* Mobile Layout */}
-        <div className="flex md:hidden" style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px 0px',
-          minHeight: '160px',
-          backgroundColor: '#000',
-          position: 'relative',
-          zIndex: 3,
-          width: '100%',
-          maxWidth: '100vw',
-          height: '100%',
-          margin: '0px',
-          border: 'none',
-          outline: 'none'
-        }}>
-          {/* Mobile Logo */}
-          <img src="/images/mcefee_logo_black_border_transparent.png" alt="MCEFEE Logo" style={{
-            width: '200px',
-            height: 'auto',
-            opacity: 0.9,
-            display: 'block',
-            margin: '20px auto 10px auto',
-            padding: '0px'
-          }} />
-
-          {/* Mobile Main Text - Single instance only */}
-          <div style={{
-            backgroundColor: '#000',
-            padding: '0px',
-            margin: '0px',
-            width: '100%',
-            border: 'none',
-            outline: 'none',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <h1 style={{
-              fontSize: '18px',
-              lineHeight: 1.3,
-              color: 'white',
-              maxWidth: '300px',
-              fontFamily: 'Sora, sans-serif',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '3px',
-              textAlign: 'center',
-              margin: '0px auto',
-              padding: '0px',
-              fontWeight: '500',
-              backgroundColor: '#000',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}>
-              <span>Connecting Cultures,</span>
-              <span>Empowering Generations –</span>
-              <span style={{ color: '#ffce59', fontSize: '18px', fontWeight: '600' }}>Celebrating Malayali Roots in the USA</span>
-            </h1>
-          </div>
-        </div>
-        {/* Desktop Background */}
-        <div className="hidden md:block hero-background" style={{
-          position: 'absolute',
-          top: '25%',
-          right: '10px',
-          left: 'auto',
-          width: '30%',
-          height: '75%',
-          backgroundImage: "url('/images/kathakali_with_back_light_hero_ai.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          opacity: 0.8,
-          filter: 'blur(0.5px)',
-          WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0.7) 65%, rgba(0,0,0,0.3) 85%, rgba(0,0,0,0) 100%)',
-          maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0.7) 65%, rgba(0,0,0,0.3) 85%, rgba(0,0,0,0) 100%)',
-          zIndex: 2,
-          pointerEvents: 'none',
-        }}>
-          {/* Top gradient overlay */}
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '15%',
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.1) 100%)',
-            zIndex: 1,
-            filter: 'blur(1px)'
-          }}></div>
-          {/* Bottom gradient overlay */}
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: '15%',
-            background: 'linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.1) 100%)',
-            zIndex: 1,
-            filter: 'blur(1px)'
-          }}></div>
-          {/* Left gradient overlay - enhanced for better fade */}
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '20%',
-            height: '100%',
-            background: 'linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 20%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.1) 80%, rgba(0,0,0,0) 100%)',
-            zIndex: 1,
-            filter: 'blur(1px)'
-          }}></div>
-
-          {/* Additional left fade gradient for smoother transition */}
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '35%',
-            height: '100%',
-            background: 'linear-gradient(90deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 30%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.05) 80%, rgba(0,0,0,0) 100%)',
-            zIndex: 1,
-            filter: 'blur(1.5px)'
-          }}></div>
-          {/* Right gradient overlay */}
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: '25%',
-            height: '100%',
-            background: 'linear-gradient(270deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.1) 100%)',
-            zIndex: 1,
-            filter: 'blur(1px)'
-          }}></div>
-          {/* Corner gradient overlays for smoother blending */}
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '20%',
-            height: '20%',
-            background: 'radial-gradient(ellipse at top left, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0) 100%)',
-            zIndex: 2
-          }}></div>
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: '30%',
-            height: '30%',
-            background: 'radial-gradient(ellipse at top right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%)',
-            zIndex: 2
-          }}></div>
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            width: '30%',
-            height: '30%',
-            background: 'radial-gradient(ellipse at bottom left, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%)',
-            zIndex: 2
-          }}></div>
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            right: 0,
-            width: '30%',
-            height: '30%',
-            background: 'radial-gradient(ellipse at bottom right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%)',
-            zIndex: 2
-          }}></div>
-        </div>
-        {/* Hero overlay removed to match events page brightness */}
-      </section>
-
-      {/* MOBILE SPACER DIV - Creates space between hero and feature boxes on mobile only */}
-      <div className="block md:hidden" style={{ height: '60px', width: '100%', backgroundColor: 'transparent' }}></div>
-
-      {/* FEATURE BOXES SECTION - two columns on desktop, stacked on mobile */}
-      <div className="feature-boxes-container w-full" style={{ marginTop: '60px', margin: '0', padding: '0', maxWidth: '100vw', overflow: 'hidden' }}>
-        <div className="flex flex-col md:flex-row gap-8 md:gap-0" style={{ margin: '0', padding: '0', maxWidth: '100%' }}>
-          {/* LEFT FEATURE BOX - three images stacked vertically */}
-          <div className="flex-1 rounded-xl p-0 feature-box-left" style={{
-            justifyContent: 'flex-start',
-            alignItems: 'stretch',
-            maxWidth: '100%',
-            height: 'auto', // Auto height for mobile, fixed for desktop
-            display: 'flex',
-            flexDirection: 'column',
-            marginBottom: '20px' // Add bottom margin for mobile spacing
-          }}>
-            <div style={{
-              gap: '12px',
-              padding: '0px',
-              justifyContent: 'space-between',
-              display: 'flex',
-              flexDirection: 'column',
-              maxWidth: '100%',
-              height: '100%'
-            }}>
-              {/* First image - Buy Tickets Click Here */}
-              <Link href="/events/1/tickets" style={{
-                height: 'auto',
-                flex: '0 0 auto',
-                display: 'block',
-                maxWidth: '100%',
-                margin: '0',
-                padding: '0'
-              }}>
-                <img
-                  src="/images/buy_tickets_click_here_red.webp"
-                  alt="Buy Tickets"
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    minHeight: '200px',
-                    maxHeight: '250px',
-                    objectFit: 'contain',
-                    objectPosition: 'center',
-                    margin: 0,
-                    padding: '0px',
-                    boxSizing: 'border-box',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    flexShrink: 0
-                  }}
-                />
-              </Link>
-
-              {/* Second image - Buy Tickets Sep 15 Parsippany */}
-              <Link href="/events/1/tickets" style={{
-                height: 'auto',
-                flex: '0 0 auto',
-                display: 'block',
-                maxWidth: '100%',
-                margin: '0',
-                padding: '0'
-              }}>
-                <img
-                  src="/images/spark_kerala_event_2025/event_1/khnj_onam_2025_1920px.jpg"
-                  alt="Buy Tickets Sep 2 Houston"
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    objectPosition: 'center',
-                    margin: 0,
-                    padding: '0px',
-                    boxSizing: 'border-box',
-                    maxWidth: '100%',
-                    overflow: 'hidden'
-                  }}
-                />
-              </Link>
-
-              {/* Third image - Buy Tickets Sep 21 Knanaya */}
-              <Link href="/events/2/tickets" style={{
-                height: 'auto',
-                flex: '0 0 auto',
-                display: 'block',
-                maxWidth: '100%',
-                margin: '0',
-                padding: '0'
-              }}>
-                <img
-                  src="/images/spark_kerala_event_2025.jpeg"
-                  alt="Buy Tickets spark_kerala_event_2025"
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    objectPosition: 'center',
-                    margin: 0,
-                    padding: '0px',
-                    boxSizing: 'border-box',
-                    maxWidth: '100%',
-                    overflow: 'hidden'
-                  }}
-                />
-              </Link>
-
-              {/* Fourth image - Buy Tickets Sep 21 Knanaya 450 */}
-              <Link href="/events/3/tickets" style={{
-                height: 'auto',
-                flex: '0 0 auto',
-                display: 'block',
-                maxWidth: '100%',
-                margin: '0',
-                padding: '0'
-              }}>
-                <img
-                  src="/images/spark_kerala_event_2025/event_3/buy_tickets_sep_21_ikcc_ny_450.jpeg"
-                  alt="Buy Tickets Sep 21 Knanaya 450"
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    objectPosition: 'center',
-                    margin: 0,
-                    padding: '0px',
-                    boxSizing: 'border-box',
-                    maxWidth: '100%',
-                    overflow: 'hidden'
-                  }}
-                />
-              </Link>
-            </div>
-          </div>
-
-          {/* RIGHT FEATURE BOX - single large image */}
-          <div className="flex-1 rounded-xl p-0 feature-box-right" style={{
-            marginTop: '0',
-            alignItems: 'stretch',
-            maxWidth: '100%',
-            height: 'auto', // Auto height for mobile, fixed for desktop
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <img
-              src="/images/spark_kerala_event_2025_1_2.jpeg"
-              alt="Spark Kerala Event 2025"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center',
-                margin: 0,
-                padding: '0px',
-                boxSizing: 'border-box',
-                maxWidth: '100%',
-                overflow: 'hidden'
-              }}
-            />
-          </div>
+    <main>
+      <HeroSection />
+      {/* Temporary site banner */}
+      <div className="w-full bg-green-700 text-white py-0 md:py-0.5">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <span className="text-2xl md:text-4xl font-bold tracking-wider">event-site-manager</span>
         </div>
       </div>
-
-      {/* VIDEO SECTION - YouTube embed with thumbnail and play button */}
-      <VideoSection />
-
-      {/* Main content container - ui_style_guide.mdc compliant */}
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-0" style={{ marginTop: '60px', maxWidth: '100vw', overflow: 'hidden' }}>
-        {/* WHAT WE DO SECTION - two columns on desktop, stacked on mobile */}
-        <section className="what-we-do bg-white py-8">
-          <div className="container mx-auto px-4 md:px-4">
-            <div className="section-title-wrapper flex items-center gap-4 mb-4">
-              <span className="section-subtitle text-yellow-400 font-semibold text-lg border-b-2 border-yellow-400 pb-1">WHAT WE DO</span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-8">Cultural Workshops and Educational Events</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-x-16 md:gap-y-10">
-              {/* Traditional Dance & Music */}
-              <div className="flex items-start gap-6">
-                <div className="flex-shrink-0">
-                  <svg width="40" height="40" fill="none" viewBox="0 0 40 40"><path d="M28 5v17.58A6.5 6.5 0 1 0 31 28V13h6V5h-9zM22 33a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" fill="#22c55e" /></svg>
-                </div>
-                <div>
-                  <h4 className="text-xl font-semibold mb-1">Traditional Dance & Music</h4>
-                  <p className="text-gray-500 text-lg">Experience the rich heritage of Kerala through dance and music workshops.</p>
-                </div>
-              </div>
-              {/* Art & Craft Workshops */}
-              <div className="flex items-start gap-6">
-                <div className="flex-shrink-0">
-                  <svg width="40" height="40" fill="none" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#fbbf24" /><circle cx="13" cy="17" r="2" fill="#fff" /><circle cx="20" cy="13" r="2" fill="#fff" /><circle cx="27" cy="17" r="2" fill="#fff" /><circle cx="20" cy="27" r="2" fill="#fff" /></svg>
-                </div>
-                <div>
-                  <h4 className="text-xl font-semibold mb-1">Art & Craft Workshops</h4>
-                  <p className="text-gray-500 text-lg">Learn traditional Kerala art forms and crafts through hands-on workshops.</p>
-                </div>
-              </div>
-              {/* Kerala Folklore and Tribal Traditions */}
-              <div id="about-us" className="flex items-start gap-6" style={{ scrollMarginTop: '100px' }}>
-                <div className="flex-shrink-0">
-                  <svg width="40" height="40" fill="none" viewBox="0 0 40 40"><rect x="8" y="8" width="24" height="24" rx="4" fill="#3b82f6" /><rect x="14" y="14" width="12" height="2" rx="1" fill="#fff" /><rect x="14" y="20" width="12" height="2" rx="1" fill="#fff" /></svg>
-                </div>
-                <div>
-                  <h4 className="text-xl font-semibold mb-1">Kerala Folklore and Tribal Traditions</h4>
-                  <p className="text-gray-500 text-lg">Introduce lesser-known folk dances like Theyyam, Padayani, and Poothan Thira.</p>
-                </div>
-              </div>
-              {/* Kerala Cuisine Classes */}
-              <div className="flex items-start gap-6">
-                <div className="flex-shrink-0">
-                  <svg width="40" height="40" fill="none" viewBox="0 0 40 40"><g><rect x="10" y="10" width="6" height="20" rx="3" fill="#fbbf24" /><rect x="24" y="10" width="6" height="20" rx="3" fill="#fbbf24" /><rect x="13" y="13" width="2" height="14" rx="1" fill="#fff" /><rect x="27" y="13" width="2" height="14" rx="1" fill="#fff" /></g></svg>
-                </div>
-                <div>
-                  <h4 className="text-xl font-semibold mb-1">Kerala Cuisine Classes</h4>
-                  <p className="text-gray-500 text-lg">Master the art of traditional Kerala cooking with expert chefs.</p>
+      <div className="-mt-3 md:-mt-4">
+        <ErrorBoundary fallback={<EventsFallback />}>
+          <LiveEventsSection />
+        </ErrorBoundary>
+        <ErrorBoundary fallback={<EventsFallback />}>
+          <FeaturedEventsSection />
+        </ErrorBoundary>
+      </div>
+      {/* What We Do and About Foundation sections - Always shown immediately */}
+      <ServicesSection />
+      <AboutSection />
+      {/* Loading state for Upcoming Events and Team sections only */}
+      {loading ? (
+        <div className="py-16 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-center items-center min-h-[400px]">
+              <div className="relative">
+                <Image
+                  src="/images/loading_events.jpg"
+                  alt="Loading events and team information..."
+                  width={300}
+                  height={300}
+                  className="rounded-lg shadow-2xl animate-pulse"
+                  priority
+                />
+                <div className="absolute inset-0 rounded-lg overflow-hidden">
+                  <div className="wavy-animation"></div>
                 </div>
               </div>
             </div>
           </div>
-        </section>
-        {/* TICKER/BANNER SECTION */}
-        <section className="ticker-section" style={{ marginTop: '-20px', padding: '20px 0', overflow: 'hidden', backgroundColor: '#ff8c00' }}>
-          <div className="ticker" style={{
-            display: 'flex',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            animation: 'ticker 15s linear infinite',
-            width: '100%'
-          }}>
-            <div className="ticker-item" style={{
-              display: 'inline-block',
-              paddingRight: '800px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              whiteSpace: 'nowrap'
-            }}>Culture is the thread to thrive and ties generations to their roots !</div>
-            <div className="ticker-item" style={{
-              display: 'inline-block',
-              paddingRight: '800px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              whiteSpace: 'nowrap'
-            }}>Culture is the thread to thrive and ties generations to their roots !</div>
-            <div className="ticker-item" style={{
-              display: 'inline-block',
-              paddingRight: '800px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              whiteSpace: 'nowrap'
-            }}>Culture is the thread to thrive and ties generations to their roots !</div>
-            <div className="ticker-item" style={{
-              display: 'inline-block',
-              paddingRight: '800px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              whiteSpace: 'nowrap'
-            }}>Culture is the thread to thrive and ties generations to their roots !</div>
-            <div className="ticker-item" style={{
-              display: 'inline-block',
-              paddingRight: '800px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              whiteSpace: 'nowrap'
-            }}>Culture is the thread to thrive and ties generations to their roots !</div>
-            <div className="ticker-item" style={{
-              display: 'inline-block',
-              paddingRight: '800px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              whiteSpace: 'nowrap'
-            }}>Culture is the thread to thrive and ties generations to their roots !</div>
-            <div className="ticker-item" style={{
-              display: 'inline-block',
-              paddingRight: '800px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              whiteSpace: 'nowrap'
-            }}>Culture is the thread to thrive and ties generations to their roots !</div>
-            <div className="ticker-item" style={{
-              display: 'inline-block',
-              paddingRight: '800px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              whiteSpace: 'nowrap'
-            }}>Culture is the thread to thrive and ties generations to their roots !</div>
-            <div className="ticker-item" style={{
-              display: 'inline-block',
-              paddingRight: '800px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              whiteSpace: 'nowrap'
-            }}>Culture is the thread to thrive and ties generations to their roots !</div>
-            <div className="ticker-item" style={{
-              display: 'inline-block',
-              paddingRight: '800px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              whiteSpace: 'nowrap'
-            }}>Culture is the thread to thrive and ties generations to their roots !</div>
+        </div>
+      ) : (
+        <>
+          {showEventsSection && (
+            <ErrorBoundary fallback={<EventsFallback />}>
+              <UpcomingEventsSection />
+            </ErrorBoundary>
+          )}
+          {showTeamSection && (
+            <ErrorBoundary fallback={<TeamFallback />}>
+              <TeamSection />
+            </ErrorBoundary>
+          )}
+        </>
+      )}
+      {/* Causes section - Always shown (outside loading condition) */}
+      <CausesSection />
+      <ProjectsSection />
+      <TestimonialsSection />
+      {showSponsorsSection && (
+        <ErrorBoundary fallback={<div>Sponsors temporarily unavailable</div>}>
+          <OurSponsorsSection />
+        </ErrorBoundary>
+      )}
+      {/* Contact Section - Updated to match "What We Do" styling */}
+      <div id="contact" className="py-24 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Section Header - Matching "What We Do" style */}
+          <div className="mb-16">
+            <div className="flex items-center space-x-2 mb-6">
+              <div className="w-5 h-2 bg-yellow-400 rounded"></div>
+              <p className="text-gray-600">Contact</p>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 text-center">
+              Get in Touch
+            </h2>
           </div>
-        </section>
-        {/* ABOUT, VISION, STORY SECTIONS - styled as cards with image left, text right */}
-        <section className="bg-[#f9f9f9] py-8" style={{ marginTop: '-20px' }}>
-          <div className="max-w-4xl mx-auto flex flex-col gap-8 px-4 md:px-0">
-            {/* About Foundation */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row">
-              <div className="md:w-1/3 flex-shrink-0">
-                <img src="/images/kathakali_with_back_light_hero.jpg" alt="About Foundation" className="w-full h-64 md:h-full object-cover" />
-              </div>
-              <div className="md:w-2/3 p-6 md:p-8 flex flex-col justify-center">
-                <span className="text-yellow-400 font-semibold uppercase tracking-wide text-sm mb-2">About Foundation</span>
-                <h3 className="text-2xl md:text-3xl font-bold mb-4">The Malayali Cultural Exchange Foundation</h3>
-                <p className="text-gray-700 text-base md:text-lg mb-2">The Malayali Cultural Exchange Foundation for Education and Events is a vibrant, community-driven organization based in New Jersey, USA, dedicated to reviving real Malayali culture, empowering the next generation through education, and offering a nostalgic sense of home to our community. Our mission is to preserve and promote the rich cultural heritage of Kerala while fostering a deeper connection among Malayalis in the USA, creating a sense of belonging and unity.</p>
-                <p className="text-gray-700 text-base md:text-lg mb-2">We focus on providing quality events that go beyond face-value interactions, offering genuine cultural experiences and values. Through educational programs, cultural events, and community-building activities, we aim to engage and inspire the new generation. Whether it's learning the Malayalam language, participating in Kerala's traditional festivals, or understanding the deeper meanings of our customs, we ensure that our initiatives go beyond surface-level celebrations.</p>
-                <p className="text-gray-700 text-base md:text-lg">At the heart of our foundation is the belief in the power of cultural exchange. We strive to create opportunities for our community to reconnect with their roots while also sharing the beauty of Kerala with others. Our events are specifically designed to attract and engage young people, helping them build a deeper appreciation for their heritage, while also offering a sense of nostalgia and connection to those already established in the USA.</p>
-                <p className="text-gray-700 text-base md:text-lg mt-2">The Malayali Cultural Exchange Foundation for Education and Events serves as a home away from home, offering a place to celebrate, educate, and embrace the vibrant spirit of Kerala. Join us in our mission to nurture the next generation of Malayalis and continue the traditions that define our culture, fostering a stronger, more connected community in the USA.</p>
-              </div>
-            </div>
-            {/* Vision Statement */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row">
-              <div className="md:w-1/3 flex-shrink-0">
-                <img src="/images/vision_to_future.jpeg" alt="Vision" className="w-full h-64 md:h-full object-cover" />
-              </div>
-              <div className="md:w-2/3 p-6 md:p-8 flex flex-col justify-center">
-                <span className="text-yellow-400 font-semibold uppercase tracking-wide text-sm mb-2">Vision Statement</span>
-                <h3 className="text-2xl md:text-3xl font-bold mb-4">Our Vision</h3>
-                <p className="text-gray-700 text-base md:text-lg">Our vision is to create a thriving community where Malayali culture is celebrated, preserved, and passed on to future generations. We envision a foundation that acts as a hub for cultural exchange, education, and unity, fostering pride in our heritage while adapting it for the modern world. By building lasting connections, both within the Malayali community and with others, we strive to contribute to a greater understanding and appreciation of Kerala's traditions and values in the USA. We aim to be a beacon of empowerment, nostalgia, and cultural pride for generations to come.</p>
-              </div>
-            </div>
-            {/* Story Section */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row">
-              <div className="md:w-1/3 flex-shrink-0">
-                <img src="/images/story_foundation.jpeg" alt="Story" className="w-full h-64 md:h-full object-cover" />
-              </div>
-              <div className="md:w-2/3 p-6 md:p-8 flex flex-col justify-center">
-                <span className="text-yellow-400 font-semibold uppercase tracking-wide text-sm mb-2">Our Story</span>
-                <h3 className="text-2xl md:text-3xl font-bold mb-4">Story Behind the Foundation</h3>
-                <p className="text-gray-700 text-base md:text-lg mb-2">The Malayali Cultural Exchange Foundation for Education and Events was born out of a deep passion for preserving and sharing the rich cultural heritage of Kerala with the Malayali community in the USA. The idea emerged when a group of passionate individuals, united by their love for their roots, began to realize the power of genuine, quality cultural experiences in fostering connection and belonging.</p>
-                <p className="text-gray-700 text-base md:text-lg mb-2">In observing the growing need for meaningful cultural events within our community, we were inspired by the realization that even though many of our events might not attract large crowds, they held immense value in creating lasting memories and deepening connections. We recognized that the true strength of our culture lies not in large numbers or grandeur, but in the authentic exchange of traditions, stories, and experiences that resonate deeply with individuals.</p>
-                <p className="text-gray-700 text-base md:text-lg">Through intimate gatherings, educational programs, and cultural celebrations, we witnessed firsthand the positive impact of quality events—ones that went beyond surface-level interactions to truly engage participants, invoking nostalgia, pride, and a sense of home. These moments of connection made it clear that there was a growing desire for a space where people could celebrate the richness of Malayali culture while empowering the next generation to continue these traditions.</p>
-                <p className="text-gray-700 text-base md:text-lg mt-2">This understanding fueled the creation of our foundation: a platform that focuses on quality over quantity, where every event is designed to foster deeper cultural understanding and create lasting bonds within the community. Our goal has always been to offer something more than just a celebration—we aim to provide experiences that honor the values of Kerala while adapting them to the modern context, ensuring they remain relevant and meaningful for future generations.</p>
-                <p className="text-gray-700 text-base md:text-lg mt-2">The foundation is not just about holding events; it's about creating a legacy. It's about offering a nostalgic sense of home to those who have moved far from Kerala and empowering younger generations to carry forward the cultural torch. We are driven by the belief that every interaction, no matter how small the crowd, is a step toward preserving and passing on the vibrant traditions of Kerala for years to come.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-        {/* TEAM SECTION */}
-        <section className="team-section" id="team-section" style={{ padding: '40px 0' }}>
-          <div className="container mx-auto px-4 md:px-4">
-            <div className="section-title-wrapper text-center mb-12">
-              <span className="section-subtitle text-yellow-400 font-semibold text-sm uppercase tracking-wide mb-2 block" style={{
-                fontSize: '14px',
-                color: '#ffce59',
-                position: 'relative',
-                paddingLeft: '40px'
-              }}>
-                <span style={{
-                  position: 'absolute',
-                  left: '0',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '30px',
-                  height: '2px',
-                  backgroundColor: '#ffce59'
-                }}></span>
-                Team
-              </span>
-              <h3 className="text-4xl font-bold" style={{
-                fontSize: '40px',
-                lineHeight: '1.2',
-                fontFamily: 'Sora, sans-serif',
-                margin: '0'
-              }}>Meet our the best volunteers team</h3>
-            </div>
 
-            <div className="team-grid" style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              margin: '0 -10px'
-            }}>
-              {/* Head Team Member */}
-              <div className="team-item" style={{
-                width: 'calc(20% - 20px)',
-                margin: '0 10px 30px',
-                textAlign: 'center'
-              }}>
-                <div className="team-image" style={{
-                  position: 'relative',
-                  overflow: 'hidden',
-                  borderRadius: '10px',
-                  aspectRatio: '1',
-                  marginBottom: '15px'
-                }}>
-                  <img src="/images/team_members/shaji_varghese.jpeg" alt="Shaji Varghese" style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    transition: 'transform 0.3s ease'
-                  }} />
-                  <div className="team-overlay" style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    right: '0',
-                    bottom: '0',
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    opacity: '0',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    <ul className="team-socials" style={{
-                      listStyle: 'none',
-                      padding: '0',
-                      margin: '0',
-                      display: 'flex',
-                      gap: '5px'
-                    }}>
-                      <li>
-                        <a href="#" style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          width: '40px',
-                          height: '40px',
-                          backgroundColor: 'white',
-                          color: '#1877f2',
-                          borderRadius: '50%',
-                          textDecoration: 'none',
-                          transition: 'all 0.3s ease'
-                        }}>
-                          <i className="fab fa-facebook-f"></i>
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="team-content">
-                  <h5 className="team-title" style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    margin: '0 0 5px',
-                    fontFamily: 'Sora, sans-serif'
-                  }}>Shaji Varghese</h5>
-                  <div className="team-position" style={{
-                    fontSize: '14px',
-                    color: '#555555',
-                    fontFamily: 'Epilogue, sans-serif'
-                  }}>Head Volunteer</div>
-                </div>
-              </div>
+          {/* Contact Description */}
+          <p className="contact-description text-center max-w-2xl mx-auto mb-16 text-gray-600 text-lg">
+            Connect with us to learn more about our community initiatives and how you can get involved in preserving and promoting Malayali culture across the United States. Join us in fostering cultural exchange and building stronger connections within our diverse communities.
+          </p>
 
-              {/* Team Member 1 */}
-              <div className="team-item" style={{
-                width: 'calc(20% - 20px)',
-                margin: '0 10px 30px',
-                textAlign: 'center'
-              }}>
-                <div className="team-image" style={{
-                  position: 'relative',
-                  overflow: 'hidden',
-                  borderRadius: '10px',
-                  aspectRatio: '1',
-                  marginBottom: '15px'
-                }}>
-                  <img src="/images/team_members/sujith_karakkadan.jpeg" alt="Sujith Karakkadan" style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    transition: 'transform 0.3s ease'
-                  }} />
-                  <div className="team-overlay" style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    right: '0',
-                    bottom: '0',
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    opacity: '0',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    <ul className="team-socials" style={{
-                      listStyle: 'none',
-                      padding: '0',
-                      margin: '0',
-                      display: 'flex',
-                      gap: '5px'
-                    }}>
-                      <li>
-                        <a href="https://www.facebook.com/sujith.thottan" target="_blank" style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          width: '40px',
-                          height: '40px',
-                          backgroundColor: 'white',
-                          color: '#1877f2',
-                          borderRadius: '50%',
-                          textDecoration: 'none',
-                          transition: 'all 0.3s ease'
-                        }}>
-                          <i className="fab fa-facebook-f"></i>
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="team-content">
-                  <h5 className="team-title" style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    margin: '0 0 5px',
-                    fontFamily: 'Sora, sans-serif'
-                  }}>Sujith Karakkadan</h5>
-                  <div className="team-position" style={{
-                    fontSize: '14px',
-                    color: '#555555',
-                    fontFamily: 'Epilogue, sans-serif'
-                  }}>Volunteer</div>
-                </div>
-              </div>
-
-              {/* Team Member 2 */}
-              <div className="team-item" style={{
-                width: 'calc(20% - 20px)',
-                margin: '0 10px 30px',
-                textAlign: 'center'
-              }}>
-                <div className="team-image" style={{
-                  position: 'relative',
-                  overflow: 'hidden',
-                  borderRadius: '10px',
-                  aspectRatio: '1',
-                  marginBottom: '15px'
-                }}>
-                  <img src="/images/team_members/arun_sadasivan.jpeg" alt="Arun Sadasivan" style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    transition: 'transform 0.3s ease'
-                  }} />
-                  <div className="team-overlay" style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    right: '0',
-                    bottom: '0',
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    opacity: '0',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    <ul className="team-socials" style={{
-                      listStyle: 'none',
-                      padding: '0',
-                      margin: '0',
-                      display: 'flex',
-                      gap: '5px'
-                    }}>
-                      <li>
-                        <a href="https://www.facebook.com/arun.sadasivan.3" target="_blank" style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          width: '40px',
-                          height: '40px',
-                          backgroundColor: 'white',
-                          color: '#1877f2',
-                          borderRadius: '50%',
-                          textDecoration: 'none',
-                          transition: 'all 0.3s ease'
-                        }}>
-                          <i className="fab fa-facebook-f"></i>
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="team-content">
-                  <h5 className="team-title" style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    margin: '0 0 5px',
-                    fontFamily: 'Sora, sans-serif'
-                  }}>Arun Sadasivan</h5>
-                  <div className="team-position" style={{
-                    fontSize: '14px',
-                    color: '#555555',
-                    fontFamily: 'Epilogue, sans-serif'
-                  }}>Volunteer</div>
-                </div>
-              </div>
-
-              {/* Team Member 3 */}
-              <div className="team-item" style={{
-                width: 'calc(20% - 20px)',
-                margin: '0 10px 30px',
-                textAlign: 'center'
-              }}>
-                <div className="team-image" style={{
-                  position: 'relative',
-                  overflow: 'hidden',
-                  borderRadius: '10px',
-                  aspectRatio: '1',
-                  marginBottom: '15px'
-                }}>
-                  <img src="/images/team_members/latha_krishnan.jpeg" alt="Latha Krishnan" style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    objectPosition: 'center 20%',
-                    transition: 'transform 0.3s ease'
-                  }} />
-                  <div className="team-overlay" style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    right: '0',
-                    bottom: '0',
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    opacity: '0',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    <ul className="team-socials" style={{
-                      listStyle: 'none',
-                      padding: '0',
-                      margin: '0',
-                      display: 'flex',
-                      gap: '5px'
-                    }}>
-                      <li>
-                        <a href="#" style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          width: '40px',
-                          height: '40px',
-                          backgroundColor: 'white',
-                          color: '#1877f2',
-                          borderRadius: '50%',
-                          textDecoration: 'none',
-                          transition: 'all 0.3s ease'
-                        }}>
-                          <i className="fab fa-facebook-f"></i>
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="team-content">
-                  <h5 className="team-title" style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    margin: '0 0 5px',
-                    fontFamily: 'Sora, sans-serif'
-                  }}>Latha Krishnan</h5>
-                  <div className="team-position" style={{
-                    fontSize: '14px',
-                    color: '#555555',
-                    fontFamily: 'Epilogue, sans-serif'
-                  }}>Volunteer</div>
-                </div>
-              </div>
-
-              {/* Team Member 4 */}
-              <div className="team-item" style={{
-                width: 'calc(20% - 20px)',
-                margin: '0 10px 30px',
-                textAlign: 'center'
-              }}>
-                <div className="team-image" style={{
-                  position: 'relative',
-                  overflow: 'hidden',
-                  borderRadius: '10px',
-                  aspectRatio: '1',
-                  marginBottom: '15px'
-                }}>
-                  <img src="/images/team_members/varun_lal.jpeg" alt="Varun Lal" style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    transition: 'transform 0.3s ease'
-                  }} />
-                  <div className="team-overlay" style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    right: '0',
-                    bottom: '0',
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    opacity: '0',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    <ul className="team-socials" style={{
-                      listStyle: 'none',
-                      padding: '0',
-                      margin: '0',
-                      display: 'flex',
-                      gap: '5px'
-                    }}>
-                      <li>
-                        <a href="https://www.facebook.com/lalvarun" target="_blank" style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          width: '40px',
-                          height: '40px',
-                          backgroundColor: 'white',
-                          color: '#1877f2',
-                          borderRadius: '50%',
-                          textDecoration: 'none',
-                          transition: 'all 0.3s ease'
-                        }}>
-                          <i className="fab fa-facebook-f"></i>
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="team-content">
-                  <h5 className="team-title" style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    margin: '0 0 5px',
-                    fontFamily: 'Sora, sans-serif'
-                  }}>Varun Lal</h5>
-                  <div className="team-position" style={{
-                    fontSize: '14px',
-                    color: '#555555',
-                    fontFamily: 'Epilogue, sans-serif'
-                  }}>Volunteer</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        {/* CONTACT SECTION - centered, four columns */}
-        <section id="contact" className="bg-[#f9f9f9] py-12">
-          <div className="max-w-5xl mx-auto px-4 md:px-4">
-            <span className="text-yellow-400 font-semibold uppercase tracking-wide text-sm mb-2 block">Contact</span>
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">Get in touch</h2>
-            <p className="text-gray-600 text-base md:text-lg mb-8 max-w-2xl mx-auto text-center">Connect with us to learn more about our community initiatives and how you can get involved in preserving and promoting Malayali culture across the United States. Join us in fostering cultural exchange and building stronger connections within our diverse communities.</p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center md:text-left">
-              <div>
-                <h6 className="font-semibold mb-1">Location</h6>
-                <p className="text-gray-700 text-sm">MCEFEE<br />Malayali Cultural Exchange Foundation<br />for Education and Events<br />New Jersey, USA</p>
-              </div>
-              <div>
-                <h6 className="font-semibold mb-1">Phone</h6>
-                <p className="text-gray-700 text-sm">(908) 516-8781</p>
-              </div>
-              <div className="flex flex-col items-center md:items-start">
-                <h6 className="font-semibold mb-1">Social</h6>
-                <a href="https://www.facebook.com/profile.php?id=61573944338286" className="inline-block text-2xl" target="_blank" rel="noopener noreferrer" style={{
-                  width: '40px',
-                  height: '40px',
-                  backgroundColor: 'white',
-                  color: '#1877f2',
-                  borderRadius: '50%',
-                  textDecoration: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.3s ease'
-                }}>
-                  <i className="fab fa-facebook-f"></i>
-                </a>
-              </div>
-              <div>
-                <h6 className="font-semibold mb-1">Email</h6>
-                <p className="text-gray-700 text-sm"><a href="mailto:Contactus@mcefee.org">Contactus@mcefee.org</a></p>
-              </div>
-            </div>
-          </div>
-        </section>
-        {/* EVENTS SECTION - two columns, event cards and main event */}
-        <section className="bg-white py-12">
-          <div className="max-w-6xl mx-auto px-4 md:px-4">
-            <span className="text-yellow-400 font-semibold uppercase tracking-wide text-sm mb-2 block">Events</span>
-            <h2 className="text-2xl md:text-3xl font-bold mb-8">Exciting events & announcements</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Event cards */}
-              <div className="md:col-span-2 flex flex-col gap-6">
-                {/* Event 1 */}
-                <div className="flex bg-[#f9f9f9] rounded-xl shadow-sm overflow-hidden">
-                  <img src="/images/spark_kerala_event_2025.png" alt="SPARK OF KERALA" className="w-32 h-44 object-cover rounded-l-xl" />
-                  <div className="flex flex-col justify-between p-4 flex-1">
-                    <div>
-                      <h5 className="font-semibold text-lg mb-1">SPARK OF KERALA</h5>
-                      <div className="text-gray-600 text-sm mb-2">Celebrates the vibrant culture, art, and heritage of Kerala across the USA</div>
-                    </div>
-                    <div className="flex items-end justify-between mt-2">
-                      <div className="text-yellow-500 font-bold text-lg">2025<br /><span className="text-xs font-normal text-gray-700">AUG-SEP</span></div>
-                    </div>
-                  </div>
-                </div>
-                {/* Event 2 */}
-                <div className="flex bg-[#f9f9f9] rounded-xl shadow-sm overflow-hidden">
-                  <img src="/images/Karnatic_Music_Festival.jpeg" alt="Karnatic Music Festival" className="w-32 h-44 object-cover rounded-l-xl" />
-                  <div className="flex flex-col justify-between p-4 flex-1">
-                    <div>
-                      <h5 className="font-semibold text-lg mb-1">Karnatic Music Festival</h5>
-                      <div className="text-gray-600 text-sm mb-2">A Tribute to Kerala's Classical Melodies Across the USA</div>
-                    </div>
-                    <div className="flex items-end justify-between mt-2">
-                      <div className="text-yellow-500 font-bold text-lg">2025<br /><span className="text-xs font-normal text-gray-700">OCT-NOV</span></div>
-                    </div>
-                  </div>
-                </div>
-                <a href="/events" className="events-button">
-                  <span>See all events</span>
-                  <svg width="9" height="9" viewBox="0 0 9 9" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" clipRule="evenodd" d="M7.72029 1.27952L2.60273 1.27947L2.60273 -1.13769e-07L8.99994 5.3966e-05L9 6.39733L7.72055 6.39733L7.72029 1.27952Z" />
-                    <path d="M0.90471 9L-3.95466e-08 8.09528L8.03093 0.0642592L8.93564 0.968978L0.90471 9Z" />
+          {/* Contact Cards Grid - Matching "What We Do" card style */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+            {/* Location Card */}
+            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-300 ease-in-out group">
+              <div className="flex items-start space-x-6">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                </a>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors duration-300">
+                    Location
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed text-sm lg:text-base">
+                    Unite India<br />
+                    New Jersey, USA
+                  </p>
+                </div>
               </div>
-              {/* Main event highlight */}
-              <div className="bg-yellow-300 rounded-xl shadow-md p-8 flex flex-col justify-center">
-                <span className="text-gray-700 font-semibold text-sm mb-2">Main event</span>
-                <h4 className="font-bold text-xl mb-2">SPARK OF KERALA</h4>
-                <p className="text-gray-700 text-base mb-2">We are excited to announce SPARK OF KERALA – a grand celebration of Kerala's most iconic festival, Onam, set to take place in the USA in 2025. This event promises to be an unforgettable experience, capturing the true essence of Onam through a power-packed performance that showcases the vibrant culture, traditions, and spirit of Kerala. Explore more</p>
+            </div>
+
+            {/* Phone Card */}
+            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-300 ease-in-out group">
+              <div className="flex items-start space-x-6">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors duration-300">
+                    Phone
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed text-sm lg:text-base">
+                    <a href="tel:+16317088442" className="text-blue-600 hover:underline hover:text-blue-700 transition-colors duration-300">
+                      +1 (631) 708-8442
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Email Card */}
+            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-300 ease-in-out group">
+              <div className="flex items-start space-x-6">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-orange-600 transition-colors duration-300">
+                    Email
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed text-sm lg:text-base">
+                    <a href="mailto:Contactus@malyalees.org" className="text-blue-600 hover:underline hover:text-blue-700 transition-colors duration-300">
+                      Contactus@malyalees.org
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Media Card */}
+            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-300 ease-in-out group">
+              <div className="flex items-start space-x-6">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-10 0a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2M9 4h6" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors duration-300">
+                    Social Media
+                  </h3>
+                  <div className="flex gap-3">
+                    {/* Facebook */}
+                    <a
+                      href="https://www.facebook.com/profile.php?id=61573944338286"
+                      className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Follow us on Facebook"
+                      aria-label="Follow us on Facebook"
+                    >
+                      <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                      </svg>
+                    </a>
+
+                    {/* Twitter */}
+                    <a
+                      href="#"
+                      className="flex-shrink-0 w-10 h-10 rounded-lg bg-sky-100 hover:bg-sky-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Follow us on Twitter"
+                      aria-label="Follow us on Twitter"
+                    >
+                      <svg className="w-6 h-6 text-sky-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
+                      </svg>
+                    </a>
+
+                    {/* LinkedIn */}
+                    <a
+                      href="#"
+                      className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Connect with us on LinkedIn"
+                      aria-label="Connect with us on LinkedIn"
+                    >
+                      <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                      </svg>
+                    </a>
+
+                    {/* YouTube */}
+                    <a
+                      href="#"
+                      className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Subscribe to our YouTube channel"
+                      aria-label="Subscribe to our YouTube channel"
+                    >
+                      <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </section>
+
+          {/* Call to Action - Matching "What We Do" style */}
+          <div className="mt-16 text-center">
+            <div className="inline-flex items-center space-x-2 bg-blue-50 text-blue-700 px-6 py-3 rounded-full text-sm font-medium">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span>Ready to connect? Reach out and join our vibrant community</span>
+            </div>
+          </div>
+        </div>
       </div>
-
-
-      {/* BACK TO TOP BUTTON */}
-      <a href="#" className="back-to-top">
-        <i className="fas fa-arrow-up"></i>
-      </a>
-
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          @keyframes ticker {
-            0% {
-              transform: translateX(100%);
-            }
-            100% {
-              transform: translateX(-100%);
-            }
-          }
-
-          .ticker {
-            animation: ticker 15s linear infinite;
-            width: 100%;
-            overflow: hidden;
-          }
-
-          .ticker-item {
-            display: inline-block;
-            padding-right: 800px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-            white-space: nowrap;
-            text-overflow: clip;
-          }
-
-          @media (max-width: 767px) {
-            .ticker-item {
-              font-size: 14px;
-              padding-right: 600px;
-            }
-
-            .ticker {
-              animation: ticker 12s linear infinite;
-            }
-          }
-
-          /* Team Section Responsive Styles */
-          @media (max-width: 991px) {
-            .team-item {
-              width: calc(25% - 20px) !important;
-            }
-          }
-
-          @media (max-width: 767px) {
-            .team-item {
-              width: calc(50% - 20px) !important;
-            }
-            .team-title {
-              font-size: 18px !important;
-            }
-          }
-
-          @media (max-width: 480px) {
-            .team-item {
-              width: calc(100% - 20px) !important;
-              max-width: 280px !important;
-              margin: 0 auto 30px !important;
-            }
-          }
-
-          /* Team Hover Effects */
-          .team-image:hover img {
-            transform: scale(1.05) !important;
-          }
-
-          .team-image:hover .team-overlay {
-            opacity: 1 !important;
-          }
-
-          .team-socials a:hover {
-            background-color: #ffce59 !important;
-            color: white !important;
-          }
-
-          /* Events Button Styles */
-          :root {
-            --primary-color: #ffce59;
-            --secondary-color: #333333;
-            --body-font: 'Epilogue', sans-serif;
-          }
-
-          .events-button {
-            display: inline-flex;
-            align-items: center;
-            font-family: var(--body-font);
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--secondary-color);
-            background: transparent;
-            border: 2px solid var(--primary-color);
-            padding: 12px 28px;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            text-decoration: none;
-            margin-top: 30px;
-            margin-bottom: 30px;
-          }
-
-          .events-button:hover {
-            background: var(--primary-color);
-            color: var(--secondary-color);
-          }
-
-          .events-button svg {
-            margin-left: 8px;
-          }
-
-          @media (max-width: 480px) {
-            .events-button {
-              margin-top: 25px;
-              margin-bottom: 25px;
-              font-size: 13px;
-              padding: 10px 24px;
-            }
-          }
-        `
-      }} />
-    </div>
+    </main>
   );
+}
+
+// Main HomePage component
+// Note: TenantSettingsProvider is now in root layout, so no need to wrap here
+export default function HomePage() {
+  const pathname = usePathname();
+  const { isSignedIn, userId, isLoaded } = useAuth();
+  const { user } = useUser();
+  const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
+
+  // CRITICAL: Redirect new sign-ups from home page to /profile
+  // This catches cases where Clerk redirects to home page after signup
+  // IMPORTANT: Only redirect if the 'signup-redirected' flag is set (user just signed up)
+  // Clear the flag after redirect to prevent affecting subsequent logins
+  useEffect(() => {
+    if (isLoaded && isSignedIn && userId && user && !hasCheckedRedirect && typeof window !== 'undefined') {
+      const currentPath = pathname || window.location.pathname;
+      
+      // Only redirect if we're on the home page AND user just signed up (flag is set)
+      // Fix: Changed from !sessionStorage.getItem to check if flag IS set
+      const hasJustSignedUp = sessionStorage.getItem('signup-redirected') === 'true';
+      
+      if (currentPath === '/' && hasJustSignedUp) {
+        console.log('[HomePage] 🔄 New sign-up detected on home page, redirecting to /profile');
+        
+        // Mark that we've checked to prevent multiple redirects
+        setHasCheckedRedirect(true);
+        
+        // Clear the flag immediately to prevent it from affecting subsequent logins
+        sessionStorage.removeItem('signup-redirected');
+        
+        // Extract serializable data from user object (client reference)
+        const userData = {
+          email: user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress || "",
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          imageUrl: user.imageUrl || "",
+        };
+        
+        // Bootstrap profile in background, then redirect
+        bootstrapUserProfile({ userId, userData })
+          .then(() => {
+            console.log('[HomePage] ✅ Bootstrap completed, redirecting to /profile');
+          })
+          .catch((err) => {
+            console.error('[HomePage] ⚠️ Bootstrap failed, but still redirecting:', err);
+          })
+          .finally(() => {
+            // Always redirect to /profile after signup (never to home page)
+            console.log('[HomePage] 🎯 Redirecting to /profile');
+            setTimeout(() => {
+              window.location.href = '/profile';
+            }, 100);
+          });
+      } else {
+        // Not a new sign-up, mark as checked
+        // Also clear any stale signup-redirected flags from previous sessions
+        if (hasJustSignedUp && currentPath !== '/') {
+          sessionStorage.removeItem('signup-redirected');
+        }
+        setHasCheckedRedirect(true);
+      }
+    }
+  }, [isLoaded, isSignedIn, userId, user, pathname, hasCheckedRedirect]);
+
+  return <HomePageContent />;
 }

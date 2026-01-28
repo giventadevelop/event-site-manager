@@ -108,19 +108,21 @@ export default function TestStripeClient() {
         <button
           onClick={handleTestTransaction}
           disabled={isLoading || !amount || parseFloat(amount) < 0.01}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
+          className="w-full flex-shrink-0 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:scale-100"
+          title="Test Stripe Payment"
+          aria-label="Test Stripe Payment"
+          type="button"
         >
-          {isLoading ? (
-            <>
-              <FaSpinner className="animate-spin" />
-              Creating Checkout Session...
-            </>
-          ) : (
-            <>
-              <FaCreditCard />
-              Test Stripe Payment
-            </>
-          )}
+          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-200 flex items-center justify-center">
+            {isLoading ? (
+              <FaSpinner className="w-6 h-6 text-blue-600 animate-spin" />
+            ) : (
+              <FaCreditCard className="w-6 h-6 text-blue-600" />
+            )}
+          </div>
+          <span className="font-semibold text-blue-700">
+            {isLoading ? 'Creating Checkout Session...' : 'Test Stripe Payment'}
+          </span>
         </button>
       </div>
 

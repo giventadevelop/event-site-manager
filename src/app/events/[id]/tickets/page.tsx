@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { FaTags, FaCreditCard, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaMapPin, FaTicketAlt, FaUser, FaEnvelope, FaMoneyBillWave, FaReceipt } from 'react-icons/fa';
 import { Modal } from '@/components/Modal';
 import { StripePaymentRequestButton } from '@/components/StripePaymentRequestButton';
@@ -12,6 +12,7 @@ import LocationDisplay from '@/components/LocationDisplay';
 
 export default function TicketingPage() {
   const params = useParams();
+  const router = useRouter();
   const eventId = params?.id;
   const [event, setEvent] = useState<any>(null);
   const [ticketTypes, setTicketTypes] = useState<any[]>([]);
@@ -168,12 +169,24 @@ export default function TicketingPage() {
   }, [selectedTickets, appliedDiscount, ticketTypes]);
 
   const handleTicketChange = (ticketId: number, quantity: number) => {
-    const ticketType = ticketTypes.find(t => t.id === ticketId);
-    if (!ticketType) return;
+    console.log('handleTicketChange called:', { ticketId, quantity, selectedTickets });
 
-    // Check if completely sold out
+    const ticketType = ticketTypes.find(t => t.id === ticketId);
+    if (!ticketType) {
+      console.log('Ticket type not found for ID:', ticketId);
+      return;
+    }
+
+    // Check if completely sold out - handle null, undefined, and zero values
     const remaining = ticketType.remainingQuantity ?? 0;
-    const isSoldOut = remaining <= 0;
+    const isSoldOut = remaining == null || remaining <= 0;
+
+    console.log('Ticket availability check:', {
+      ticketName: ticketType.name,
+      remaining,
+      isSoldOut,
+      currentSelected: selectedTickets[ticketId] || 0
+    });
 
     if (isSoldOut) {
       console.log(`Cannot select tickets for ${ticketType.name} - sold out`);
@@ -185,8 +198,20 @@ export default function TicketingPage() {
     const maxSelectable = Math.min(remaining, maxOrderQuantity);
     const newQuantity = Math.max(0, Math.min(quantity, maxSelectable));
 
+    console.log('Quantity calculation:', {
+      quantity,
+      maxOrderQuantity,
+      maxSelectable,
+      newQuantity
+    });
+
     if (newQuantity >= 0) {
-      setSelectedTickets(prev => ({ ...prev, [ticketId]: newQuantity }));
+      console.log('Updating selectedTickets:', { ticketId, newQuantity });
+      setSelectedTickets(prev => {
+        const updated = { ...prev, [ticketId]: newQuantity };
+        console.log('New selectedTickets state:', updated);
+        return updated;
+      });
       // Clear email to force re-validation and PRB recalculation with new total
       setEmail('');
       // Trigger immediate email validation to show user they need to enter email
@@ -209,7 +234,8 @@ export default function TicketingPage() {
     if (!ticketType) return false;
     const remaining = ticketType.remainingQuantity ?? 0;
     const maxOrderQuantity = ticketType.maxQuantityPerOrder ?? 10;
-    return remaining > 0 && remaining >= Math.min(quantity, maxOrderQuantity);
+    // Handle null, undefined, and zero values for sold out check
+    return remaining != null && remaining > 0 && remaining >= Math.min(quantity, maxOrderQuantity);
   };
 
   const emailIsValid = useMemo(() => {
@@ -225,7 +251,8 @@ export default function TicketingPage() {
     const ticket = ticketTypes.find(t => t.id === parseInt(ticketId));
     if (!ticket) return false;
     const remaining = ticket.remainingQuantity ?? 0;
-    return remaining <= 0; // Only consider completely sold out tickets
+    // Handle null, undefined, and zero values for sold out check
+    return remaining == null || remaining <= 0; // Only consider completely sold out tickets
   });
   const canCheckout = hasTicketsSelected && emailIsValid && !hasUnavailableTickets;
 
@@ -309,7 +336,27 @@ export default function TicketingPage() {
       return;
     }
 
-    // 4. Start processing and call Stripe API directly.
+    // 4. Check payment_flow_mode and manual_payment_enabled, route accordingly
+    const shouldUseManualPayment =
+      event?.paymentFlowMode === 'MANUAL_ONLY' ||
+      (event?.paymentFlowMode === 'HYBRID' && event?.manualPaymentEnabled === true);
+
+    if (shouldUseManualPayment) {
+      // Route to manual checkout
+      const params = new URLSearchParams();
+      params.set('cart', JSON.stringify(cart.map(item => ({
+        ticketTypeId: item.ticketType.id,
+        quantity: item.quantity,
+      }))));
+      if (finalDiscount?.id) {
+        params.set('discountCodeId', finalDiscount.id.toString());
+      }
+      params.set('email', email);
+      router.push(`/events/${eventId}/manual-checkout?${params.toString()}`);
+      return;
+    }
+
+    // 5. Default: Start processing and call Stripe API directly.
     setIsProcessing(true);
 
     try {
@@ -861,16 +908,33 @@ export default function TicketingPage() {
                 remainingQuantity: ticket.remainingQuantity
               });
 
-              // Calculate remaining quantity from source data (availableQuantity - soldQuantity)
-              // Use backend remainingQuantity only if source data is not available
+              // Handle remainingQuantity logic:
+              // 1. If backend remainingQuantity is a valid number (not null/undefined), use it
+              // 2. If backend remainingQuantity is null/undefined, treat as sold out (0)
+              // 3. Only calculate from availableQuantity - soldQuantity if we need a fallback
               const calculatedRemaining = (ticket.availableQuantity ?? 0) - (ticket.soldQuantity ?? 0);
-              const remainingQuantity = (ticket.availableQuantity !== undefined && ticket.soldQuantity !== undefined)
-                ? calculatedRemaining
-                : (ticket.remainingQuantity ?? calculatedRemaining);
+              const remainingQuantity = (ticket.remainingQuantity !== null && ticket.remainingQuantity !== undefined)
+                ? ticket.remainingQuantity
+                : 0; // Treat null/undefined remainingQuantity as sold out
 
-              // Check if tickets are sold out
-              const isSoldOut = remainingQuantity <= 0;
+              // Check if tickets are sold out - handle null, undefined, and zero values
+              const isSoldOut = remainingQuantity == null || remainingQuantity <= 0;
               const maxOrderQuantity = ticket.maxQuantityPerOrder ?? 10;
+
+              // Debug: Log sold out status
+              console.log('Sold out check for ticket:', {
+                ticketId: ticket.id,
+                ticketName: ticket.name,
+                remainingQuantity,
+                isSoldOut,
+                availableQuantity: ticket.availableQuantity,
+                soldQuantity: ticket.soldQuantity
+              });
+
+              // Debug: Log if we're about to render sold out image
+              if (isSoldOut) {
+                console.log('Rendering sold out image for ticket:', ticket.id, ticket.name);
+              }
 
               return (
                 <div key={ticket.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 border border-gray-200 rounded-lg bg-white shadow-sm relative">
@@ -883,6 +947,8 @@ export default function TicketingPage() {
                         width={60}
                         height={60}
                         className="rounded shadow-sm"
+                        onLoad={() => console.log('Sold out image loaded for ticket:', ticket.id)}
+                        onError={(e) => console.error('Sold out image failed to load for ticket:', ticket.id, e)}
                       />
                     </div>
                   )}
@@ -893,7 +959,7 @@ export default function TicketingPage() {
                     <p className="text-sm text-gray-600 mt-2">{ticket.description}</p>
 
                     {/* Low stock warning only */}
-                    {!isSoldOut && remainingQuantity <= 5 && remainingQuantity > 0 && (
+                    {!isSoldOut && remainingQuantity != null && remainingQuantity <= 5 && remainingQuantity > 0 && (
                       <div className="mt-3">
                         <p className="text-sm text-orange-600 font-medium">
                           ⚠️ Low stock - only {remainingQuantity} left!
@@ -904,7 +970,10 @@ export default function TicketingPage() {
 
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => handleTicketChange(ticket.id, (selectedTickets[ticket.id] || 0) - 1)}
+                      onClick={() => {
+                        console.log('Minus button clicked for ticket:', ticket.id, 'current count:', selectedTickets[ticket.id] || 0);
+                        handleTicketChange(ticket.id, (selectedTickets[ticket.id] || 0) - 1);
+                      }}
                       className="bg-gray-200 text-gray-700 px-3 py-1 rounded-l-md hover:bg-gray-300 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                       disabled={isSoldOut || (selectedTickets[ticket.id] || 0) <= 0}
                     >
@@ -912,7 +981,10 @@ export default function TicketingPage() {
                     </button>
                     <span className="px-4 py-1 bg-white border-t border-b">{selectedTickets[ticket.id] || 0}</span>
                     <button
-                      onClick={() => handleTicketChange(ticket.id, (selectedTickets[ticket.id] || 0) + 1)}
+                      onClick={() => {
+                        console.log('Plus button clicked for ticket:', ticket.id, 'current count:', selectedTickets[ticket.id] || 0);
+                        handleTicketChange(ticket.id, (selectedTickets[ticket.id] || 0) + 1);
+                      }}
                       className="bg-gray-200 text-gray-700 px-3 py-1 rounded-r-md hover:bg-gray-300 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                       disabled={isSoldOut || (selectedTickets[ticket.id] || 0) >= Math.min(remainingQuantity, maxOrderQuantity)}
                     >
@@ -921,7 +993,7 @@ export default function TicketingPage() {
                   </div>
 
                   {/* Quantity validation warning */}
-                  {selectedTickets[ticket.id] > 0 && selectedTickets[ticket.id] > remainingQuantity && (
+                  {selectedTickets[ticket.id] > 0 && remainingQuantity != null && selectedTickets[ticket.id] > remainingQuantity && (
                     <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
                       ⚠️ Only {remainingQuantity} tickets available for this selection
                     </div>

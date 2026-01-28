@@ -14,7 +14,14 @@ export function Modal({
   title?: string;
   preventBackdropClose?: boolean;
 }) {
-  if (!open) return null;
+  console.log('[MODAL] Component called with open:', open, 'title:', title);
+  
+  if (!open) {
+    console.log('[MODAL] Not rendering because open is false');
+    return null;
+  }
+  
+  console.log('[MODAL] Rendering modal');
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -44,11 +51,15 @@ export function Modal({
         onClick={handleModalClick}
       >
         <button
-          className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white font-bold text-xl w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
+          className="absolute top-4 right-4 flex-shrink-0 w-10 h-10 rounded-lg bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
           onClick={handleCloseClick}
+          title="Close"
           aria-label="Close"
+          type="button"
         >
-          &times;
+          <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
         {title && (
           <h2 className="text-xl font-semibold mb-6 pr-8">{title}</h2>

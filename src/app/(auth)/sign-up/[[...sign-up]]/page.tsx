@@ -1,68 +1,196 @@
+// Satellite domain - redirect to primary domain for authentication
+// For localhost - show Clerk component directly for development
 'use client';
 
-import { SignUp } from "@clerk/nextjs";
-import { useSearchParams } from "next/navigation";
-import { extractSatelliteConfig } from "@/lib/satelliteConfig";
-import SatelliteHeader from "@/components/auth/SatelliteHeader";
-import SatelliteFooter from "@/components/auth/SatelliteFooter";
+import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { SignUp } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
 
 export default function SignUpPage() {
-  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  const [isLocalhost, setIsLocalhost] = useState(false);
+  const [isPrimaryDomain, setIsPrimaryDomain] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+  const [hasHandledRedirect, setHasHandledRedirect] = useState(false);
+  const { isSignedIn, userId, isLoaded } = useAuth();
+  const { user } = useUser();
 
-  // Get redirect_url from query parameters (for satellite domain redirects)
-  const redirectUrl = searchParams?.get('redirect_url') || '/';
+  // Enhanced fallback: Redirect to /profile if user signs in on this page or lands on home page
+  // This ensures redirect happens even if afterSignUp callback doesn't run
+  // IMPORTANT: Only set the 'signup-redirected' flag if we're actually on the signup page
+  // to prevent it from affecting subsequent logins
+  useEffect(() => {
+    // Only run this fallback if we're on the signup page and user just signed in
+    // OR if user is on home page after signup (Clerk redirected them there)
+    if (isLoaded && isSignedIn && userId && user && !hasHandledRedirect && typeof window !== 'undefined') {
+      const currentPath = pathname || window.location.pathname;
+      
+      // Check if we should redirect to /profile
+      // Only redirect if we're on the signup page OR if we're on home page with the flag already set
+      const isOnSignupPage = currentPath.startsWith('/sign-up');
+      const hasJustSignedUpFlag = sessionStorage.getItem('signup-redirected') === 'true';
+      const shouldRedirectToProfile = isOnSignupPage || (currentPath === '/' && hasJustSignedUpFlag);
+      
+      if (shouldRedirectToProfile) {
+        console.log('[SignUpPage] 🔄 Fallback: User signed in, ensuring redirect to /profile (current path:', currentPath, ')');
+        
+        // Mark that we've handled this redirect to prevent loops
+        setHasHandledRedirect(true);
+        
+        // Only set the flag if we're actually on the signup page (user just signed up)
+        // Don't set it if we're on home page (that means Clerk already redirected)
+        if (isOnSignupPage) {
+          sessionStorage.setItem('signup-redirected', 'true');
+        }
+        
+        // Extract serializable data from user object (client reference)
+        const userData = {
+          email: user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress || "",
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          imageUrl: user.imageUrl || "",
+        };
+        
+        // Bootstrap profile in background, then redirect
+        bootstrapUserProfile({ userId, userData })
+          .then(() => {
+            console.log('[SignUpPage] ✅ Fallback bootstrap completed, redirecting to /profile');
+          })
+          .catch((err) => {
+            console.error('[SignUpPage] ⚠️ Fallback bootstrap failed, but still redirecting:', err);
+          })
+          .finally(() => {
+            // Always redirect to /profile after signup (never to home page)
+            const finalRedirectUrl = redirectUrl ? `${redirectUrl}/profile` : '/profile';
+            console.log('[SignUpPage] 🎯 Fallback redirecting to /profile:', finalRedirectUrl);
+            // Small delay to ensure any pending operations complete
+            setTimeout(() => {
+              window.location.href = finalRedirectUrl;
+            }, 100);
+          });
+      }
+    }
+  }, [isLoaded, isSignedIn, userId, user, pathname, hasHandledRedirect, redirectUrl]);
 
-  // Extract satellite configuration from redirect_url if present
-  const satelliteConfig = extractSatelliteConfig(redirectUrl);
-  const shouldShowSatelliteBranding = satelliteConfig?.branding?.showOnAuth;
+  useEffect(() => {
+    // Check if we're on a satellite domain
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
 
-  console.log('[SignUpPage] 📍 Redirect URL:', redirectUrl);
-  console.log('[SignUpPage] 🌐 Satellite Config:', satelliteConfig);
+      // Check if localhost - show Clerk component for development
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        setIsLocalhost(true);
+        return;
+      }
 
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Conditionally render satellite header */}
-      {shouldShowSatelliteBranding?.header && satelliteConfig?.branding && (
-        <SatelliteHeader
-          branding={satelliteConfig.branding}
-          satelliteDomain={satelliteConfig.domain}
-        />
-      )}
+      // Get primary domain from environment variable
+      const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
+      const isPrimary = hostname === primaryDomain || hostname.includes(primaryDomain.replace('www.', ''));
 
-      <main className={`flex flex-col items-center justify-center flex-1 py-12 ${shouldShowSatelliteBranding?.header ? 'pt-8' : ''}`}>
+      // If on primary domain, handle redirect_url parameter
+      if (isPrimary) {
+        setIsPrimaryDomain(true);
+        // Get redirect_url from query params if present
+        const params = new URLSearchParams(window.location.search);
+        const redirectParam = params.get('redirect_url');
+        if (redirectParam) {
+          setRedirectUrl(redirectParam);
+        }
+        return;
+      }
+
+      // If on satellite domain, redirect to primary domain with return URL
+      const satelliteDomain = process.env.NEXT_PUBLIC_CLERK_DOMAIN || 'mosc-temp.com';
+      if (hostname.includes('mosc-temp.com') || hostname.includes(satelliteDomain.replace('www.', ''))) {
+        setShouldRedirect(true);
+        // Get the current URL to return to after authentication
+        const currentUrl = window.location.origin;
+
+        // Redirect to primary domain with redirect_url parameter
+        // Clerk will redirect back to this URL after successful authentication
+        const redirectUrl = `https://${primaryDomain}/sign-up?redirect_url=${encodeURIComponent(currentUrl)}`;
+        window.location.href = redirectUrl;
+      } else {
+        // Default: assume primary domain if not satellite
+        setIsPrimaryDomain(true);
+      }
+    }
+  }, []);
+
+  // Handle profile bootstrap after signup
+  // Note: Clerk will handle redirect via afterSignUpUrl prop, so we only bootstrap here
+  const handleAfterSignUp = async (createdUser: any) => {
+    try {
+      console.log('[SignUpPage] 🎯 afterSignUp callback triggered', {
+        userId: createdUser?.id,
+        hasEmail: !!createdUser?.primaryEmailAddress || !!createdUser?.emailAddresses?.[0],
+      });
+
+      // Extract serializable data from createdUser (client reference)
+      // This prevents "Cannot access primaryEmailAddress on the server" errors
+      const email = createdUser?.primaryEmailAddress?.emailAddress || createdUser?.emailAddresses?.[0]?.emailAddress || "";
+      const userData = {
+        email,
+        firstName: createdUser?.firstName || "",
+        lastName: createdUser?.lastName || "",
+        imageUrl: createdUser?.imageUrl || "",
+      };
+
+      console.log('[SignUpPage] ✅ Signup completed, bootstrapping profile:', {
+        userId: createdUser?.id,
+        email
+      });
+
+      // Set the flag to indicate user just signed up (for home page fallback)
+      sessionStorage.setItem('signup-redirected', 'true');
+
+      // Bootstrap profile (Clerk will redirect to /profile via afterSignUpUrl prop)
+      await bootstrapUserProfile({ 
+        userId: createdUser?.id, 
+        userData 
+      });
+
+      console.log('[SignUpPage] ✅ Profile bootstrap completed - Clerk will redirect to /profile');
+    } catch (err) {
+      console.error('[SignUpPage] ⚠️ Profile bootstrap failed (ProfileBootstrapper on /profile will retry):', err);
+      // Don't block redirect even if bootstrap fails - ProfileBootstrapper will retry on /profile page
+    }
+  };
+
+  // Show Clerk component for localhost development or primary domain
+  if (isLocalhost || isPrimaryDomain) {
+    return (
+      <main className="flex flex-col items-center justify-center flex-1 py-2">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-center text-gray-900">Create Account</h1>
-          {satelliteConfig ? (
-            <div className="mt-4 space-y-2">
-              <p className="text-center text-gray-600">Sign up to continue</p>
-              <div className="flex items-center justify-center">
-                <div className="inline-flex items-center px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
-                  <svg className="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span className="text-sm font-medium text-green-700">
-                    Creating account for <span className="font-bold">{satelliteConfig.displayName}</span>
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-center text-gray-500 mt-2">
-                You'll be redirected to {satelliteConfig.hostname} after signing up
-              </p>
-            </div>
-          ) : (
-            <p className="mt-2 text-center text-gray-600">Sign up to continue</p>
-          )}
+          {isLocalhost && <p className="text-sm text-gray-500 text-center mt-2">(Development Mode)</p>}
         </div>
-        <SignUp redirectUrl={redirectUrl} afterSignUpUrl={redirectUrl} />
-      </main>
-
-      {/* Conditionally render satellite footer */}
-      {shouldShowSatelliteBranding?.footer && satelliteConfig?.branding && (
-        <SatelliteFooter
-          branding={satelliteConfig.branding}
-          satelliteDomain={satelliteConfig.domain}
+        <SignUp 
+          afterSignUp={handleAfterSignUp}
+          afterSignUpUrl="/profile"
+          routing="path"
+          path="/sign-up"
         />
-      )}
-    </div>
-  );
+      </main>
+    );
+  }
+
+  // Show loading state while redirecting (satellite domain)
+  if (shouldRedirect) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to sign up...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Default: show nothing (will determine redirect/component in useEffect)
+  return null;
 }

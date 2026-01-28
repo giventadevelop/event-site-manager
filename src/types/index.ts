@@ -36,6 +36,9 @@ export interface UserProfileDTO {
   district?: string;
   educationalInstitution?: string;
   profileImageUrl?: string;
+  isEmailSubscribed?: boolean;
+  emailSubscriptionToken?: string;
+  isEmailSubscriptionTokenUsed?: boolean;
   userStatus?: string; // varchar(50)
   userRole?: string;   // varchar(50)
   reviewedByAdminAt?: string; // ISO date string (date)
@@ -73,6 +76,8 @@ export interface EventDetailsDTO {
   startDate: string;
   /** Event end date (YYYY-MM-DD) */
   endDate: string;
+  /** Event promotion start date (YYYY-MM-DD) */
+  promotionStartDate: string;
   /** Event start time (e.g., 18:00) */
   startTime: string;
   /** Event end time (e.g., 21:00) */
@@ -105,6 +110,35 @@ export interface EventDetailsDTO {
   isSportsEvent?: boolean;
   /** Is event live */
   isLive?: boolean;
+  /** Is featured event */
+  isFeaturedEvent: boolean;
+  /** Featured event priority ranking */
+  featuredEventPriorityRanking: number;
+  /** Live event priority ranking */
+  liveEventPriorityRanking: number;
+  /** Metadata - DEPRECATED: Use donationMetadata and eventRecurrenceMetadata instead.
+   * Flexible TEXT field for event configuration stored as JSON string.
+   * Stores fundraiser settings, donation config, etc.
+   * Parse JSON in application code using JSON.parse() */
+  metadata?: string;
+  /** Donation metadata - For fundraiser/charity configuration (JSON string) */
+  donationMetadata?: string;
+  /** Event recurrence metadata - For recurrence configuration (JSON string) */
+  eventRecurrenceMetadata?: string;
+  /** Is recurring event */
+  isRecurring?: boolean;
+  /** Parent event ID (NULL for parent events, set to parent ID for child occurrences) */
+  parentEventId?: number;
+  /** Recurrence series ID (set to parent event ID for ALL events in series) */
+  recurrenceSeriesId?: number;
+  /** Email header image URL for ticket confirmation emails */
+  emailHeaderImageUrl?: string;
+  /** From email address for event-related emails */
+  fromEmail?: string;
+  /** Payment flow mode: STRIPE_ONLY, MANUAL_ONLY, or HYBRID */
+  paymentFlowMode?: 'STRIPE_ONLY' | 'MANUAL_ONLY' | 'HYBRID';
+  /** Is manual payment enabled for this event */
+  manualPaymentEnabled?: boolean;
   /** Created at (ISO date-time) */
   createdAt: string;
   /** Updated at (ISO date-time) */
@@ -141,7 +175,6 @@ export interface EventMediaDTO {
   eventMediaType: string;
   storageType: string;
   fileUrl?: string;
-  fileData?: Uint8Array;
   fileDataContentType?: string;
   contentType?: string;
   fileSize?: number;
@@ -155,13 +188,73 @@ export interface EventMediaDTO {
   downloadCount?: number;
   isFeaturedVideo?: boolean;
   featuredVideoUrl?: string;
-  isFeaturedImage?: boolean;
   isHeroImage?: boolean;
   isActiveHeroImage?: boolean;
+  isHomePageHeroImage: boolean;
+  /**
+   * Duration in seconds to display this image in the homepage hero slider when isHomePageHeroImage is true.
+   * Stored as total seconds (e.g. 50, 80 for 1m20s). Null = use app default (8 seconds). Valid range: 1–600.
+   */
+  homePageHeroDisplayDurationSeconds?: number | null;
+  isFeaturedEventImage: boolean;
+  isLiveEventImage: boolean;
   eventId?: number;
   uploadedById?: number;
   createdAt: string;
   updatedAt: string;
+  /** Start displaying from date (YYYY-MM-DD) */
+  startDisplayingFromDate?: string;
+  /**
+   * Reference to sponsor for sponsor-specific media files
+   */
+  sponsorId?: number;
+  /**
+   * Reference to event-sponsor join record for custom posters
+   */
+  eventSponsorsJoinId?: number;
+  /**
+   * Reference to performer for performer-specific media files
+   */
+  performerId?: number;
+  /**
+   * Reference to director for director-specific media files
+   */
+  directorId?: number;
+  /**
+   * Priority ranking for media files (sponsor or event-sponsor).
+   * Lower values indicate higher priority (0 = highest priority).
+   * Default: 0
+   */
+  priorityRanking?: number;
+  /**
+   * Reference to gallery album. Mutually exclusive with eventId (media belongs to either an event OR an album, not both).
+   */
+  albumId?: number;
+}
+
+/**
+ * DTO for gallery album, matches backend schema.
+ */
+export interface GalleryAlbumDTO {
+  id?: number;
+  tenantId?: string;
+  title: string;
+  description?: string;
+  coverImageUrl?: string;
+  isPublic?: boolean;
+  displayOrder?: number;
+  createdAt: string;
+  updatedAt: string;
+  createdById?: number;
+}
+
+/**
+ * Album with associated media for gallery display.
+ */
+export interface GalleryAlbumWithMedia {
+  album: GalleryAlbumDTO;
+  media: EventMediaDTO[];
+  totalMediaCount: number;
 }
 
 export interface EventCalendarEntryDTO {
@@ -289,6 +382,9 @@ export interface EventPollDTO {
   isActive?: boolean;
   startDate: string;
   endDate?: string;
+  maxResponsesPerUser?: number; // Maximum number of responses allowed per user
+  allowMultipleChoices?: boolean; // Whether multiple poll options can be selected
+  isAnonymous?: boolean; // Whether responses are anonymous by default
   createdAt: string;
   updatedAt: string;
   event?: EventDetailsDTO;
@@ -355,8 +451,13 @@ export interface EventPollResponseDTO {
   id?: number;
   tenantId?: string;
   comment?: string;
+  responseValue?: string; // varchar(1000) - Custom response value for rating/custom responses
+  isAnonymous?: boolean; // boolean - Anonymous response flag, overrides poll-level setting
   createdAt: string;
   updatedAt: string;
+  pollId?: number;
+  pollOptionId?: number;
+  userId?: number;
   poll?: EventPollDTO;
   pollOption?: EventPollOptionDTO;
   user?: UserProfileDTO;
@@ -398,6 +499,7 @@ export interface EventTicketTransactionDTO {
   stripeAmountDiscount?: number;
   stripeAmountTax?: number;
   stripeFeeAmount?: number;
+  netPayoutAmount?: number; // Net payout to bank (finalAmount - stripeFeeAmount - stripeAmountTax)
   eventId?: number;
   userId?: number;
   createdAt: string;
@@ -409,6 +511,8 @@ export interface EventTicketTransactionDTO {
   numberOfGuestsCheckedIn?: number;
   checkInTime?: string;
   checkOutTime?: string;
+  /** Triple validation fields - backend will validate combination exists in payment_provider_config */
+  paymentMethodDomainId?: string; // Stripe Payment Method Domain ID (pmd_*) - used for triple validation
 }
 
 export interface EventTicketTransactionItemDTO {
@@ -425,6 +529,8 @@ export interface EventTicketTransactionItemDTO {
   updatedAt: string;
   transaction?: EventTicketTransactionDTO;
   ticketType?: EventTicketTypeDTO;
+  /** Triple validation fields - backend will validate combination exists in payment_provider_config */
+  paymentMethodDomainId?: string; // Stripe Payment Method Domain ID (pmd_*) - used for triple validation
 }
 
 /**
@@ -492,6 +598,18 @@ export interface TenantSettingsDTO {
   platformFeePercentage?: number;
   customCss?: string;
   customJs?: string;
+  showEventsSectionInHomePage?: boolean;
+  showTeamMembersSectionInHomePage?: boolean;
+  showSponsorsSectionInHomePage?: boolean;
+  isMembershipSubscriptionEnabled?: boolean;
+  // Contact and Address Fields
+  addressLine1?: string;
+  addressLine2?: string;
+  phoneNumber?: string;
+  zipCode?: string;
+  country?: string;
+  stateProvince?: string;
+  email?: string;
   createdAt: string; // date-time
   updatedAt: string; // date-time
   tenantOrganization?: TenantOrganizationDTO;
@@ -566,6 +684,39 @@ export interface DiscountCodeDTO {
   tenantId: string;
 }
 
+// Focus Groups
+export interface FocusGroupDTO {
+  id?: number;
+  tenantId?: string;
+  name: string;
+  slug: string;
+  description?: string;
+  coverImageUrl?: string;
+  isActive?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FocusGroupMemberDTO {
+  id?: number;
+  tenantId?: string;
+  focusGroupId: number;
+  userProfileId: number;
+  role: string;   // MEMBER | LEAD | ADMIN (uppercase)
+  status: string; // ACTIVE | INACTIVE | PENDING (uppercase)
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EventFocusGroupDTO {
+  id?: number;
+  tenantId?: string;
+  eventId: number;
+  focusGroupId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /**
  * DTO for event ticket transaction statistics, matches backend OpenAPI schema.
  * Used for /api/event-ticket-transactions/statistics/{eventId} endpoint.
@@ -608,4 +759,806 @@ export interface PromotionEmailRequestDTO {
   footerPath?: string;
   /** Email host URL prefix for email context */
   emailHostUrlPrefix?: string;
+}
+
+/**
+ * DTO for promotion email template, matches backend OpenAPI schema.
+ */
+export interface PromotionEmailTemplateDTO {
+  id?: number;
+  tenantId: string;
+  eventId: number;
+  templateName: string;
+  /**
+   * Template type discriminator.
+   * EVENT_PROMOTION = event-specific promotional emails
+   * NEWS_LETTER = general/newsletter emails
+   */
+  templateType: 'EVENT_PROMOTION' | 'NEWS_LETTER';
+  subject: string;
+  fromEmail: string;
+  bodyHtml: string;
+  footerHtml: string;
+  headerImageUrl?: string;
+  footerImageUrl?: string;
+  promotionCode?: string;
+  discountCodeId?: number;
+  isActive?: boolean;
+  createdById?: number;
+  createdAt: string;
+  updatedAt: string;
+  event?: EventDetailsDTO;
+  discountCode?: DiscountCodeDTO;
+  createdBy?: UserProfileDTO;
+}
+
+/**
+ * DTO for creating/updating promotion email template.
+ */
+export interface PromotionEmailTemplateFormDTO {
+  eventId: number;
+  templateName: string;
+  /**
+   * Template type discriminator used by the backend to distinguish between
+   * event promotion emails and newsletter emails.
+   *
+   * - EVENT_PROMOTION → used on `/admin/promotion-emails`
+   * - NEWS_LETTER     → used on `/admin/newsletter-emails`
+   */
+  templateType?: 'EVENT_PROMOTION' | 'NEWS_LETTER';
+  subject: string;
+  fromEmail: string;
+  bodyHtml: string;
+  footerHtml: string;
+  headerImageUrl?: string;
+  footerImageUrl?: string;
+  discountCodeId?: number;
+  isActive?: boolean;
+}
+
+/**
+ * DTO for sending promotion email (bulk or test).
+ */
+export interface SendPromotionEmailDTO {
+  templateId: number;
+  recipientEmail?: string; // Required for test emails
+  isTestEmail: boolean;
+  // Optional overrides
+  subjectOverride?: string;
+  bodyHtmlOverride?: string;
+}
+
+/**
+ * DTO for promotion email sent log entry.
+ */
+export interface PromotionEmailSentLogDTO {
+  id?: number;
+  tenantId: string;
+  templateId: number;
+  eventId: number;
+  recipientEmail: string;
+  subject: string;
+  promotionCode?: string;
+  discountCodeId?: number;
+  sentAt: string;
+  isTestEmail: boolean;
+  emailStatus: 'SENT' | 'FAILED' | 'BOUNCED';
+  errorMessage?: string;
+  sentById?: number;
+  template?: PromotionEmailTemplateDTO;
+  event?: EventDetailsDTO;
+}
+
+/**
+ * DTO for tenant email addresses, matching `tenant_email_addresses` table / backend schema.
+ * Stores per-tenant "from" addresses categorized by type (INFO, SALES, TICKETS, CONTACT, etc.).
+ */
+export interface TenantEmailAddressDTO {
+  id?: number;
+  tenantId: string;
+  emailAddress: string;
+  /**
+   * Optional copy-to address that will be placed in the CC header for outgoing emails.
+   * Maps to the `copy_to_email_address` column in the `tenant_email_addresses` table.
+   */
+  copyToEmailAddress: string;
+  /**
+   * Email address type:
+   * INFO, SALES, TICKETS, CONTACT, SUPPORT, MARKETING, NOREPLY, ADMIN.
+   */
+  emailType: 'INFO' | 'SALES' | 'TICKETS' | 'CONTACT' | 'SUPPORT' | 'MARKETING' | 'NOREPLY' | 'ADMIN';
+  displayName?: string;
+  isActive: boolean;
+  isDefault: boolean;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * DTO for executive committee team member data, matches backend OpenAPI schema.
+ */
+export interface ExecutiveCommitteeTeamMemberDTO {
+  id: number | null;
+  firstName: string;
+  lastName: string;
+  title: string;
+  designation?: string;
+  bio?: string;
+  email?: string;
+  profileImageUrl?: string;
+  expertise?: string;
+  imageBackground?: string;
+  imageStyle?: string;
+  department?: string;
+  joinDate?: string; // ISO date string
+  isActive?: boolean;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+  priorityOrder?: number;
+  websiteUrl?: string;
+}
+
+/**
+ * DTO for event featured performers, matches backend OpenAPI schema.
+ */
+export interface EventFeaturedPerformersDTO {
+  id?: number;
+  tenantId?: string;
+  name: string;
+  stageName?: string;
+  role?: string;
+  bio?: string;
+  nationality?: string;
+  dateOfBirth?: string;
+  email?: string;
+  phone?: string;
+  websiteUrl?: string;
+  portraitImageUrl?: string;
+  performanceImageUrl?: string;
+  galleryImageUrls?: string;
+  performanceDurationMinutes?: number;
+  performanceOrder?: number;
+  isHeadliner: boolean;
+  facebookUrl?: string;
+  twitterUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
+  linkedinUrl?: string;
+  tiktokUrl?: string;
+  isActive: boolean;
+  priorityRanking?: number;
+  createdAt: string;
+  updatedAt: string;
+  event?: EventDetailsDTO;
+}
+
+/**
+ * DTO for event contacts, matches backend OpenAPI schema.
+ */
+export interface EventContactsDTO {
+  id?: number;
+  tenantId?: string;
+  name: string;
+  phone: string;
+  email?: string;
+  createdAt: string;
+  updatedAt: string;
+  event?: EventDetailsDTO;
+}
+
+/**
+ * DTO for event sponsors, matches backend OpenAPI schema.
+ */
+export interface EventSponsorsDTO {
+  id?: number;
+  tenantId?: string;
+  name: string;
+  type: string;
+  companyName?: string;
+  tagline?: string;
+  description?: string;
+  websiteUrl?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  logoUrl?: string;
+  heroImageUrl?: string;
+  bannerImageUrl?: string;
+  isActive: boolean;
+  priorityRanking: number; // Required field based on database constraint
+  facebookUrl?: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  instagramUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * DTO for event sponsors join (many-to-many relationship), matches backend OpenAPI schema.
+ */
+export interface EventSponsorsJoinDTO {
+  id?: number;
+  tenantId?: string;
+  createdAt: string;
+  /**
+   * Custom poster image URL for this specific event-sponsor combination
+   */
+  customPosterUrl?: string;
+  event?: EventDetailsDTO;
+  sponsor?: EventSponsorsDTO;
+}
+
+/**
+ * DTO for event emails, matches backend OpenAPI schema.
+ */
+export interface EventEmailsDTO {
+  id?: number;
+  tenantId?: string;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+  event?: EventDetailsDTO;
+}
+
+/**
+ * DTO for event program directors, matches backend OpenAPI schema.
+ */
+export interface EventProgramDirectorsDTO {
+  id?: number;
+  tenantId?: string;
+  name: string;
+  photoUrl?: string;
+  bio?: string;
+  createdAt: string;
+  updatedAt: string;
+  event?: EventDetailsDTO;
+}
+
+// WhatsApp Integration Types
+
+/**
+ * Twilio credentials for WhatsApp integration
+ */
+export interface TwilioCredentials {
+  accountSid: string;
+  authToken: string;
+  whatsappFrom: string;
+  webhookUrl?: string;
+  webhookToken?: string;
+}
+
+/**
+ * WhatsApp message request for sending individual messages
+ */
+export interface WhatsAppMessageRequest {
+  recipientPhone: string;
+  messageBody: string;
+  templateName?: string;
+  templateParams?: Record<string, string>;
+  type: 'TRANSACTIONAL' | 'MARKETING';
+}
+
+/**
+ * Bulk WhatsApp message request for sending to multiple recipients
+ */
+export interface BulkWhatsAppRequest {
+  recipients: Array<{
+    phone: string;
+    name?: string;
+    customParams?: Record<string, string>;
+  }>;
+  messageBody: string;
+  templateName?: string;
+  scheduledAt?: string;
+  type: 'TRANSACTIONAL' | 'MARKETING';
+}
+
+/**
+ * WhatsApp message template
+ */
+export interface MessageTemplate {
+  id: string;
+  name: string;
+  category: string;
+  language: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  components: Array<{
+    type: 'HEADER' | 'BODY' | 'FOOTER';
+    text?: string;
+    format?: string;
+  }>;
+}
+
+/**
+ * WhatsApp analytics data
+ */
+export interface WhatsAppAnalytics {
+  totalMessages: number;
+  sentMessages: number;
+  deliveredMessages: number;
+  failedMessages: number;
+  readMessages: number;
+  deliveryRate: number;
+  readRate: number;
+  periodStart: string;
+  periodEnd: string;
+  dailyVolume?: Array<{
+    date: string;
+    count: number;
+  }>;
+  maxDailyVolume?: number;
+  costData?: {
+    totalCost: number;
+    costPerMessage: number;
+    currency: string;
+  };
+  performanceMetrics?: {
+    averageDeliveryTime: number;
+    errorRate: number;
+    responseRate: number;
+  };
+}
+
+/**
+ * Connection test result for WhatsApp integration
+ */
+export interface ConnectionTestResult {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  details?: {
+    accountStatus: string;
+    whatsappStatus: string;
+    webhookStatus: string;
+  };
+}
+
+/**
+ * Bulk message progress tracking
+ */
+export interface BulkMessageProgress {
+  total: number;
+  sent: number;
+  delivered: number;
+  failed: number;
+  inProgress: boolean;
+  estimatedTimeRemaining?: string;
+}
+
+/**
+ * WhatsApp message delivery status
+ */
+export interface WhatsAppMessageStatus {
+  id: string;
+  recipientPhone: string;
+  messageBody: string;
+  status: 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
+  sentAt: string;
+  deliveredAt?: string;
+  readAt?: string;
+  errorMessage?: string;
+  templateId?: string;
+}
+
+/**
+ * WhatsApp usage statistics
+ */
+export interface WhatsAppUsageStats {
+  period: string;
+  totalMessages: number;
+  successfulMessages: number;
+  failedMessages: number;
+  totalCost: number;
+  costPerMessage: number;
+  deliveryRate: number;
+  readRate: number;
+}
+
+/**
+ * WhatsApp webhook payload
+ */
+export interface WhatsAppWebhookPayload {
+  MessageSid: string;
+  From: string;
+  To: string;
+  Body?: string;
+  Status: string;
+  ErrorCode?: string;
+  ErrorMessage?: string;
+  Timestamp: string;
+}
+
+/**
+ * Payment Provider Types
+ */
+export enum PaymentProviderType {
+  STRIPE = 'STRIPE',
+  PAYPAL = 'PAYPAL',
+  REVOLUT = 'REVOLUT',
+  ZEFFY = 'ZEFFY',
+  ZELLE = 'ZELLE',
+  CEFI = 'CEFI',
+  GIVEBUTTER = 'GIVEBUTTER',
+}
+
+/**
+ * Payment Use Case Types
+ * Matches backend enum: PaymentUseCase
+ * Note: DONATION_ZERO_FEE is also supported (may need backend update)
+ */
+export enum PaymentUseCase {
+  TICKET_SALE = 'TICKET_SALE',
+  DONATION = 'DONATION',
+  DONATION_CEFI = 'DONATION_CEFI',
+  DONATION_ZERO_FEE = 'DONATION_ZERO_FEE',
+  OFFERING = 'OFFERING',
+  MEMBERSHIP_SUBSCRIPTION = 'MEMBERSHIP_SUBSCRIPTION',
+}
+
+/**
+ * Payment Status Types
+ */
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  INITIATED = 'INITIATED',
+  PROCESSING = 'PROCESSING',
+  SUCCEEDED = 'SUCCEEDED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+  REFUNDED = 'REFUNDED',
+  PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED',
+  CONFIRMED = 'CONFIRMED', // For manual payments like Zelle
+}
+
+/**
+ * Payment Session Response - returned by /api/payments/initialize
+ * Matches backend PaymentSessionResponse structure
+ */
+export interface PaymentSessionResponse {
+  transactionId: string;
+  provider?: PaymentProviderType | string; // Backend returns PaymentProvider enum/string
+  providerType?: PaymentProviderType; // Normalized field (mapped from provider)
+  status?: string; // Payment status
+  clientSecret?: string; // For Stripe PaymentIntent
+  sessionUrl?: string; // For hosted checkouts (Stripe Instant Checkout, PayPal, Revolut)
+  publishableKey?: string; // For Stripe Elements (REQUIRED for Stripe)
+  supportedMethods?: string[]; // List of supported payment methods
+  amount?: number; // Payment amount
+  currency?: string; // Payment currency
+  providerMetadata?: Record<string, any>; // Provider-specific metadata
+  requiresAction?: boolean; // Whether payment requires additional action
+  actionType?: string; // Type of action required (e.g., 'redirect', '3ds')
+  actionData?: Record<string, any>; // Data for required action
+  failureReason?: string; // Failure reason if payment failed
+  metadata?: Record<string, any>; // Additional metadata
+  // Legacy fields (for backward compatibility)
+  paymentMethod?: string; // Payment method hint (e.g., 'card', 'wallet', 'zelle')
+  expiresAt?: string; // ISO date-time when session expires
+}
+
+/**
+ * Payment Status Response - returned by /api/payments/{transactionId}
+ */
+export interface PaymentStatusResponse {
+  transactionId: string;
+  status: PaymentStatus;
+  providerType: PaymentProviderType;
+  amount?: number;
+  currency?: string;
+  paymentMethod?: string;
+  paymentReference?: string; // Provider transaction ID
+  failureReason?: string;
+  settlementInfo?: PaymentSettlementInfo;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+  // Ticket purchase fields (only populated when status=SUCCEEDED and it's a ticket purchase)
+  ticketTransactionId?: number; // EventTicketTransaction ID
+  qrCodeUrl?: string; // QR code image URL - REQUIRED for frontend display
+  emailSent?: boolean; // Whether ticket email was sent
+  eventId?: number; // Event ID for ticket purchases
+}
+
+/**
+ * Payment Settlement Information
+ */
+export interface PaymentSettlementInfo {
+  settlementBatchId?: string;
+  platformInvoiceId?: string;
+  platformFeeAmount?: number;
+  processingFeeAmount?: number;
+  netAmount?: number;
+  settlementDate?: string;
+}
+
+/**
+ * Payment Provider Configuration
+ */
+export interface PaymentProviderConfigDTO {
+  id?: number;
+  tenantId: string;
+  providerType: PaymentProviderType;
+  paymentUseCase?: PaymentUseCase;
+  isActive: boolean;
+  supportsAcp?: boolean; // Stripe Instant Checkout / ACP
+  supportsZeffy?: boolean;
+  supportsZelle?: boolean;
+  supportsRevolut?: boolean;
+  priorityOrder?: number; // Fallback ordering
+  configJson?: Record<string, any>; // Encrypted provider credentials
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Payment Transaction - unified payment record
+ */
+export interface PaymentTransactionDTO {
+  id?: number;
+  tenantId: string;
+  transactionReference: string; // Generated unique reference
+  providerType: PaymentProviderType;
+  paymentUseCase: PaymentUseCase;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  paymentMethod?: string;
+  paymentReference?: string; // Provider transaction ID
+  providerCustomerId?: string; // Provider customer ID (e.g., Stripe customer ID)
+  providerSessionId?: string; // Provider session ID (e.g., Stripe checkout session ID)
+  failureReason?: string;
+  refundAmount?: number;
+  refundDate?: string;
+  refundReason?: string;
+  // Removed deprecated fields: settlementBatchId, platformInvoiceId, manualPaymentReference
+  metadata?: Record<string, any>;
+  // Related entities
+  eventId?: number;
+  userId?: number;
+  membershipSubscriptionId?: number;
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+  // Relations
+  event?: EventDetailsDTO;
+  user?: UserProfileDTO;
+}
+
+/**
+ * Payment Transaction Item - line items for a payment
+ */
+export interface PaymentTransactionItemDTO {
+  id?: number;
+  transactionId: number;
+  itemType: string; // 'TICKET', 'DONATION', 'MEMBERSHIP', etc.
+  itemId?: number; // Reference to ticket type, membership plan, etc.
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  taxAmount?: number;
+  discountAmount?: number;
+  platformFeeAmount?: number;
+  processingFeeAmount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Donation Transaction DTO - Matches backend donation_transaction table schema
+ */
+export interface DonationTransactionDTO {
+  id?: number;
+  tenantId?: string;
+  eventId?: number;
+  paymentTransactionId?: number;
+  transactionReference: string;
+  givebutterDonationId?: string;
+  amount: number;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  prayerIntention?: string;
+  isRecurring?: boolean;
+  isAnonymous?: boolean;
+  status: string; // 'PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'
+  qrCodeUrl?: string;
+  qrCodeImageUrl?: string;
+  emailSent?: boolean;
+  metadata?: string; // JSON string
+  createdAt: string;
+  updatedAt: string;
+  // Relations
+  event?: EventDetailsDTO;
+}
+
+/**
+ * Payment Initialization Request
+ */
+export interface PaymentInitializeRequest {
+  paymentUseCase: PaymentUseCase;
+  amount: number;
+  currency: string;
+  items: PaymentItem[];
+  customerEmail: string;
+  customerName?: string;
+  customerPhone?: string;
+  returnUrl?: string; // For redirect-based flows
+  cancelUrl?: string; // For redirect-based flows
+  metadata?: Record<string, any>;
+  // Context-specific fields
+  eventId?: number;
+  membershipPlanId?: number;
+  discountCode?: string;
+}
+
+/**
+ * Payment Item for initialization
+ */
+export interface PaymentItem {
+  itemType: string;
+  itemId?: number;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+/**
+ * Payment Refund Request
+ */
+export interface PaymentRefundRequest {
+  transactionId: string;
+  amount?: number; // If not provided, full refund
+  reason?: string;
+}
+
+/**
+ * Membership Plan DTO - Matches backend schema from PRD
+ */
+export interface MembershipPlanDTO {
+  id?: number;
+  tenantId: string;
+  planName: string;
+  planCode: string;
+  description?: string;
+  planType: 'SUBSCRIPTION' | 'ONE_TIME' | 'FREEMIUM';
+  billingInterval: 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'ONE_TIME';
+  price: number;
+  currency: string;
+  trialDays?: number;
+  isActive: boolean;
+  maxEventsPerMonth?: number;
+  maxAttendeesPerEvent?: number;
+  featuresJson?: Record<string, any>;
+  stripePriceId?: string;
+  stripeProductId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Membership Subscription DTO - Matches backend schema from PRD
+ */
+export interface MembershipSubscriptionDTO {
+  id?: number;
+  tenantId: string;
+  userProfileId: number;
+  membershipPlanId: number;
+  subscriptionStatus: 'ACTIVE' | 'TRIAL' | 'CANCELLED' | 'PAST_DUE' | 'EXPIRED' | 'SUSPENDED';
+  currentPeriodStart: string; // ISO date string (YYYY-MM-DD)
+  currentPeriodEnd: string; // ISO date string (YYYY-MM-DD)
+  trialStart?: string; // ISO date string (YYYY-MM-DD)
+  trialEnd?: string; // ISO date string (YYYY-MM-DD)
+  cancelAtPeriodEnd: boolean;
+  cancelledAt?: string; // ISO timestamp string
+  cancellationReason?: string;
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
+  paymentProviderConfigId?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  // Relations (optional, for expanded responses)
+  userProfile?: UserProfileDTO;
+  membershipPlan?: MembershipPlanDTO;
+}
+
+/**
+ * Platform Settlement DTO
+ */
+export interface PlatformSettlementDTO {
+  id?: number;
+  tenantId: string;
+  providerType: PaymentProviderType;
+  settlementDate: string; // Date of settlement
+  grossAmount: number;
+  processingFeeAmount: number;
+  platformFeeAmount: number;
+  netAmount: number;
+  transactionCount: number;
+  status: 'PENDING' | 'SETTLED' | 'INVOICED';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Platform Invoice DTO
+ */
+export interface PlatformInvoiceDTO {
+  id?: number;
+  tenantId: string;
+  invoiceNumber: string;
+  amount: number;
+  currency: string;
+  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  dueDate: string;
+  paidAt?: string;
+  settlementBatchIds?: string[]; // Related settlement batches
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Manual Payment Method Type
+ */
+export type ManualPaymentMethodType =
+  | 'ZELLE_MANUAL'
+  | 'VENMO_MANUAL'
+  | 'CASH_APP_MANUAL'
+  | 'CASH'
+  | 'CHECK'
+  | 'OTHER_MANUAL';
+
+/**
+ * Manual Payment Status
+ */
+export type ManualPaymentStatus = 'REQUESTED' | 'RECEIVED' | 'VOIDED' | 'CANCELLED';
+
+/**
+ * Manual Payment Request DTO
+ */
+export interface ManualPaymentRequestDTO {
+  id?: number;
+  tenantId?: string;
+  eventId: number;
+  ticketTransactionId?: number;
+  amountDue: number;
+  manualPaymentMethodType: ManualPaymentMethodType;
+  paymentHandle?: string;
+  paymentInstructions?: string;
+  status: ManualPaymentStatus;
+  proofOfPaymentFileKey?: string;
+  proofOfPaymentFileUrl?: string;
+  proofOfPaymentUploadedAt?: string;
+  receivedAt?: string;
+  receivedBy?: string;
+  voidReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  // Requester information (sent to backend but may not be in response DTO)
+  requesterEmail?: string;
+  requesterName?: string;
+  requesterPhone?: string;
+  // Backend supports selectedTickets as JSON string for transaction item creation
+  // Format: '[{"ticketTypeId": 4151, "quantity": 1}, {"ticketTypeId": 4152, "quantity": 2}]'
+  selectedTickets?: string;
+  // Backend also supports cart array format (alternative to selectedTickets)
+  cart?: Array<{ ticketTypeId: number; quantity: number }>;
+}
+
+/**
+ * Manual Payment Summary Report DTO
+ */
+export interface ManualPaymentSummaryReportDTO {
+  id?: number;
+  tenantId: string;
+  eventId: number;
+  snapshotDate: string; // DATE format: YYYY-MM-DD
+  manualPaymentMethodType: ManualPaymentMethodType;
+  status: ManualPaymentStatus;
+  totalAmount: number;
+  requestCount: number;
+  createdAt?: string;
+  updatedAt?: string;
 }

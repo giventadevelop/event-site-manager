@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 import { SideNav } from "@/components/side-nav";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { Footer } from "@/components/Footer_original_backup";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';

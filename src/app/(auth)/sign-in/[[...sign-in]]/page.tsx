@@ -1,63 +1,82 @@
+// Satellite domain - redirect to primary domain for authentication
+// For localhost - show Clerk component directly for development
 'use client';
 
-import { SignInWithReconciliation } from "@/components/SignInWithReconciliation";
-import { useSearchParams } from "next/navigation";
-import { extractSatelliteConfig } from "@/lib/satelliteConfig";
-import SatelliteHeader from "@/components/auth/SatelliteHeader";
-import SatelliteFooter from "@/components/auth/SatelliteFooter";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { SignIn } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
 
 export default function SignInPage() {
-  const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get('redirect_url') || '';
+  const router = useRouter();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  const [isLocalhost, setIsLocalhost] = useState(false);
+  const { isSignedIn, userId, isLoaded } = useAuth();
+  const { user } = useUser();
 
-  // Extract satellite configuration from redirect_url if present
-  const satelliteConfig = extractSatelliteConfig(redirectUrl);
-  const shouldShowSatelliteBranding = satelliteConfig?.branding?.showOnAuth;
+  useEffect(() => {
+    // After sign-in completes locally, bootstrap tenant-scoped profile (upsert)
+    if (isLoaded && isSignedIn && userId) {
+      bootstrapUserProfile({ userId, user }).catch(() => { });
+    }
 
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Conditionally render satellite header */}
-      {shouldShowSatelliteBranding?.header && satelliteConfig?.branding && (
-        <SatelliteHeader
-          branding={satelliteConfig.branding}
-          satelliteDomain={satelliteConfig.domain}
-        />
-      )}
+    // Check if we're on a satellite domain
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
 
-      <main className={`flex flex-col items-center justify-center flex-1 py-12 ${shouldShowSatelliteBranding?.header ? 'pt-8' : ''}`}>
+      // Check if localhost - show Clerk component for development
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        setIsLocalhost(true);
+        return;
+      }
+
+      // If on satellite domain, redirect to primary domain with return URL
+      const satelliteDomain = process.env.NEXT_PUBLIC_CLERK_DOMAIN || 'mosc-temp.com';
+      if (hostname.includes('mosc-temp.com') || hostname.includes(satelliteDomain.replace('www.', ''))) {
+        setShouldRedirect(true);
+        // Get the current URL to return to after authentication
+        const currentUrl = window.location.origin;
+
+        // Get primary domain from environment variable
+        const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
+
+        // Redirect to primary domain with redirect_url parameter
+        // Clerk will redirect back to this URL after successful authentication
+        const redirectUrl = `https://${primaryDomain}/sign-in?redirect_url=${encodeURIComponent(currentUrl)}`;
+        window.location.href = redirectUrl;
+      }
+    }
+  }, []);
+
+  // Show Clerk component for localhost development
+  if (isLocalhost) {
+    return (
+      <main className="flex flex-col items-center justify-center flex-1 py-2">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-center text-gray-900">Welcome Back</h1>
-          {satelliteConfig ? (
-            <div className="mt-4 space-y-2">
-              <p className="text-center text-gray-600">Sign in to continue</p>
-              <div className="flex items-center justify-center">
-                <div className="inline-flex items-center px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-                  <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <span className="text-sm font-medium text-blue-700">
-                    Signing in for <span className="font-bold">{satelliteConfig.displayName}</span>
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-center text-gray-500 mt-2">
-                You'll be redirected to {satelliteConfig.hostname} after signing in
-              </p>
-            </div>
-          ) : (
-            <p className="mt-2 text-center text-gray-600">Sign in to continue</p>
-          )}
+          <h1 className="text-4xl font-bold text-center text-gray-900">Sign In</h1>
+          <p className="text-sm text-gray-500 text-center mt-2">(Development Mode)</p>
         </div>
-        <SignInWithReconciliation />
-      </main>
-
-      {/* Conditionally render satellite footer */}
-      {shouldShowSatelliteBranding?.footer && satelliteConfig?.branding && (
-        <SatelliteFooter
-          branding={satelliteConfig.branding}
-          satelliteDomain={satelliteConfig.domain}
+        <SignIn
+          routing="path"
+          path="/sign-in"
         />
-      )}
-    </div>
-  );
+      </main>
+    );
+  }
+
+  // Show loading state while redirecting (satellite domain)
+  if (shouldRedirect) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to sign in...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Default: show nothing (will determine redirect/component in useEffect)
+  return null;
 }

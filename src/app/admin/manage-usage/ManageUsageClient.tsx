@@ -3,10 +3,12 @@ import { useEffect, useState, useRef } from 'react';
 import type { UserProfileDTO } from '@/types';
 import Link from 'next/link';
 import ReactDOM from 'react-dom';
-import { FaEye, FaCheck, FaEdit, FaTimes, FaUsers, FaPhotoVideo, FaCalendarAlt, FaUpload, FaDownload, FaBan, FaChevronLeft, FaChevronRight, FaHome } from 'react-icons/fa';
+// Icons removed - using inline SVGs instead
 import * as XLSX from 'xlsx';
-import { getTenantId } from '@/lib/env';
+import { useAdminTenantId } from '../AdminTenantContext';
+import AdminTenantFilterField from '../AdminTenantFilterField';
 import { fetchUsersServer, patchUserProfileServer, bulkUploadUsersServer } from './ApiServerActions';
+import AdminNavigation from '@/components/AdminNavigation';
 
 // Import UserDetailsTooltip and EditUserModal from the same file or extract if needed
 // ... (copy UserDetailsTooltip and EditUserModal here or import them)
@@ -88,11 +90,12 @@ function UserDetailsTooltip({ user, anchorRect, onClose }: { user: UserProfileDT
   );
 }
 
-function EditUserModal({ user, open, onClose, onSave }: {
+function EditUserModal({ user, open, onClose, onSave, loading }: {
   user: UserProfileDTO | null,
   open: boolean,
   onClose: () => void,
   onSave: (updated: Partial<UserProfileDTO>) => void,
+  loading?: boolean,
 }) {
   const [form, setForm] = useState<Partial<UserProfileDTO>>(user || {});
   useEffect(() => {
@@ -100,132 +103,275 @@ function EditUserModal({ user, open, onClose, onSave }: {
   }, [user]);
   if (!open || !user) return null;
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg relative">
-        <button className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-lg font-bold" onClick={onClose}>&times;</button>
-        <h2 className="text-xl font-bold mb-4">Edit User</h2>
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            onSave(form);
-          }}
-          className="space-y-4"
-        >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-md w-full max-w-lg relative my-auto max-h-[90vh] flex flex-col">
+        <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Edit User</h2>
+            <button 
+              className="w-10 h-10 rounded-lg bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110" 
+              onClick={onClose} 
+              aria-label="Close modal"
+              title="Close"
+            >
+              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <form
+            id="edit-user-form"
+            onSubmit={e => {
+              e.preventDefault();
+              onSave(form);
+            }}
+            className="space-y-4"
+          >
           {/* Editable fields */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold mb-1">First Name</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.firstName || ''} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.firstName || ''} 
+                onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} 
+              />
             </div>
             <div>
-              <label className="block font-semibold mb-1">Last Name</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.lastName || ''} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold mb-1">Email</label>
-              <input type="email" className="w-full border rounded px-3 py-2" value={form.email || ''} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block font-semibold mb-1">Phone</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.phone || ''} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold mb-1">Address Line 1</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.addressLine1 || ''} onChange={e => setForm(f => ({ ...f, addressLine1: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block font-semibold mb-1">Address Line 2</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.addressLine2 || ''} onChange={e => setForm(f => ({ ...f, addressLine2: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.lastName || ''} 
+                onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} 
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold mb-1">City</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.city || ''} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input 
+                type="email" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.email || ''} 
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))} 
+              />
             </div>
             <div>
-              <label className="block font-semibold mb-1">State</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.state || ''} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.phone || ''} 
+                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} 
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold mb-1">Zip Code</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.zipCode || ''} onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.addressLine1 || ''} 
+                onChange={e => setForm(f => ({ ...f, addressLine1: e.target.value }))} 
+              />
             </div>
             <div>
-              <label className="block font-semibold mb-1">Country</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.country || ''} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.addressLine2 || ''} 
+                onChange={e => setForm(f => ({ ...f, addressLine2: e.target.value }))} 
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.city || ''} 
+                onChange={e => setForm(f => ({ ...f, city: e.target.value }))} 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.state || ''} 
+                onChange={e => setForm(f => ({ ...f, state: e.target.value }))} 
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.zipCode || ''} 
+                onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.country || ''} 
+                onChange={e => setForm(f => ({ ...f, country: e.target.value }))} 
+              />
             </div>
           </div>
           {/* India related details section title */}
           <div className="pt-2 pb-1">
-            <h3 className="text-lg font-semibold text-blue-700 border-b border-blue-200 mb-2">India related details</h3>
+            <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 mb-2">India related details</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold mb-1">Family Name</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.familyName || ''} onChange={e => setForm(f => ({ ...f, familyName: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Family Name</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.familyName || ''} 
+                onChange={e => setForm(f => ({ ...f, familyName: e.target.value }))} 
+              />
             </div>
             <div>
-              <label className="block font-semibold mb-1">City/Town</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.cityTown || ''} onChange={e => setForm(f => ({ ...f, cityTown: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">City/Town</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.cityTown || ''} 
+                onChange={e => setForm(f => ({ ...f, cityTown: e.target.value }))} 
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold mb-1">District</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.district || ''} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.district || ''} 
+                onChange={e => setForm(f => ({ ...f, district: e.target.value }))} 
+              />
             </div>
             <div>
-              <label className="block font-semibold mb-1">Educational Institution</label>
-              <input type="text" className="w-full border rounded px-3 py-2" value={form.educationalInstitution || ''} onChange={e => setForm(f => ({ ...f, educationalInstitution: e.target.value }))} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Educational Institution</label>
+              <input 
+                type="text" 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.educationalInstitution || ''} 
+                onChange={e => setForm(f => ({ ...f, educationalInstitution: e.target.value }))} 
+              />
             </div>
           </div>
           <div>
-            <label className="block font-semibold mb-1">Profile Image URL</label>
-            <input type="text" className="w-full border rounded px-3 py-2" value={form.profileImageUrl || ''} onChange={e => setForm(f => ({ ...f, profileImageUrl: e.target.value }))} />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Profile Image URL</label>
+            <input 
+              type="text" 
+              className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+              value={form.profileImageUrl || ''} 
+              onChange={e => setForm(f => ({ ...f, profileImageUrl: e.target.value }))} 
+            />
           </div>
           <div>
-            <label className="block font-semibold mb-1">Notes</label>
-            <textarea className="w-full border rounded px-3 py-2" value={form.notes || ''} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea 
+              className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+              rows={3}
+              value={form.notes || ''} 
+              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} 
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold mb-1">Role</label>
-              <select className="w-full border rounded px-3 py-2" value={form.userRole || ''} onChange={e => setForm(f => ({ ...f, userRole: e.target.value }))}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <select 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.userRole || ''} 
+                onChange={e => setForm(f => ({ ...f, userRole: e.target.value }))}
+              >
                 <option value="">Select Role</option>
-                <option value="ADMIN">Admin</option>
-                <option value="MEMBER">Member</option>
-                <option value="ORGANIZER">Organizer</option>
+                <option value="SUPER_ADMIN">SUPER ADMIN</option>
+                <option value="ADMIN">ADMIN</option>
+                <option value="ORGANIZER">ORGANIZER</option>
+                <option value="VOLUNTEER">VOLUNTEER</option>
+                <option value="MEMBER">MEMBER</option>
               </select>
             </div>
             <div>
-              <label className="block font-semibold mb-1">Status</label>
-              <select className="w-full border rounded px-3 py-2" value={form.userStatus || ''} onChange={e => setForm(f => ({ ...f, userStatus: e.target.value }))}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select 
+                className="mt-1 block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base" 
+                value={form.userStatus || ''} 
+                onChange={e => setForm(f => ({ ...f, userStatus: e.target.value }))}
+              >
                 <option value="">Select Status</option>
-                <option value="ACTIVE">Active</option>
-                <option value="PENDING_APPROVAL">Pending Approval</option>
-                <option value="REJECTED">Rejected</option>
-                <option value="APPROVED">Approved</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+                <option value="PENDING_APPROVAL">PENDING APPROVAL</option>
+                <option value="SUSPENDED">SUSPENDED</option>
+                <option value="BANNED">BANNED</option>
+                <option value="REJECTED">REJECTED</option>
+                <option value="APPROVED">APPROVED</option>
               </select>
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <button type="button" className="bg-teal-100 hover:bg-teal-200 text-teal-800 font-bold px-4 py-2 rounded-md flex items-center gap-2 transition-colors" onClick={onClose}>
-              <FaBan />
-              Cancel
+          </form>
+        </div>
+        <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-gray-50">
+          {/* Form Action Buttons - Design System Pattern */}
+          <div className="flex flex-row gap-2 sm:gap-3 mt-4">
+            {/* Save Button - Green */}
+            <button 
+              type="submit" 
+              form="edit-user-form"
+              disabled={loading}
+              className="flex-1 sm:flex-1 flex-shrink-0 h-14 rounded-xl bg-green-100 hover:bg-green-200 flex items-center justify-center gap-0 sm:gap-3 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              title={loading ? 'Saving...' : 'Save Changes'}
+              aria-label={loading ? 'Saving...' : 'Save Changes'}
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-200 flex items-center justify-center">
+                {loading ? (
+                  <svg className="animate-spin w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="font-semibold text-green-700 hidden sm:inline">{loading ? 'Saving...' : 'Save'}</span>
             </button>
-            <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center gap-2 transition-colors">
-              <FaDownload />
-              Save
+
+            {/* Cancel Button - Red */}
+            <button 
+              type="button" 
+              onClick={onClose}
+              className="flex-1 sm:flex-1 flex-shrink-0 h-14 rounded-xl bg-red-100 hover:bg-red-200 flex items-center justify-center gap-0 sm:gap-3 transition-all duration-300 hover:scale-105"
+              title="Cancel"
+              aria-label="Cancel"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-200 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <span className="font-semibold text-red-700 hidden sm:inline">Cancel</span>
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>,
     document.body
@@ -235,14 +381,18 @@ function EditUserModal({ user, open, onClose, onSave }: {
 const renderRoleBadge = (role: string | null | undefined) => {
   const baseClasses = 'px-2 py-1 text-xs font-semibold rounded-full';
   switch (role) {
+    case 'SUPER_ADMIN':
+      return <span className={`bg-blue-100 text-blue-800 ${baseClasses}`}>SUPER_ADMIN</span>;
     case 'ADMIN':
-      return <span className={`bg-blue-100 text-blue-800 ${baseClasses}`}>Administrator</span>;
+      return <span className={`bg-blue-100 text-blue-800 ${baseClasses}`}>ADMIN</span>;
     case 'ORGANIZER':
-      return <span className={`bg-purple-100 text-purple-800 ${baseClasses}`}>Organizer</span>;
+      return <span className={`bg-purple-100 text-purple-800 ${baseClasses}`}>ORGANIZER</span>;
+    case 'VOLUNTEER':
+      return <span className={`bg-gray-100 text-gray-800 ${baseClasses}`}>VOLUNTEER</span>;
     case 'MEMBER':
-      return <span className={`bg-gray-100 text-gray-800 ${baseClasses}`}>Member</span>;
+      return <span className={`bg-gray-100 text-gray-800 ${baseClasses}`}>MEMBER</span>;
     default:
-      return <span className={`bg-gray-100 text-gray-500 italic ${baseClasses}`}>{role || 'Not set'}</span>;
+      return <span className={`bg-gray-100 text-gray-500 italic ${baseClasses}`}>{role || 'NOT SET'}</span>;
   }
 };
 
@@ -253,15 +403,22 @@ const renderStatusBadge = (status: string | null | undefined) => {
     case 'APPROVED':
       return <span className={`bg-green-100 text-green-800 ${baseClasses}`}>{status}</span>;
     case 'PENDING_APPROVAL':
-      return <span className={`bg-yellow-100 text-yellow-800 ${baseClasses}`}>Pending</span>;
+      return <span className={`bg-yellow-100 text-yellow-800 ${baseClasses}`}>PENDING_APPROVAL</span>;
+    case 'INACTIVE':
+      return <span className={`bg-gray-100 text-gray-500 ${baseClasses}`}>INACTIVE</span>;
+    case 'SUSPENDED':
+      return <span className={`bg-orange-100 text-orange-800 ${baseClasses}`}>SUSPENDED</span>;
+    case 'BANNED':
+      return <span className={`bg-red-100 text-red-800 ${baseClasses}`}>BANNED</span>;
     case 'REJECTED':
-      return <span className={`bg-red-100 text-red-800 ${baseClasses}`}>Rejected</span>;
+      return <span className={`bg-red-100 text-red-800 ${baseClasses}`}>REJECTED</span>;
     default:
-      return <span className={`bg-gray-100 text-gray-500 italic ${baseClasses}`}>{status || 'Not set'}</span>;
+      return <span className={`bg-gray-100 text-gray-500 italic ${baseClasses}`}>{status || 'NOT SET'}</span>;
   }
 };
 
 export default function ManageUsageClient({ adminProfile }: { adminProfile: UserProfileDTO | null }) {
+  const tenantId = useAdminTenantId();
   const [users, setUsers] = useState<UserProfileDTO[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [search, setSearch] = useState('');
@@ -294,6 +451,7 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
         role,
         page,
         pageSize,
+        tenantId,
       });
 
       // Support both pageable and array fallback
@@ -330,7 +488,7 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
 
   useEffect(() => {
     fetchUsers();
-  }, [search, searchField, status, role, page]);
+  }, [search, searchField, status, role, page, tenantId]);
 
   // Helper to build a complete UserProfileDTO for PATCH
   function buildPatchedUser(user: UserProfileDTO, patch: Partial<UserProfileDTO>): UserProfileDTO {
@@ -365,22 +523,27 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
   }
 
   async function handleApprove(user: UserProfileDTO) {
-    if (!user.id || !adminProfile?.id) {
-      setBulkMessage('Admin profile not loaded. Please refresh and try again.');
+    if (!user.id) {
+      setBulkMessage('Selected user record missing id.');
       return;
+    }
+    if (!adminProfile?.id) {
+      setBulkMessage('Admin profile not loaded. Please refresh and try again.');
+      // Soft fallback: allow approve when admin profile missing id is not required
+      // return; // uncomment to enforce strict requirement
     }
     setApprovingId(user.id);
     try {
       const now = new Date().toISOString();
       const payload = buildPatchedUser(user, {
         userStatus: 'APPROVED',
-        reviewedByAdminId: adminProfile.id,
+        reviewedByAdminId: adminProfile?.id ?? undefined,
         reviewedByAdminAt: now,
         updatedAt: now,
       });
-      const res = await patchUserProfileServer(user.id, payload);
+      const res = await patchUserProfileServer(user.id, payload, tenantId);
       if (res && !res.error) {
-        setUsers(users => users.map(u => u.id === user.id ? { ...u, userStatus: 'APPROVED', reviewedByAdminId: adminProfile.id, reviewedByAdminAt: now, updatedAt: now } : u));
+        setUsers(users => users.map(u => u.id === user.id ? { ...u, userStatus: 'APPROVED', reviewedByAdminId: adminProfile?.id, reviewedByAdminAt: now, updatedAt: now } : u));
       } else {
         setBulkMessage('Approve failed: ' + (res?.error || 'Unknown error'));
         setTimeout(() => setBulkMessage(null), 4000);
@@ -394,22 +557,26 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
   }
 
   async function handleReject(user: UserProfileDTO) {
-    if (!user.id || !adminProfile?.id) {
-      setBulkMessage('Admin profile not loaded. Please refresh and try again.');
+    if (!user.id) {
+      setBulkMessage('Selected user record missing id.');
       return;
+    }
+    if (!adminProfile?.id) {
+      setBulkMessage('Admin profile not loaded. Please refresh and try again.');
+      // return; // uncomment to enforce strict requirement
     }
     setRejectingId(user.id);
     try {
       const now = new Date().toISOString();
       const payload = buildPatchedUser(user, {
         userStatus: 'REJECTED',
-        reviewedByAdminId: adminProfile.id,
+        reviewedByAdminId: adminProfile?.id ?? undefined,
         reviewedByAdminAt: now,
         updatedAt: now,
       });
-      const res = await patchUserProfileServer(user.id, payload);
+      const res = await patchUserProfileServer(user.id, payload, tenantId);
       if (res && !res.error) {
-        setUsers(users => users.map(u => u.id === user.id ? { ...u, userStatus: 'REJECTED', reviewedByAdminId: adminProfile.id, reviewedByAdminAt: now, updatedAt: now } : u));
+        setUsers(users => users.map(u => u.id === user.id ? { ...u, userStatus: 'REJECTED', reviewedByAdminId: adminProfile?.id, reviewedByAdminAt: now, updatedAt: now } : u));
       } else {
         setBulkMessage('Reject failed: ' + (res?.error || 'Unknown error'));
         setTimeout(() => setBulkMessage(null), 4000);
@@ -426,7 +593,7 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
     if (!editUser?.id) return;
     setEditLoading(true);
     try {
-      const res = await patchUserProfileServer(editUser.id, { ...editUser, ...updated });
+      const res = await patchUserProfileServer(editUser.id, { ...editUser, ...updated }, tenantId);
       if (res && !res.error) {
         setUsers(users => users.map(u => u.id === editUser.id ? { ...u, ...updated } : u));
         setEditUser(null);
@@ -479,7 +646,7 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
           userStatus: row.userStatus || "pending",
         };
       });
-      const res = await bulkUploadUsersServer(users);
+      const res = await bulkUploadUsersServer(users, tenantId);
       if (res && !res.error) {
         setBulkMessage('Bulk upload successful!');
         fetchUsers();
@@ -514,50 +681,61 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
   const totalPages = Math.ceil(totalUsers / pageSize) || 1;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ paddingTop: '118px' }}>
-      <div className="flex justify-center mb-8">
-        <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 justify-items-center mx-auto">
-            <Link href="/admin" className="w-48 max-w-xs mx-auto flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-md shadow p-1 sm:p-2 text-xs sm:text-xs transition-all">
-              <FaHome className="text-base sm:text-lg mb-1 mx-auto" />
-              <span className="font-semibold text-center leading-tight">Admin Home</span>
-            </Link>
-            <Link href="/admin/manage-usage" className="w-48 max-w-xs mx-auto flex flex-col items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md shadow p-1 sm:p-2 text-xs sm:text-xs transition-all">
-              <FaUsers className="text-base sm:text-lg mb-1 mx-auto" />
-              <span className="font-semibold text-center leading-tight">Manage Users [Usage]</span>
-              <span className="text-xs text-blue-500 mt-1">[Users]</span>
-            </Link>
-            <Link href="/admin" className="w-48 max-w-xs mx-auto flex flex-col items-center justify-center bg-green-50 hover:bg-green-100 text-green-700 rounded-md shadow p-1 sm:p-2 text-xs sm:text-xs transition-all">
-              <FaCalendarAlt className="text-base sm:text-lg mb-1 mx-auto" />
-              <span className="font-semibold text-center leading-tight">Manage Events</span>
-            </Link>
-          </div>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8" style={{ paddingTop: '120px' }}>
+      <AdminNavigation />
+      {/* Page Header */}
+      <div className="mb-4 sm:mb-6 md:mb-8">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 text-center sm:text-left">
+          Manage Users
+        </h1>
+        <p className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+          Manage user profiles, roles, and statuses for your organization
+        </p>
       </div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Manage Users</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => fileInputRef.current?.click()} disabled={bulkLoading} className="h-10 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors disabled:opacity-50">
-            <FaUpload />
-            {bulkLoading ? 'Uploading...' : 'Bulk Upload User List'}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={bulkLoading}
+            className="flex-shrink-0 h-14 rounded-xl bg-green-100 hover:bg-green-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            title="Bulk Upload User List"
+            aria-label="Bulk Upload User List"
+            type="button"
+          >
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-200 flex items-center justify-center">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+            </div>
+            <span className="font-semibold text-green-700">{bulkLoading ? 'Uploading...' : 'Bulk Upload User List'}</span>
           </button>
           <input type="file" ref={fileInputRef} onChange={handleBulkUpload} className="hidden" accept=".xlsx" />
-          <a href="https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/media/users_profile_list_bulk_upload_template/users_profile_list_bulk_upload_template.xlsx" download="users_profile_list_bulk_upload_template.xlsx" className="h-10 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-            <FaDownload />
-            Download Bulk Upload Template File
+          <a
+            href="https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/media/users_profile_list_bulk_upload_template/users_profile_list_bulk_upload_template.xlsx"
+            download="users_profile_list_bulk_upload_template.xlsx"
+            className="flex-shrink-0 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"
+            title="Download Bulk Upload Template File"
+            aria-label="Download Bulk Upload Template File"
+          >
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-200 flex items-center justify-center">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </div>
+            <span className="font-semibold text-blue-700">Download Bulk Upload Template File</span>
           </a>
         </div>
-      </div>
 
       {/* Filter and Action Controls */}
-      <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {/* Tenant ID Filter – combine with other fields for "e.g. first name in this tenant" */}
+          <AdminTenantFilterField />
           {/* Search Input */}
           <div className="flex items-center gap-2">
             <select
               value={searchField}
               onChange={(e) => setSearchField(e.target.value)}
-              className="h-10 border-gray-300 dark:border-gray-600 rounded-l-md dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+              className="border border-gray-400 rounded-l-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base min-h-[48px]"
             >
               {SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
             </select>
@@ -566,88 +744,195 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
               placeholder={`Search by ${SEARCH_FIELDS.find(f => f.value === searchField)?.label}...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="block w-full h-10 px-3 border-gray-300 dark:border-gray-600 rounded-r-md dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full border border-gray-400 rounded-r-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base min-h-[48px]"
             />
           </div>
 
-          {/* Status Filter */}
+          {/* Status Filter (tenant-scoped) */}
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="block w-full h-10 px-3 border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+            className="block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base min-h-[48px]"
           >
             <option value="">All Statuses</option>
             <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
             <option value="PENDING_APPROVAL">Pending Approval</option>
+            <option value="SUSPENDED">Suspended</option>
+            <option value="BANNED">Banned</option>
             <option value="REJECTED">Rejected</option>
             <option value="APPROVED">Approved</option>
           </select>
 
-          {/* Role Filter */}
+          {/* Role Filter (tenant-scoped) */}
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="block w-full h-10 px-3 border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+            className="block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base min-h-[48px]"
           >
             <option value="">All Roles</option>
+            <option value="SUPER_ADMIN">Super Admin</option>
             <option value="ADMIN">Admin</option>
             <option value="ORGANIZER">Organizer</option>
+            <option value="VOLUNTEER">Volunteer</option>
             <option value="MEMBER">Member</option>
           </select>
         </div>
-        {bulkMessage && <p className="mt-2 text-sm text-center text-red-600 dark:text-red-400">{bulkMessage}</p>}
+        {bulkMessage && <p className="mt-2 text-sm text-center text-red-600">{bulkMessage}</p>}
       </div>
 
       {/* Users Table */}
-      <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 border border-gray-300 dark:border-gray-600">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th scope="col" className="px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">Name</th>
-                <th scope="col" className="px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">Contact</th>
-                <th scope="col" className="px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">Role</th>
-                <th scope="col" className="px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">Status</th>
-                <th scope="col" className="px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">Joined</th>
-                <th scope="col" className="px-8 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-300 dark:border-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-300 dark:divide-gray-600">
+      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        {/* Rainbow Gradient Scrollbar CSS */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            .table-scroll-container {
+              overflow-x: scroll !important;
+              overflow-y: visible !important;
+              scrollbar-width: thin !important;
+              scrollbar-color: #EC4899 #FCE7F3 !important; /* Pink thumb, pink track (Firefox) */
+              -ms-overflow-style: -ms-autohiding-scrollbar !important;
+            }
+
+            /* WebKit browsers (Chrome, Safari, Edge) */
+            .table-scroll-container::-webkit-scrollbar {
+              height: 20px !important; /* Larger for visibility */
+              display: block !important;
+              -webkit-appearance: none !important;
+              appearance: none !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-track {
+              background: linear-gradient(90deg, #DBEAFE, #E9D5FF, #FCE7F3, #FED7AA) !important;
+              border-radius: 10px !important;
+              -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.15) !important;
+              box-shadow: inset 0 0 6px rgba(0,0,0,0.15) !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-thumb {
+              background: linear-gradient(90deg, #3B82F6, #8B5CF6, #EC4899, #F97316) !important;
+              border-radius: 10px !important;
+              border: 4px solid #F3F4F6 !important;
+              -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.4) !important;
+              box-shadow: inset 0 0 6px rgba(0,0,0,0.4) !important;
+              min-width: 50px !important; /* CRITICAL: Ensures thumb is always visible */
+              background-clip: padding-box !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-thumb:hover {
+              background: linear-gradient(90deg, #2563EB, #7C3AED, #DB2777, #EA580C) !important;
+              border-color: #E5E7EB !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-thumb:active {
+              background: linear-gradient(90deg, #1D4ED8, #6D28D9, #BE185D, #C2410C) !important;
+              border-color: #D1D5DB !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-button {
+              display: none !important;
+            }
+
+            .table-scroll-container::-webkit-scrollbar-corner {
+              background: #E0E7FF !important;
+            }
+
+            /* Flexbox spacer for right-side centering */
+            .table-scroll-container::after {
+              content: '';
+              display: block;
+              width: 100vw; /* Full viewport width of scrollable space */
+              height: 1px;
+              flex-shrink: 0;
+            }
+
+            .table-scroll-container {
+              display: flex !important;
+            }
+          `
+        }} />
+
+        {/* Outer wrapper with gradient border */}
+        <div className="rounded-lg shadow w-full overflow-hidden" style={{
+          background: 'linear-gradient(to right, #3B82F6, #8B5CF6, #EC4899, #F97316)',
+          padding: '4px'
+        }}>
+          {/* Inner scroll container with gradient background */}
+          <div
+            className="w-full table-scroll-container"
+            style={{
+              overflowX: 'scroll',
+              overflowY: 'visible',
+              WebkitOverflowScrolling: 'touch',
+              maxWidth: '100%',
+              display: 'flex',
+              position: 'relative',
+              width: '100%',
+              minHeight: '1px',
+              scrollbarGutter: 'stable',
+              background: 'linear-gradient(to right, #3B82F6, #8B5CF6, #EC4899, #F97316)',
+              borderRadius: '8px',
+              padding: '20px'
+            }}
+          >
+            {/* Table with semi-transparent white background */}
+            <table
+              className="divide-y divide-gray-300 dark:divide-gray-600 border border-gray-300 dark:border-gray-600"
+              style={{
+                width: 'max-content',
+                minWidth: 'fit-content', /* Responsive: fits content naturally */
+                flexShrink: 0,
+                background: 'rgba(255, 255, 255, 0.95)', /* Semi-transparent white */
+                borderRadius: '8px',
+                overflow: 'hidden'
+              }}
+            >
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-8 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-300">Name</th>
+                  <th scope="col" className="px-8 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-300">Contact</th>
+                  <th scope="col" className="px-8 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-300">Role</th>
+                  <th scope="col" className="px-8 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-300">Status</th>
+                  <th scope="col" className="px-8 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-300">Joined</th>
+                  <th scope="col" className="px-8 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-300">
               {loading && Array.from({ length: pageSize }).map((_, i) => (
-                <tr key={`skel-${i}`} className={`${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-blue-50 dark:bg-gray-700'} border-b border-gray-300 dark:border-gray-600`}>
-                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse"></div></td>
-                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full animate-pulse"></div></td>
-                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600"><div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse"></div></td>
-                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600"><div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse"></div></td>
-                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div></td>
+                <tr key={`skel-${i}`} className={`${i % 2 === 0 ? 'bg-white' : 'bg-blue-50'} border-b border-gray-300`}>
+                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200"><div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div></td>
+                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200"><div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div></td>
+                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200"><div className="h-6 bg-gray-200 rounded-full w-20 animate-pulse"></div></td>
+                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200"><div className="h-6 bg-gray-200 rounded-full w-20 animate-pulse"></div></td>
+                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200"><div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div></td>
                   <td className="px-8 py-4 whitespace-nowrap text-right">
                     <div className="flex justify-end items-center gap-2">
-                      <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
-                      <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                      <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+                      <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
                     </div>
                   </td>
                 </tr>
               ))}
               {!loading && users.map((user, index) => (
-                <tr key={user.id} className={`${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-blue-50 dark:bg-gray-700'} hover:bg-yellow-100 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-300 dark:border-gray-600`}>
-                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600" onMouseEnter={(e) => handleMouseEnter(user, e)} onMouseLeave={handleMouseLeave}>
+                <tr key={user.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-blue-50'} hover:bg-yellow-100 transition-colors border-b border-gray-300`}>
+                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200" onMouseEnter={(e) => handleMouseEnter(user, e)} onMouseLeave={handleMouseLeave}>
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         <img className="h-10 w-10 rounded-full object-cover" src={user.profileImageUrl || `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random`} alt={`${user.firstName} ${user.lastName}`} />
                       </div>
                       <div className="ml-4">
-                        <div className="text-xs font-medium text-gray-900 dark:text-white">{user.firstName} {user.lastName}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
+                        <div className="text-xs font-medium text-gray-900">{user.firstName} {user.lastName}</div>
+                        <div className="text-xs text-gray-500">{user.email}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600" onMouseEnter={(e) => handleMouseEnter(user, e)} onMouseLeave={handleMouseLeave}>
-                    <div className="text-xs text-gray-900 dark:text-white">{user.phone}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{user.city}, {user.state}</div>
+                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200" onMouseEnter={(e) => handleMouseEnter(user, e)} onMouseLeave={handleMouseLeave}>
+                    <div className="text-xs text-gray-900">{user.phone}</div>
+                    <div className="text-xs text-gray-500">{user.city}, {user.state}</div>
                   </td>
-                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600">{renderRoleBadge(user.userRole)}</td>
-                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600">{renderStatusBadge(user.userStatus)}</td>
-                  <td className="px-8 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-600">
+                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200">{renderRoleBadge(user.userRole)}</td>
+                  <td className="px-8 py-4 whitespace-nowrap border-r border-gray-200">{renderStatusBadge(user.userStatus)}</td>
+                  <td className="px-8 py-4 whitespace-nowrap text-xs text-gray-500 border-r border-gray-200">
                     {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-8 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -655,30 +940,44 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
                       <button
                         onClick={() => setEditUser(user)}
                         disabled={editLoading && editUser?.id === user.id}
-                        className="p-2 rounded-full text-blue-600 bg-blue-100 hover:bg-blue-200 disabled:opacity-50 transition-colors"
+                        className="flex-shrink-0 w-14 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-50"
                         aria-label="Edit User"
                         title="Edit User"
                       >
-                        <FaEdit />
+                        <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
                       </button>
 
                       <button
                         onClick={() => handleApprove(user)}
                         disabled={approvingId === user.id || user.userStatus === 'ACTIVE' || user.userStatus === 'APPROVED'}
-                        className="p-2 rounded-full text-green-600 bg-green-100 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex-shrink-0 w-14 h-14 rounded-xl bg-green-100 hover:bg-green-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Approve User"
                         title="Approve User"
                       >
-                        {approvingId === user.id ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div> : <FaCheck />}
+                        {approvingId === user.id ? (
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+                        ) : (
+                          <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
                       </button>
                       <button
                         onClick={() => handleReject(user)}
                         disabled={rejectingId === user.id || user.userStatus === 'REJECTED'}
-                        className="p-2 rounded-full text-red-600 bg-red-100 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex-shrink-0 w-14 h-14 rounded-xl bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Reject User"
                         title="Reject User"
                       >
-                        {rejectingId === user.id ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div> : <FaTimes />}
+                        {rejectingId === user.id ? (
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
+                        ) : (
+                          <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
                       </button>
 
                     </div>
@@ -687,32 +986,66 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
               ))}
             </tbody>
           </table>
+          </div>
         </div>
-        {/* Pagination Controls */}
-        <div className="mt-4 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+        {/* Pagination Controls - Always visible, matching admin page style */}
+        <div className="mt-8">
           <div className="flex justify-between items-center">
+            {/* Previous Button */}
             <button
               onClick={handlePrevPage}
-              disabled={page <= 1}
-              className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              disabled={page <= 1 || loading}
+              className="px-5 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg shadow-sm border-2 border-blue-400 hover:border-blue-500 disabled:bg-blue-100 disabled:border-blue-300 disabled:text-blue-500 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-md"
+              title="Previous Page"
+              aria-label="Previous Page"
+              type="button"
             >
-              <FaChevronLeft />
-              Previous
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>Previous</span>
             </button>
-            <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Page {page} of {totalPages}
+
+            {/* Page Info */}
+            <div className="px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+              <span className="text-sm font-bold text-blue-700">
+                Page <span className="text-blue-600">{page}</span> of <span className="text-blue-600">{totalPages}</span>
+              </span>
             </div>
+
+            {/* Next Button */}
             <button
               onClick={handleNextPage}
-              disabled={page >= totalPages}
-              className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              disabled={page >= totalPages || loading}
+              className="px-5 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg shadow-sm border-2 border-blue-400 hover:border-blue-500 disabled:bg-blue-100 disabled:border-blue-300 disabled:text-blue-500 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-md"
+              title="Next Page"
+              aria-label="Next Page"
+              type="button"
             >
-              Next
-              <FaChevronRight />
+              <span>Next</span>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
-          <div className="text-center text-sm text-gray-600 dark:text-gray-400 mt-2">
-            Showing <span className="font-medium">{startEntry}</span> to <span className="font-medium">{endEntry}</span> of <span className="font-medium">{totalUsers}</span> results
+
+          {/* Item Count Text */}
+          <div className="text-center mt-3">
+            {totalUsers > 0 ? (
+              <div className="inline-flex items-center px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+                <span className="text-sm text-gray-700">
+                  Showing <span className="font-bold text-blue-600">{startEntry}</span> to <span className="font-bold text-blue-600">{endEntry}</span> of <span className="font-bold text-blue-600">{totalUsers}</span> users
+                </span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 border-2 border-orange-300 rounded-lg shadow-sm">
+                <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-medium text-orange-700">No users found</span>
+                <span className="text-sm text-orange-600">[No users match your criteria]</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -742,6 +1075,7 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
           open={!!editUser}
           onClose={() => setEditUser(null)}
           onSave={handleEditSave}
+          loading={editLoading}
         />
       )}
     </div>

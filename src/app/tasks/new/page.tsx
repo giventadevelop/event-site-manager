@@ -1,11 +1,12 @@
-import { auth } from '@clerk/nextjs'
-import { TaskForm } from '@/components/task-form'
+import { auth } from '@clerk/nextjs/server';
+import { TaskForm } from '@/components/task-form';
 
-export default function NewTaskPage() {
-  const { userId } = auth()
+export default async function NewTaskPage() {
+  // Fix for Next.js 15+: await auth() before using
+  const { userId } = await auth();
 
   if (!userId) {
-    return null
+    return null;
   }
 
   return (
@@ -20,5 +21,5 @@ export default function NewTaskPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

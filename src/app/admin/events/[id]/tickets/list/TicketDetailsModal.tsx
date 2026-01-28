@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/Modal';
-import { FaTicketAlt, FaUser, FaEnvelope, FaCalendarAlt, FaMoneyBillWave, FaTimes, FaSpinner } from 'react-icons/fa';
+import { FaTicketAlt, FaUser, FaEnvelope, FaCalendarAlt, FaMoneyBillWave, FaSpinner } from 'react-icons/fa';
 import type { EventTicketTransactionDTO } from '@/types';
 
 interface TicketDetailsModalProps {
@@ -62,14 +62,6 @@ export default function TicketDetailsModal({ open, onClose, transaction }: Ticke
   return (
     <Modal open={open} onClose={onClose} title="Ticket Details">
       <div className="relative p-6">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 text-xl bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all"
-          aria-label="Close dialog"
-        >
-          <FaTimes />
-        </button>
-
         <div className="mb-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             <FaTicketAlt className="text-teal-500" />

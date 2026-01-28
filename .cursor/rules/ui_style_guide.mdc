@@ -31,6 +31,83 @@ This guide provides standards for creating consistent and maintainable UI compon
   </div>
   ```
 
+### Centered Card Grid Layout
+
+- **Rule:** Use CSS modules with flexbox for centered card grids (Featured Guests, Contact Information, Program Directors, Gallery thumbnails, Team members).
+- **Purpose:** Ensures cards are perfectly centered regardless of the number of items, preventing left-aligned layouts when items don't fill the full width.
+- **Pattern:** Create a CSS module file (e.g., `CenteredCardGrid.module.css`) with:
+  - Flexbox container with `justify-content: center`
+  - Responsive `max-width` calculations based on number of columns
+  - Fixed or calculated widths for card items
+- **Example:**
+  ```css
+  /* Centered Card Grid */
+  .centeredCardGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    width: 100%;
+    justify-content: center;
+    align-items: flex-start;
+    margin: 0 auto;
+  }
+
+  /* Desktop: 3 columns */
+  @media (min-width: 1024px) {
+    .centeredCardGrid {
+      max-width: calc(3 * 350px + 2 * 1rem);
+    }
+    .cardItem {
+      width: 350px;
+      max-width: 350px;
+    }
+  }
+
+  /* Tablet: 2 columns */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .centeredCardGrid {
+      max-width: calc(2 * 350px + 1 * 1rem);
+    }
+    .cardItem {
+      width: calc((100% - 1rem) / 2);
+      max-width: calc((100% - 1rem) / 2);
+    }
+  }
+
+  /* Mobile: 1 column */
+  @media (max-width: 767px) {
+    .centeredCardGrid {
+      max-width: 100%;
+    }
+    .cardItem {
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+  ```
+- **Usage:**
+  ```tsx
+  // ✅ DO: Use CSS module for centered card grids
+  import cardGridStyles from './CenteredCardGrid.module.css';
+
+  <div className={cardGridStyles.centeredCardGrid}>
+    {items.map((item) => (
+      <div key={item.id} className={cardGridStyles.cardItem}>
+        {/* Card content */}
+      </div>
+    ))}
+  </div>
+
+  // ❌ DON'T: Use standard grid without centering
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {/* Cards will be left-aligned when not filling full width */}
+  </div>
+  ```
+- **References:**
+  - See `src/app/events/[id]/CenteredCardGrid.module.css` for implementation
+  - See `src/app/events/[id]/GalleryThumbnails.module.css` for gallery pattern
+  - See `src/components/TeamSection.module.css` for team member pattern
+
 ---
 
 ## 2. Forms
@@ -266,8 +343,8 @@ const endItem = totalCount > 0 ? currentPage * pageSize + Math.min(pageSize, tot
 // Always render pagination - show in ALL states (loading, empty, with data)
 <div className="mt-8">
   <div className="flex justify-between items-center">
-    <button 
-      disabled={isPrevDisabled} 
+    <button
+      disabled={isPrevDisabled}
       onClick={handlePrevPage}
       className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
     >
@@ -277,8 +354,8 @@ const endItem = totalCount > 0 ? currentPage * pageSize + Math.min(pageSize, tot
     <div className="text-sm font-semibold text-gray-700">
       Page {currentPage + 1} of {totalPages}
     </div>
-    <button 
-      disabled={isNextDisabled} 
+    <button
+      disabled={isNextDisabled}
       onClick={handleNextPage}
       className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
     >
@@ -399,6 +476,88 @@ const endItem = totalCount > 0 ? currentPage * pageSize + Math.min(pageSize, tot
 #### References
 - See: `src/app/event/success/page.tsx` for a working implementation.
 - DTO: `EventDetailsDTO` in `src/types/index.ts` (must include a `timezone: string` field).
+
+---
+
+## 8. Currency & Numerical Formatting
+
+### Currency Display Standards
+
+- **Rule:** Always display currency values with exactly 2 decimal places using `Intl.NumberFormat`.
+- **Purpose:** Ensures consistent currency display (e.g., `$0.80` instead of `$0.8`) and prevents confusion.
+- **Implementation:**
+  - Use `Intl.NumberFormat` with `minimumFractionDigits: 2` and `maximumFractionDigits: 2`.
+  - For input fields, format the display value to show 2 decimal places while allowing user input.
+  - Use the `formatCurrency` helper from `src/lib/payments/localization.ts` when available.
+
+#### Currency Formatting Function
+
+```tsx
+// ✅ DO: Use Intl.NumberFormat with 2 decimal places
+const formatCurrency = (amount: number, currency: string = 'USD') => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,  // Always show 2 decimal places
+    maximumFractionDigits: 2,  // Never show more than 2
+  }).format(amount);
+};
+
+// Example usage:
+formatCurrency(0.8, 'USD');   // Returns: "$0.80"
+formatCurrency(10, 'USD');     // Returns: "$10.00"
+formatCurrency(99.9, 'USD');   // Returns: "$99.90"
+```
+
+#### Price Input Field Formatting
+
+- **Rule:** For price input fields, format the display value to show 2 decimal places.
+- **Implementation:**
+  ```tsx
+  // ✅ DO: Format price input display value
+  const [displayPrice, setDisplayPrice] = useState<string>('');
+
+  useEffect(() => {
+    if (formData.price !== undefined && formData.price !== null) {
+      setDisplayPrice(formData.price.toFixed(2));
+    }
+  }, [formData.price]);
+
+  <input
+    type="number"
+    name="price"
+    value={displayPrice}
+    onChange={(e) => {
+      const numValue = parseFloat(e.target.value) || 0;
+      handleChange({ target: { name: 'price', value: numValue } });
+    }}
+    step="0.01"
+    placeholder="0.00"
+  />
+  ```
+
+#### Display Price Values
+
+- **Rule:** Always format price values when displaying them in tables, cards, or text.
+- **Example:**
+  ```tsx
+  // ✅ DO: Format price for display
+  <td>
+    {new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: plan.currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(plan.price)}
+  </td>
+
+  // ❌ DON'T: Display raw price value
+  <td>${plan.price}</td>  // May show "$0.8" instead of "$0.80"
+  ```
+
+#### References
+- Currency formatting helper: [`src/lib/payments/localization.ts`](mdc:src/lib/payments/localization.ts)
+- Example usage: [`src/components/admin/membership/MembershipPlanList.tsx`](mdc:src/components/admin/membership/MembershipPlanList.tsx)
 
 ---
 

@@ -66,17 +66,13 @@ export default async function PricingPage(props: any) {
     const userId = session?.userId;
     const clerkUser = await currentUser();
 
-    if (!userId || !clerkUser?.emailAddresses?.[0]?.emailAddress) {
-      // Only redirect if not signed in
-      redirect('/sign-in');
-    }
-
-    const email = clerkUser.emailAddresses[0].emailAddress;
+    // Allow unauthenticated users to view pricing (public page)
+    // Only fetch user profile and subscription if user is authenticated
+    const email = clerkUser?.emailAddresses?.[0]?.emailAddress;
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    if (!baseUrl) {
-      userProfileError = true;
-    } else {
+    // Only fetch user profile and subscription if user is authenticated
+    if (userId && email && baseUrl) {
       // Try to get existing user profile with proper no-store caching
       try {
         const response = await fetch(`${baseUrl}/api/proxy/user-profiles/by-user/${userId}`, {
@@ -95,76 +91,78 @@ export default async function PricingPage(props: any) {
       } catch (error) {
         userProfileError = true;
       }
-    }
 
-    // If userProfile is missing, show error (don't redirect)
-    if (!userProfile || !userProfile.id) {
-      userProfileError = true;
-    }
+      // If userProfile is missing, show error (don't redirect)
+      if (!userProfile || !userProfile.id) {
+        userProfileError = true;
+      }
 
-    // Check for existing subscription for this user profile
-    if (!userProfileError) {
-      try {
-        const response = await fetch(
-          `${baseUrl}/api/proxy/user-subscriptions/by-profile/${userProfile.id}`,
-          {
-            method: 'GET',
+      // Check for existing subscription for this user profile
+      if (!userProfileError && userProfile) {
+        try {
+          const response = await fetch(
+            `${baseUrl}/api/proxy/user-subscriptions/by-profile/${userProfile.id}`,
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              cache: 'no-store',
+              next: { revalidate: 0 }
+            }
+          );
+          if (response.ok) {
+            const subscriptions: UserSubscriptionDTO[] = await response.json();
+            subscription = Array.isArray(subscriptions) ? subscriptions[0] : subscriptions;
+          } else {
+            subscriptionError = true;
+          }
+        } catch (error) {
+          subscriptionError = true;
+        }
+      }
+
+      // Only POST to create a new subscription if none exists and no errors
+      if (!subscription && !userProfileError && userProfile && !subscriptionError) {
+        try {
+          const newSubscription: UserSubscriptionDTO = {
+            status: 'pending',
+            stripeCustomerId: undefined,
+            stripeSubscriptionId: undefined,
+            stripePriceId: undefined,
+            stripeCurrentPeriodEnd: undefined,
+            userProfile: userProfile!,
+          };
+
+          const response = await fetch(`${baseUrl}/api/proxy/user-subscriptions`, {
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            cache: 'no-store',
-            next: { revalidate: 0 }
+            body: JSON.stringify(newSubscription),
+          });
+
+          if (!response.ok) {
+            subscriptionError = true;
+          } else {
+            const responseData = await response.json();
+            subscription = {
+              ...responseData,
+              stripeCustomerId: nullToUndefined(responseData.stripeCustomerId),
+              stripeSubscriptionId: nullToUndefined(responseData.stripeSubscriptionId),
+              stripePriceId: nullToUndefined(responseData.stripePriceId),
+              stripeCurrentPeriodEnd: nullToUndefined(responseData.stripeCurrentPeriodEnd)
+                ? new Date(responseData.stripeCurrentPeriodEnd)
+                : undefined,
+            };
           }
-        );
-        if (response.ok) {
-          const subscriptions: UserSubscriptionDTO[] = await response.json();
-          subscription = Array.isArray(subscriptions) ? subscriptions[0] : subscriptions;
-        } else {
+        } catch (error) {
           subscriptionError = true;
         }
-      } catch (error) {
-        subscriptionError = true;
       }
     }
-
-    // Only POST to create a new subscription if none exists and no errors
-    if (!subscription && !userProfileError && userProfile && !subscriptionError) {
-      try {
-        const newSubscription: UserSubscriptionDTO = {
-          status: 'pending',
-          stripeCustomerId: undefined,
-          stripeSubscriptionId: undefined,
-          stripePriceId: undefined,
-          stripeCurrentPeriodEnd: undefined,
-          userProfile: userProfile!,
-        };
-
-        const response = await fetch(`${baseUrl}/api/proxy/user-subscriptions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newSubscription),
-        });
-
-        if (!response.ok) {
-          subscriptionError = true;
-        } else {
-          const responseData = await response.json();
-          subscription = {
-            ...responseData,
-            stripeCustomerId: nullToUndefined(responseData.stripeCustomerId),
-            stripeSubscriptionId: nullToUndefined(responseData.stripeSubscriptionId),
-            stripePriceId: nullToUndefined(responseData.stripePriceId),
-            stripeCurrentPeriodEnd: nullToUndefined(responseData.stripeCurrentPeriodEnd)
-              ? new Date(responseData.stripeCurrentPeriodEnd)
-              : undefined,
-          };
-        }
-      } catch (error) {
-        subscriptionError = true;
-      }
-    }
+    // If user is not authenticated, userProfile and subscription remain null
+    // This allows the page to render pricing plans for unauthenticated users
 
     // Determine appropriate message based on subscription state
     let message = messageParam;

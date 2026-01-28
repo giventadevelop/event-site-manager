@@ -67,8 +67,6 @@ export default function EditMediaPage() {
       eventMediaType: media.eventMediaType,
       storageType: media.storageType,
       fileUrl: media.fileUrl ?? '',
-      fileData: media.fileData ? new Uint8Array(media.fileData) : undefined,
-      fileDataContentType: media.fileDataContentType ?? '',
       contentType: media.contentType ?? '',
       fileSize: typeof media.fileSize === 'number' ? media.fileSize : 0,
       isPublic: media.isPublic ?? false,
@@ -76,7 +74,11 @@ export default function EditMediaPage() {
       isEventManagementOfficialDocument: media.isEventManagementOfficialDocument ?? false,
       isHeroImage: media.isHeroImage ?? false,
       isActiveHeroImage: media.isActiveHeroImage ?? false,
-      isFeaturedImage: media.isFeaturedImage ?? false,
+      isFeaturedEventImage: media.isFeaturedEventImage ?? false,
+      startDisplayingFromDate: media.startDisplayingFromDate ?
+        (typeof media.startDisplayingFromDate === 'string' ?
+          media.startDisplayingFromDate :
+          new Date(media.startDisplayingFromDate).toISOString().split('T')[0]) : '',
       altText: media.altText ?? '',
       displayOrder: typeof media.displayOrder === 'number' ? media.displayOrder : 0,
       downloadCount: typeof media.downloadCount === 'number' ? media.downloadCount : 0
@@ -89,8 +91,6 @@ export default function EditMediaPage() {
       eventMediaType: initialFormData.eventMediaType,
       storageType: initialFormData.storageType,
       fileUrl: initialFormData.fileUrl,
-      fileData: initialFormData.fileData,
-      fileDataContentType: initialFormData.fileDataContentType,
       contentType: initialFormData.contentType,
       fileSize: initialFormData.fileSize,
       isPublic: initialFormData.isPublic,
@@ -98,9 +98,15 @@ export default function EditMediaPage() {
       isEventManagementOfficialDocument: initialFormData.isEventManagementOfficialDocument,
       preSignedUrl: media.preSignedUrl ?? '',
       preSignedUrlExpiresAt: media.preSignedUrlExpiresAt ?? '',
-      isFeaturedImage: initialFormData.isFeaturedImage,
+      isFeaturedEventImage: initialFormData.isFeaturedEventImage,
       isHeroImage: initialFormData.isHeroImage,
       isActiveHeroImage: initialFormData.isActiveHeroImage,
+      isHomePageHeroImage: media.isHomePageHeroImage ?? false,
+      isLiveEventImage: media.isLiveEventImage ?? false,
+      startDisplayingFromDate: media.startDisplayingFromDate ?
+        (typeof media.startDisplayingFromDate === 'string' ?
+          media.startDisplayingFromDate :
+          new Date(media.startDisplayingFromDate).toISOString().split('T')[0]) : '',
       eventId: media.eventId!,
       uploadedById: userProfileId ?? undefined,
       createdAt: media.createdAt || formattedNow,
@@ -136,11 +142,11 @@ export default function EditMediaPage() {
     } : prev);
   }
 
-  if (loading) return <div className="p-8">Loading media file...</div>;
-  if (!media) return <div className="p-8 text-red-500">Media file not found.</div>;
+  if (loading) return <div className="p-8 pt-24">Loading media file...</div>;
+  if (!media) return <div className="p-8 pt-24 text-red-500">Media file not found.</div>;
 
   return (
-    <div className="max-w-xl mx-auto p-8 bg-white rounded shadow">
+    <div className="max-w-xl mx-auto p-8 pt-24 bg-white rounded shadow">
       {/* Dashboard Card with Grid Buttons */}
       <div className="flex justify-center mb-8">
         <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl">
@@ -149,7 +155,7 @@ export default function EditMediaPage() {
               <FaUsers className="mb-2 text-2xl" />
               <span>Manage Users [Usage]</span>
             </Link>
-            <Link href="/admin" className="flex flex-col items-center justify-center bg-green-50 hover:bg-green-100 text-green-700 rounded-lg shadow-sm px-4 py-4 transition font-semibold text-sm cursor-pointer">
+            <Link href="/admin/manage-events" className="flex flex-col items-center justify-center bg-green-50 hover:bg-green-100 text-green-700 rounded-lg shadow-sm px-4 py-4 transition font-semibold text-sm cursor-pointer">
               <FaCalendarAlt className="mb-2 text-2xl" />
               Manage Events
             </Link>
@@ -208,13 +214,30 @@ export default function EditMediaPage() {
           <label className="block font-semibold mb-1">Display Order</label>
           <input type="number" name="displayOrder" value={media.displayOrder ?? ''} onChange={handleChange} className="w-full border rounded px-3 py-2" min={0} />
         </div>
+        <div>
+          <label className="block font-semibold mb-1">Start Displaying From Date</label>
+          <input
+            type="date"
+            name="startDisplayingFromDate"
+            value={media.startDisplayingFromDate ?
+              (typeof media.startDisplayingFromDate === 'string' ?
+                media.startDisplayingFromDate :
+                new Date(media.startDisplayingFromDate).toISOString().split('T')[0]) : ''}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2"
+          />
+          <p className="text-sm text-gray-500 mt-1">
+            Leave empty to display immediately, or set a future date to schedule when this media should start being displayed.
+          </p>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-0 mb-4 border border-gray-300 rounded overflow-hidden">
           {[
             { name: 'eventFlyer', label: 'Event Flyer', checked: media.eventFlyer ?? false, id: 'eventFlyer' },
             { name: 'isEventManagementOfficialDocument', label: 'Event Management Official Document', checked: media.isEventManagementOfficialDocument ?? false, id: 'isEventManagementOfficialDocument' },
             { name: 'isHeroImage', label: 'Hero Image', checked: media.isHeroImage ?? false, id: 'isHeroImage' },
             { name: 'isActiveHeroImage', label: 'Active Hero Image', checked: media.isActiveHeroImage ?? false, id: 'isActiveHeroImage' },
-            { name: 'isFeaturedImage', label: 'Featured Image', checked: media.isFeaturedImage ?? false, id: 'isFeaturedImage' },
+            { name: 'isFeaturedEventImage', label: 'Featured Event Image', checked: media.isFeaturedEventImage ?? false, id: 'isFeaturedEventImage' },
+            { name: 'isLiveEventImage', label: 'Live Event Image', checked: media.isLiveEventImage ?? false, id: 'isLiveEventImage' },
             { name: 'isPublic', label: 'Public', checked: media.isPublic ?? false, id: 'isPublic' },
           ].map(({ name, label, checked, id }) => (
             <div key={id} className="border border-gray-300 flex flex-col items-center justify-center px-3 py-2">

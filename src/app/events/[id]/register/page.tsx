@@ -194,7 +194,8 @@ export default function EventRegisterPage({ params }: { params: Promise<{ id: st
         });
         if (!guestRes.ok) throw new Error("Failed to register guest");
       }
-      router.push(`/events/${eventId}`);
+      // Redirect to success page with attendee ID
+      router.push(`/events/${eventId}/register/success?attendeeId=${savedAttendee.id}`);
     } catch (err: any) {
       setError(err.message || "Registration failed");
     } finally {
@@ -207,7 +208,7 @@ export default function EventRegisterPage({ params }: { params: Promise<{ id: st
 
   // Responsive layout: summary+thumbnail above form on mobile, side-by-side on desktop
   return (
-    <div className="max-w-5xl mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+    <div className="max-w-5xl mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 pt-8">
       {/* Event summary and thumbnail */}
       <div className="md:col-span-1 flex flex-col items-center md:items-start">
         {flyer && flyer.fileUrl && (

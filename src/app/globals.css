@@ -2,6 +2,580 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   HEADER DESIGN SYSTEM - Editorial Elegance
+   ======================================== */
+
+/* Header-specific CSS Custom Properties */
+:root {
+  /* Primary Palette - Deep Indigo with Warmth */
+  --header-bg: #fefefe;
+  --header-bg-glass: rgba(254, 254, 254, 0.92);
+  --header-border: rgba(99, 67, 138, 0.08);
+  --header-shadow: 0 1px 3px rgba(99, 67, 138, 0.04), 0 4px 20px rgba(99, 67, 138, 0.06);
+
+  /* Typography Colors */
+  --header-text-primary: #1e1b4b;
+  --header-text-secondary: #4c4377;
+  --header-text-muted: #6b6394;
+
+  /* Accent Colors - Warm Amber & Indigo */
+  --header-accent-primary: #6d28d9;
+  --header-accent-secondary: #f59e0b;
+  --header-accent-gradient: linear-gradient(135deg, #6d28d9 0%, #a855f7 50%, #f59e0b 100%);
+
+  /* Interactive States */
+  --header-hover-bg: rgba(109, 40, 217, 0.04);
+  --header-active-bg: rgba(109, 40, 217, 0.08);
+  --header-focus-ring: rgba(109, 40, 217, 0.3);
+
+  /* Dropdown Styles */
+  --header-dropdown-bg: #ffffff;
+  --header-dropdown-border: rgba(99, 67, 138, 0.1);
+  --header-dropdown-shadow: 0 10px 40px rgba(99, 67, 138, 0.12), 0 2px 10px rgba(99, 67, 138, 0.08);
+}
+
+/* Header Glass Effect */
+.header-glass {
+  background: var(--header-bg-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--header-border);
+  box-shadow: var(--header-shadow);
+}
+
+/* Header Logo Typography */
+.header-logo-primary {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--header-text-primary);
+  transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-logo-secondary {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--header-text-muted);
+  font-size: 0.625rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Navigation Link Styles */
+.header-nav-link {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  letter-spacing: 0.01em;
+  color: var(--header-text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--header-accent-gradient);
+  border-radius: 1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(-50%);
+}
+
+.header-nav-link:hover {
+  color: var(--header-text-primary);
+  background: var(--header-hover-bg);
+}
+
+.header-nav-link:hover::after {
+  width: calc(100% - 1.5rem);
+}
+
+.header-nav-link.active {
+  color: var(--header-accent-primary);
+  font-weight: 600;
+}
+
+.header-nav-link.active::after {
+  width: calc(100% - 1.5rem);
+  background: var(--header-accent-primary);
+}
+
+/* Dropdown Menu Styles */
+.header-dropdown {
+  background: var(--header-dropdown-bg);
+  border: 1px solid var(--header-dropdown-border);
+  border-radius: 1rem;
+  box-shadow: var(--header-dropdown-shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.98);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-dropdown.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.header-dropdown-item {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--header-text-secondary);
+  padding: 0.625rem 1rem;
+  margin: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-dropdown-item:hover {
+  color: var(--header-accent-primary);
+  background: var(--header-hover-bg);
+  transform: translateX(4px);
+}
+
+.header-dropdown-item.active {
+  color: var(--header-accent-primary);
+  background: var(--header-active-bg);
+  font-weight: 600;
+}
+
+/* CTA Button - Gradient Border Animation */
+.header-cta {
+  position: relative;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  color: var(--header-accent-primary);
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  background: transparent;
+  border: 1.5px solid var(--header-accent-primary);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-cta::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  background: var(--header-accent-gradient);
+  border-radius: inherit;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-cta:hover {
+  color: white;
+  border-color: transparent;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(109, 40, 217, 0.3);
+}
+
+.header-cta:hover::before {
+  opacity: 1;
+}
+
+/* User Avatar Styles */
+.header-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              var(--header-accent-gradient) border-box;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 3px var(--header-focus-ring);
+}
+
+/* Mobile Menu Styles */
+.header-mobile-menu {
+  background: var(--header-bg-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-left: 1px solid var(--header-border);
+  box-shadow: -10px 0 40px rgba(99, 67, 138, 0.15);
+}
+
+.header-mobile-link {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 1rem;
+  color: var(--header-text-secondary);
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  border-left: 3px solid transparent;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-mobile-link:hover {
+  color: var(--header-accent-primary);
+  background: var(--header-hover-bg);
+  border-left-color: var(--header-accent-primary);
+  padding-left: 1.75rem;
+}
+
+.header-mobile-link.active {
+  color: var(--header-accent-primary);
+  background: var(--header-active-bg);
+  border-left-color: var(--header-accent-primary);
+  font-weight: 600;
+}
+
+/* Hamburger Menu Animation */
+.header-hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.625rem;
+  background: transparent;
+  border: 1.5px solid var(--header-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-hamburger:hover {
+  background: var(--header-hover-bg);
+  border-color: var(--header-accent-primary);
+}
+
+.header-hamburger-line {
+  width: 1.125rem;
+  height: 2px;
+  background: var(--header-text-secondary);
+  border-radius: 1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-hamburger-line:nth-child(1) {
+  width: 0.75rem;
+  margin-bottom: 4px;
+}
+
+.header-hamburger-line:nth-child(2) {
+  margin-bottom: 4px;
+}
+
+.header-hamburger-line:nth-child(3) {
+  width: 0.5rem;
+}
+
+.header-hamburger:hover .header-hamburger-line {
+  background: var(--header-accent-primary);
+}
+
+/* Search Button Styles */
+.header-search-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  color: var(--header-text-muted);
+  background: transparent;
+  border: 1.5px solid transparent;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-search-btn:hover {
+  color: var(--header-accent-primary);
+  background: var(--header-hover-bg);
+  border-color: var(--header-border);
+}
+
+/* Chevron Animation */
+.header-chevron {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-nav-link:hover .header-chevron,
+.group:hover .header-chevron {
+  transform: rotate(180deg);
+}
+
+/* ========================================
+   HERO SECTION DESIGN SYSTEM - Compact Banner
+   ======================================== */
+
+/* Hero-specific CSS Custom Properties */
+:root {
+  /* Hero Background - Deep Purple Gradient */
+  --hero-bg-primary: #1a0a2e;
+  --hero-bg-secondary: #2d1b4e;
+  --hero-bg-gradient: linear-gradient(180deg, #1a0a2e 0%, #2d1b4e 100%);
+
+  /* Hero Text Colors */
+  --hero-text-primary: #ffffff;
+  --hero-text-secondary: rgba(255, 255, 255, 0.85);
+  --hero-text-muted: rgba(255, 255, 255, 0.6);
+
+  /* Hero Accent Colors */
+  --hero-accent-gold: #f59e0b;
+  --hero-accent-amber: #fbbf24;
+  --hero-accent-red: #ef4444;
+}
+
+/* Hero Container - Compact */
+.hero-container {
+  position: relative;
+  background: var(--hero-bg-gradient);
+  padding-top: 5.5rem; /* Account for fixed header (4.5rem) + extra spacing */
+}
+
+@media (min-width: 768px) {
+  .hero-container {
+    padding-top: 6rem; /* More padding on larger screens */
+  }
+}
+
+/* Hero Main Image Section */
+.hero-image-wrapper {
+  position: relative;
+  width: calc(100% - 2rem);
+  margin: 0 1rem;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 1rem;
+  /* Elegant dark background for any letterboxing */
+  background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #1a0a2e 100%);
+}
+
+@media (min-width: 768px) {
+  .hero-image-wrapper {
+    margin: 0 1.5rem;
+    width: calc(100% - 3rem);
+    border-radius: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-image-wrapper {
+    margin: 0 2rem;
+    width: calc(100% - 4rem);
+    border-radius: 1.5rem;
+  }
+}
+
+/* Hero Image Transition */
+.hero-image-transition {
+  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+}
+
+.hero-image-transition.transitioning {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
+/* Get Tickets Badge */
+.hero-ticket-badge {
+  position: absolute;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1.5rem;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(10px);
+  border-radius: 0.875rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-ticket-badge:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.hero-ticket-badge-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hero-accent-gold);
+  border-radius: 0.5rem;
+}
+
+.hero-ticket-badge-text {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a0a2e;
+}
+
+/* Hero Cards Section */
+.hero-cards-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .hero-cards-section {
+    gap: 1.25rem;
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-cards-section {
+    gap: 1.5rem;
+    padding: 1.5rem 2rem;
+  }
+}
+
+/* Hero Card Base */
+.hero-card {
+  position: relative;
+  min-height: 140px;
+  border-radius: 1rem;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .hero-card {
+    min-height: 160px;
+    border-radius: 1.25rem;
+  }
+}
+
+.hero-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* About Card - Unite India Image */
+.hero-card-about {
+  background: #f5f5f5;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hero-card-label {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--hero-accent-red);
+  margin-bottom: 0.25rem;
+}
+
+.hero-card-title {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--hero-text-primary);
+}
+
+@media (min-width: 768px) {
+  .hero-card-title {
+    font-size: 1.125rem;
+  }
+}
+
+/* Donate Card - Gradient Background */
+.hero-card-donate {
+  background: linear-gradient(135deg, var(--hero-bg-secondary) 0%, #3d2b5e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hero-card-donate-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hero-accent-gold);
+  border-radius: 50%;
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .hero-card-donate-icon {
+    width: 4rem;
+    height: 4rem;
+  }
+}
+
+.hero-card-donate-title {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--hero-text-primary);
+  margin-bottom: 0.125rem;
+}
+
+@media (min-width: 768px) {
+  .hero-card-donate-title {
+    font-size: 1.125rem;
+  }
+}
+
+.hero-card-donate-subtitle {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--hero-text-muted);
+}
+
+/* Hero Browse Link */
+.hero-browse-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1rem 0;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--hero-text-muted);
+  transition: color 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .hero-browse-link {
+    padding: 1rem 2rem 0;
+  }
+}
+
+.hero-browse-link:hover {
+  color: var(--hero-accent-gold);
+}
+
+.hero-browse-link svg {
+  transition: transform 0.2s ease;
+}
+
+.hero-browse-link:hover svg {
+  transform: translateX(4px);
+}
+
+/* Smooth scrolling for hash navigation */
+html {
+  scroll-behavior: smooth;
+}
+
 /* Prevent horizontal overflow */
 html,
 body {
@@ -12,6 +586,90 @@ body {
 /* Ensure all containers respect viewport width */
 * {
   box-sizing: border-box;
+}
+
+/* Prevent layout shifts in AdminNavigation */
+.admin-navigation-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.admin-navigation-container * {
+  max-width: 100%;
+}
+
+/* User Table Scrollbar Styling */
+.user-table-scroll-container {
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: auto;
+  scrollbar-color: #9CA3AF #F3F4F6;
+  -webkit-overflow-scrolling: touch;
+}
+
+.user-table-scroll-container::-webkit-scrollbar {
+  height: 12px;
+}
+
+.user-table-scroll-container::-webkit-scrollbar-track {
+  background: #F3F4F6;
+  border-radius: 6px;
+}
+
+.user-table-scroll-container::-webkit-scrollbar-thumb {
+  background: #9CA3AF;
+  border-radius: 6px;
+  border: 2px solid #F3F4F6;
+}
+
+.user-table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #6B7280;
+}
+
+/* Global horizontal scrollbar styling - visible thumb for all scrollable containers */
+/* This applies to any element with overflow-x: scroll or auto */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #9CA3AF #F3F4F6;
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+*::-webkit-scrollbar {
+  height: 16px;
+  width: 16px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #F3F4F6;
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #9CA3AF;
+  border-radius: 8px;
+  border: 3px solid #F3F4F6;
+  min-width: 30px;
+  min-height: 30px;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #6B7280;
+  border-color: #E5E7EB;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: #4B5563;
+  border-color: #D1D5DB;
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #F3F4F6;
 }
 
 @layer base {
@@ -176,7 +834,7 @@ body {
   background: #fff;
 }
 
-.event-item {
+/* .event-item {
   background: #f9fafb;
   border-radius: 1rem;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
@@ -192,7 +850,7 @@ body {
   border-radius: 0.75rem;
   overflow: hidden;
   margin-bottom: 1rem;
-}
+} */
 
 .event-title {
   font-size: 1.25rem;
@@ -218,13 +876,13 @@ body {
     padding: 1.5rem;
   }
 
-  .event-item {
+  /* .event-item {
     padding: 1rem;
   }
 
   .event-image {
     height: 8rem;
-  }
+  } */
 
   .hero-section .hero-image-container {
     left: 120px !important;
@@ -419,4 +1077,131 @@ To use a consistent, modern checkbox style with a custom tick mark, use:
   background: #f1f5f9;
   /* blue-50 */
   font-weight: 600;
+}
+
+/* Instant tooltip for action buttons */
+.instant-tooltip {
+  position: relative;
+}
+
+.instant-tooltip::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1f2937;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0s;
+  z-index: 1000;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.instant-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1f2937;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0s;
+  z-index: 1000;
+}
+
+.instant-tooltip:hover::before,
+.instant-tooltip:hover::after {
+  opacity: 1;
+  transition: opacity 0s;
+}
+
+/* Wavy animation for loading events */
+@keyframes wavy {
+
+  0%,
+  100% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: translateY(-15px) scale(1.05);
+    opacity: 0.7;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.wavy-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 193, 7, 0.2) 25%,
+      rgba(255, 193, 7, 0.4) 50%,
+      rgba(255, 193, 7, 0.2) 75%,
+      transparent 100%);
+  background-size: 200% 100%;
+  animation:
+    wavy 3s ease-in-out infinite,
+    shimmer 2s ease-in-out infinite;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Zoom loading animation for admin table */
+@keyframes zoomInOut {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
+@keyframes zoomOut {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+.zoom-loading {
+  animation: zoomInOut 2s ease-in-out infinite;
+}
+
+.zoom-out {
+  animation: zoomOut 0.5s ease-out forwards;
 }

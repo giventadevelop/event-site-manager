@@ -1,23 +1,30 @@
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getTenantId } from '@/lib/env';
+import { getAppUrl, effectiveTenantId, appendTenantIfPresent, getDefaultPageSize } from '@/lib/env';
 import type { EventMediaDTO } from '@/types';
 import { withTenantId } from '@/lib/withTenantId';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export async function fetchUserProfileServer(userId: string) {
+export async function fetchUserProfileServer(userId: string, tenantId?: string) {
   if (!userId) return null;
-  const tenantId = getTenantId();
-  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles/by-user/${userId}?tenantId.equals=${tenantId}`, {
+  const params = new URLSearchParams();
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  const qs = params.toString();
+  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles/by-user/${userId}${qs ? `?${qs}` : ''}`, {
     cache: 'no-store',
   });
   if (!res.ok) return null;
   return await res.json();
 }
 
-export async function fetchMediaServer(eventId: string) {
-  const url = `${API_BASE_URL}/api/event-medias?eventId.equals=${eventId}&isEventManagementOfficialDocument.equals=false&sort=updatedAt,desc&tenantId.equals=${getTenantId()}`;
+export async function fetchMediaServer(eventId: string, tenantId?: string) {
+  const params = new URLSearchParams();
+  params.set('eventId.equals', eventId);
+  params.set('isEventManagementOfficialDocument.equals', 'false');
+  params.set('sort', 'updatedAt,desc');
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  const url = `${API_BASE_URL}/api/event-medias?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return [];
   const data = await res.json();
@@ -29,16 +36,25 @@ export async function fetchMediaFilteredServer(
   page: number = 0,
   size: number = 10,
   searchTerm: string = '',
-  eventFlyerOnly: boolean = false
+  eventFlyerOnly: boolean = false,
+  filters: {
+    isFeaturedVideo?: boolean;
+    isHeroImage?: boolean;
+    isActiveHeroImage?: boolean;
+    isHomePageHeroImage?: boolean;
+    isFeaturedEventImage?: boolean;
+    isLiveEventImage?: boolean;
+  } = {},
+  tenantId?: string
 ) {
   const params = new URLSearchParams({
     'eventId.equals': eventId,
     'isEventManagementOfficialDocument.equals': 'false',
     sort: 'updatedAt,desc',
-    'tenantId.equals': getTenantId(),
     page: page.toString(),
-    size: size.toString(),
+    size: String(size ?? getDefaultPageSize()),
   });
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
 
   if (searchTerm) {
     params.append('title.contains', searchTerm);
@@ -46,6 +62,26 @@ export async function fetchMediaFilteredServer(
 
   if (eventFlyerOnly) {
     params.append('eventFlyer.equals', 'true');
+  }
+
+  // Add boolean field filters
+  if (filters.isFeaturedVideo !== undefined) {
+    params.append('isFeaturedVideo.equals', String(filters.isFeaturedVideo));
+  }
+  if (filters.isHeroImage !== undefined) {
+    params.append('isHeroImage.equals', String(filters.isHeroImage));
+  }
+  if (filters.isActiveHeroImage !== undefined) {
+    params.append('isActiveHeroImage.equals', String(filters.isActiveHeroImage));
+  }
+  if (filters.isHomePageHeroImage !== undefined) {
+    params.append('isHomePageHeroImage.equals', String(filters.isHomePageHeroImage));
+  }
+  if (filters.isFeaturedEventImage !== undefined) {
+    params.append('isFeaturedEventImage.equals', String(filters.isFeaturedEventImage));
+  }
+  if (filters.isLiveEventImage !== undefined) {
+    params.append('isLiveEventImage.equals', String(filters.isLiveEventImage));
   }
 
   const url = `${API_BASE_URL}/api/event-medias?${params.toString()}`;
@@ -69,8 +105,13 @@ export async function fetchMediaFilteredServer(
   };
 }
 
-export async function fetchOfficialDocsServer(eventId: string) {
-  const url = `${API_BASE_URL}/api/event-medias?eventId.equals=${eventId}&isEventManagementOfficialDocument.equals=true&sort=updatedAt,desc&tenantId.equals=${getTenantId()}`;
+export async function fetchOfficialDocsServer(eventId: string, tenantId?: string) {
+  const params = new URLSearchParams();
+  params.set('eventId.equals', eventId);
+  params.set('isEventManagementOfficialDocument.equals', 'true');
+  params.set('sort', 'updatedAt,desc');
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  const url = `${API_BASE_URL}/api/event-medias?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return [];
   const data = await res.json();
@@ -78,21 +119,23 @@ export async function fetchOfficialDocsServer(eventId: string) {
 }
 
 export interface MediaUploadParams {
-  title: string;
+  title: string; // Required parameter
   description: string;
-  eventMediaType: string;
-  storageType: string;
-  fileUrl: string;
-  isFeaturedImage: boolean;
+  eventMediaType?: string; // Optional in new schema
+  storageType?: string; // Optional in new schema
+  fileUrl?: string; // Optional in new schema
   eventFlyer: boolean;
   isEventManagementOfficialDocument: boolean;
   isHeroImage: boolean;
   isActiveHeroImage: boolean;
   isPublic: boolean;
-  altText: string;
-  displayOrder?: number;
-  userProfileId?: number | null;
+  altText?: string; // Optional in new schema
+  displayOrder?: number; // Optional in new schema
+  userProfileId?: number | null; // Optional in new schema
   files: File[];
+  isTeamMemberProfileImage?: boolean; // Add optional parameter for team member profile images
+  startDisplayingFromDate: string; // Required parameter - date when media should start being displayed
+  tenantId?: string; // Optional tenant scope for all-tenants admin
 }
 
 export async function uploadMedia(eventId: number, {
@@ -101,7 +144,6 @@ export async function uploadMedia(eventId: number, {
   eventMediaType,
   storageType,
   fileUrl,
-  isFeaturedImage,
   eventFlyer,
   isEventManagementOfficialDocument,
   isHeroImage,
@@ -110,47 +152,85 @@ export async function uploadMedia(eventId: number, {
   altText,
   displayOrder,
   userProfileId,
-  files
+  files,
+  isTeamMemberProfileImage = false, // Default to false for regular event media
+  startDisplayingFromDate,
+  tenantId,
 }: MediaUploadParams) {
+  // Validate required fields
+  if (!title || title.trim() === '') {
+    throw new Error('Title is required');
+  }
+
+  if (!startDisplayingFromDate || startDisplayingFromDate.trim() === '') {
+    throw new Error('Start Displaying From date is required');
+  }
+
+  if (!files || files.length === 0) {
+    throw new Error('At least one file is required');
+  }
+
   const formData = new FormData();
-  files.forEach((file) => {
+
+  // Append each file with the 'files' parameter (plural as expected by backend)
+  files.forEach(file => {
     formData.append('files', file);
   });
 
-  const params = new URLSearchParams();
-  params.append('eventId', String(eventId));
-  params.append('eventFlyer', String(eventFlyer));
-  params.append('isEventManagementOfficialDocument', String(isEventManagementOfficialDocument));
-  params.append('isHeroImage', String(isHeroImage));
-  params.append('isActiveHeroImage', String(isActiveHeroImage));
-  params.append('isFeaturedImage', String(isFeaturedImage));
-  params.append('isPublic', String(isPublic));
-  params.append('altText', altText);
-  if (displayOrder !== undefined) params.append('displayOrder', String(displayOrder));
-  params.append('tenantId', getTenantId());
-  if (userProfileId) params.append('upLoadedById', String(userProfileId));
-  params.append('title', title);
-  params.append('description', description);
-  params.append('eventMediaType', eventMediaType);
-  params.append('storageType', storageType);
+  // Append other parameters as form data (not query params)
+  formData.append('eventId', String(eventId));
+  formData.append('eventFlyer', String(eventFlyer));
+  formData.append('isEventManagementOfficialDocument', String(isEventManagementOfficialDocument));
+  formData.append('isHeroImage', String(isHeroImage));
+  formData.append('isActiveHeroImage', String(isActiveHeroImage));
+  formData.append('isPublic', String(isPublic));
+  formData.append('isTeamMemberProfileImage', String(isTeamMemberProfileImage));
+  const tid = effectiveTenantId(tenantId);
+  if (tid != null) formData.append('tenantId', tid);
 
-  const url = `${API_BASE_URL}/api/event-medias/upload-multiple?${params.toString()}`;
-  const res = await fetchWithJwtRetry(url, {
+  // Append title and description for each file (backend expects arrays)
+  files.forEach(() => {
+    formData.append('titles', title);
+    formData.append('descriptions', description || '');
+  });
+
+  if (userProfileId) {
+    formData.append('upLoadedById', String(userProfileId));
+  }
+
+  if (altText) {
+    formData.append('altText', altText);
+  }
+
+  if (displayOrder !== undefined) {
+    formData.append('displayOrder', String(displayOrder));
+  }
+
+  // Append startDisplayingFromDate (required field)
+  formData.append('startDisplayingFromDate', startDisplayingFromDate);
+
+  // Use the proxy endpoint (not direct backend call)
+  const url = `${getAppUrl()}/api/proxy/event-medias/upload-multiple`;
+
+  const res = await fetch(url, {
     method: 'POST',
     body: formData,
   });
+
   if (!res.ok) {
     const err = await res.text();
     throw new Error(err);
   }
+
   return await res.json();
 }
 
-export async function deleteMediaServer(mediaId: number | string) {
-  const url = `${API_BASE_URL}/api/event-medias/${mediaId}?tenantId.equals=${getTenantId()}`;
-  const res = await fetchWithJwtRetry(url, {
-    method: 'DELETE',
-    });
+export async function deleteMediaServer(mediaId: number | string, tenantId?: string) {
+  const params = new URLSearchParams();
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  const qs = params.toString();
+  const url = `${API_BASE_URL}/api/event-medias/${mediaId}${qs ? `?${qs}` : ''}`;
+  const res = await fetchWithJwtRetry(url, { method: 'DELETE' });
   if (!res.ok) {
     const err = await res.text();
     throw new Error(err);
@@ -164,10 +244,14 @@ export async function editMediaServer(mediaId: number | string, payload: Partial
 
     const url = `${API_BASE_URL}/api/event-medias/${mediaId}`;
 
-    // Clean and prepare the payload according to rules
+    // Clean and prepare the payload according to rules - include all required fields
     const cleanedPayload = withTenantId({
       ...payload,
       id: Number(mediaId),
+      // Include required fields that backend expects
+      eventMediaType: payload.eventMediaType || 'gallery', // Default to gallery if not provided
+      storageType: payload.storageType || 's3', // Default to s3 if not provided
+      createdAt: payload.createdAt || new Date().toISOString(), // Use existing or current time
       updatedAt: new Date().toISOString(),
     });
 
@@ -176,7 +260,7 @@ export async function editMediaServer(mediaId: number | string, payload: Partial
     const response = await fetchWithJwtRetry(url, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/merge-patch+json', // Use correct content type for PATCH
       },
       body: JSON.stringify(cleanedPayload),
     });
@@ -196,6 +280,7 @@ export async function editMediaServer(mediaId: number | string, payload: Partial
   }
 }
 
+// Keep the server action for backward compatibility, but it should not be used for file uploads
 export async function uploadMediaServer(params: {
   eventId: string;
   files: File[];
@@ -205,11 +290,12 @@ export async function uploadMediaServer(params: {
   isEventManagementOfficialDocument: boolean;
   isHeroImage: boolean;
   isActiveHeroImage: boolean;
-  isFeaturedImage: boolean;
   isPublic: boolean;
   altText: string;
   displayOrder?: number;
   userProfileId?: number | null;
+  isTeamMemberProfileImage?: boolean; // Add optional parameter for team member profile images
+  startDisplayingFromDate: string; // Required parameter - date when media should start being displayed
 }) {
   const { eventId, files, ...rest } = params;
 
@@ -221,9 +307,10 @@ export async function uploadMediaServer(params: {
   const uploadParams: MediaUploadParams = {
     ...rest,
     files,
-    eventMediaType,
-    storageType: 's3', // Assuming 's3' as a default
+    eventMediaType: eventMediaType || 'gallery', // Default to gallery if not specified
+    storageType: 's3', // Default storage type
     fileUrl: '', // This seems to be handled by the backend
+    isTeamMemberProfileImage: params.isTeamMemberProfileImage || false, // Pass through the parameter
   };
 
   return await uploadMedia(Number(eventId), uploadParams);
@@ -240,10 +327,12 @@ function inferEventMediaType(file: File): string {
   return "other";
 }
 
-export async function fetchEventDetailsByIdServer(eventId: number) {
+export async function fetchEventDetailsByIdServer(eventId: number, tenantId?: string) {
   if (!eventId) return null;
-  const tenantId = getTenantId();
-  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-details/${eventId}?tenantId.equals=${tenantId}`, {
+  const params = new URLSearchParams();
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  const qs = params.toString();
+  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-details/${eventId}${qs ? `?${qs}` : ''}`, {
     cache: 'no-store',
   });
   if (!res.ok) {

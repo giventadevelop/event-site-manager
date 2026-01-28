@@ -1,188 +1,313 @@
-import { processStripeSessionServer, fetchTransactionQrCode } from '@/app/event/success/ApiServerActions';
-import { fetchUserProfileServer } from '@/app/admin/ApiServerActions';
-import { fetchEventDetailsByIdServer } from '@/app/admin/events/[id]/media/ApiServerActions';
-import { notFound, redirect } from 'next/navigation';
-import { auth } from '@clerk/nextjs/server';
-import Image from 'next/image';
-import { formatInTimeZone } from 'date-fns-tz';
 import { Suspense } from 'react';
-import LoadingTicketFallback from './LoadingTicketFallback';
+import { notFound } from 'next/navigation';
+import { getAppUrl } from '@/lib/env';
+import { formatInTimeZone } from 'date-fns-tz';
+import type { EventDetailsDTO, EventAttendeeDTO, EventAttendeeGuestDTO } from '@/types';
 import SuccessClient from './SuccessClient';
-import { getTenantId, getAppUrl } from '@/lib/env';
-import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+import PaymentSuccessClient from './PaymentSuccessClient';
+import { getEventAttendee, getEventAttendeeGuests } from './ApiServerActions';
 
-// Function to verify payment intent status with Stripe
-async function verifyPaymentIntentStatus(paymentIntentId: string): Promise<{ status: string; succeeded: boolean }> {
+interface SuccessPageProps {
+  searchParams: {
+    eventId?: string;
+    session_id?: string;
+    pi?: string;
+    attendeeId?: string;
+    transactionId?: string; // New: for backend payment flow
+  };
+}
+
+async function fetchEventDetails(eventId: number): Promise<EventDetailsDTO | null> {
   try {
-    // Call our Stripe API to check the payment intent status
-    const response = await fetch(`${getAppUrl()}/api/stripe/verify-payment-intent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paymentIntentId }),
-      cache: 'no-store'
+    const baseUrl = getAppUrl();
+    const response = await fetch(`${baseUrl}/api/proxy/event-details/${eventId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
     if (!response.ok) {
-      console.error(`Failed to verify payment intent ${paymentIntentId}:`, await response.text());
-      return { status: 'unknown', succeeded: false };
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`Failed to fetch event details: ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log(`Payment intent ${paymentIntentId} status:`, data.status);
-
-    return {
-      status: data.status,
-      succeeded: data.status === 'succeeded'
-    };
+    return await response.json();
   } catch (error) {
-    console.error('Error verifying payment intent status:', error);
-    return { status: 'error', succeeded: false };
+    console.error('Error fetching event details:', error);
+    return null;
   }
 }
 
-// Function to check if transaction already exists on server side
-async function checkTransactionExistsServer(sessionId: string): Promise<{ exists: boolean; transaction?: any }> {
+function LoadingSkeleton() {
+  return (
+    <div className="max-w-5xl mx-auto px-8 py-8">
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="animate-pulse text-center">
+          <div className="h-16 bg-gray-200 rounded-full w-16 mx-auto mb-4"></div>
+          <div className="h-8 bg-gray-200 rounded w-1/2 mx-auto mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function findPaymentTransactionByPaymentIntentId(paymentIntentId: string): Promise<string | null> {
   try {
-    const tenantId = getTenantId();
+    const baseUrl = getAppUrl();
+    // Query payment transactions by paymentReference (which contains the Payment Intent ID)
     const params = new URLSearchParams({
-      'stripeCheckoutSessionId.equals': sessionId,
-      'tenantId.equals': tenantId,
+      'paymentReference.equals': paymentIntentId,
+    });
+    const response = await fetch(`${baseUrl}/api/proxy/payments?${params.toString()}`, {
+      cache: 'no-store',
     });
 
-    const response = await fetchWithJwtRetry(
-      `${getAppUrl()}/api/proxy/event-ticket-transactions?${params.toString()}`,
-      { cache: 'no-store' }
-    );
-
     if (!response.ok) {
-      console.error(`Failed to check transaction existence for session ${sessionId}:`, await response.text());
-      return { exists: false };
+      console.error('[SuccessPage] Failed to find payment transaction by Payment Intent ID:', response.status);
+      // Try alternative: look up via event-ticket-transactions (legacy flow)
+      const ticketParams = new URLSearchParams({
+        'stripePaymentIntentId.equals': paymentIntentId,
+      });
+      const ticketResponse = await fetch(`${baseUrl}/api/proxy/event-ticket-transactions?${ticketParams.toString()}`, {
+        cache: 'no-store',
+      });
+      if (ticketResponse.ok) {
+        const ticketTransactions = await ticketResponse.json();
+        if (Array.isArray(ticketTransactions) && ticketTransactions.length > 0) {
+          // For legacy flow, we can use the ticket transaction ID
+          // But we need the payment transaction ID, so return null and let legacy flow handle it
+          console.log('[SuccessPage] Found ticket transaction but need payment transaction ID');
+          return null;
+        }
+      }
+      return null;
     }
 
     const transactions = await response.json();
-    const exists = Array.isArray(transactions) && transactions.length > 0;
-    const transaction = exists ? transactions[0] : null;
-
-    console.log(`Server-side transaction check for session ${sessionId}: ${exists ? 'EXISTS' : 'NOT FOUND'}`);
-    if (exists && transaction) {
-      console.log(`Transaction details - ID: ${transaction.id}, Status: ${transaction.status}, Created: ${transaction.createdAt}`);
+    if (Array.isArray(transactions) && transactions.length > 0) {
+      const transaction = transactions[0];
+      // Backend returns transactionId or transactionReference
+      return transaction.transactionId || transaction.transactionReference || String(transaction.id) || null;
     }
 
-    return { exists, transaction };
+    return null;
   } catch (error) {
-    console.error('Error checking transaction existence on server:', error);
-    return { exists: false };
+    console.error('[SuccessPage] Error looking up payment transaction:', error);
+    return null;
   }
 }
 
-async function getHeroImageUrl(eventId: number): Promise<string> {
-  const defaultHeroImageUrl = `/images/default_placeholder_hero_image.jpeg?v=${Date.now()}`;
-  let imageUrl: string | null = null;
-  const baseUrl = getAppUrl();
-  try {
-    const flyerRes = await fetch(`${baseUrl}/api/proxy/event-medias?eventId.equals=${eventId}&eventFlyer.equals=true`, { cache: 'no-store' });
-    if (flyerRes.ok) {
-      const flyerData = await flyerRes.json();
-      if (Array.isArray(flyerData) && flyerData.length > 0 && flyerData[0].fileUrl) {
-        imageUrl = flyerData[0].fileUrl;
-      }
-    }
-    if (!imageUrl) {
-      const featuredRes = await fetch(`${baseUrl}/api/proxy/event-medias?eventId.equals=${eventId}&isFeaturedImage.equals=true`, { cache: 'no-store' });
-      if (featuredRes.ok) {
-        const featuredData = await featuredRes.json();
-        if (Array.isArray(featuredData) && featuredData.length > 0 && featuredData[0].fileUrl) {
-          imageUrl = featuredData[0].fileUrl;
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching hero image:', error);
-  }
-  return imageUrl || defaultHeroImageUrl;
-}
+export default async function SuccessPage({ searchParams }: SuccessPageProps) {
+  // Next.js 15+ requires awaiting searchParams
+  const resolvedSearchParams = typeof searchParams.then === 'function' ? await searchParams : searchParams;
+  const { eventId, session_id, pi, attendeeId, transactionId } = resolvedSearchParams;
 
-async function fetchTransactionItemsByTransactionId(transactionId: number) {
-  const baseUrl = getAppUrl();
-  const res = await fetch(`${baseUrl}/api/proxy/event-ticket-transaction-items?transactionId.equals=${transactionId}`, { cache: 'no-store' });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-async function fetchTicketTypeById(ticketTypeId: number) {
-  const baseUrl = getAppUrl();
-  const res = await fetch(`${baseUrl}/api/proxy/event-ticket-types/${ticketTypeId}`, { cache: 'no-store' });
-  if (!res.ok) return null;
-  return res.json();
-}
-
-function formatTime(time: string): string {
-  if (!time) return '';
-  // Accepts 'HH:mm' or 'hh:mm AM/PM' and returns 'hh:mm AM/PM'
-  if (time.match(/AM|PM/i)) return time;
-  const [hourStr, minute] = time.split(':');
-  let hour = parseInt(hourStr, 10);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  hour = hour % 12;
-  if (hour === 0) hour = 12;
-  return `${hour.toString().padStart(2, '0')}:${minute} ${ampm}`;
-}
-
-export default async function SuccessPage({ searchParams }: { searchParams: Promise<{ session_id?: string; pi?: string; payment_intent?: string; payment_intent_client_secret?: string; redirect_status?: string }> | { session_id?: string; pi?: string; payment_intent?: string; payment_intent_client_secret?: string; redirect_status?: string } }) {
-  // Await searchParams for Next.js 15+ compatibility
-  const resolvedParams = typeof searchParams.then === 'function' ? await searchParams : searchParams;
-  const session_id = resolvedParams.session_id;
-  // Support Stripe redirect params from Link/3DS: payment_intent, payment_intent_client_secret, redirect_status
-  const pi = (resolvedParams as any).pi || (resolvedParams as any).payment_intent as string | undefined;
-
-  console.log('[SuccessPage SERVER] Received parameters:', {
-    session_id,
-    pi,
-    resolvedParams
-  });
-
-  if (!session_id && !pi) {
-    console.log('[SuccessPage SERVER] Missing both session_id and pi - showing error');
+  // If transactionId is present, use PaymentSuccessClient (new backend payment flow)
+  if (transactionId) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-center p-4">
-        <div className="text-4xl text-red-500 mb-4">⚠️</div>
-        <h1 className="text-2xl font-bold text-gray-800">Missing session ID or payment intent</h1>
-        <p className="text-gray-600 mt-2">No session ID or payment intent was provided. Please check your payment link or contact support.</p>
-        <p className="text-gray-500 text-sm mt-2">Debug: session_id={String(session_id || '')}, pi={String(pi || '')}</p>
-      </div>
+      <Suspense fallback={<LoadingSkeleton />}>
+        <PaymentSuccessClient
+          transactionId={transactionId}
+          eventId={eventId}
+        />
+      </Suspense>
     );
   }
 
-  // If we have a payment intent, verify its status with Stripe
-  if (pi) {
-    console.log('[SuccessPage SERVER] Verifying payment intent status with Stripe...');
-    const { status, succeeded } = await verifyPaymentIntentStatus(pi);
-
-    if (!succeeded) {
-      console.log(`[SuccessPage SERVER] Payment intent ${pi} not succeeded (status: ${status}) - redirecting to tickets page`);
-      // Redirect back to tickets page if payment wasn't completed
-      redirect(`/events/3/tickets?payment_cancelled=true&pi=${pi}&status=${status}`);
-    }
-
-    console.log(`[SuccessPage SERVER] Payment intent ${pi} verified as succeeded`);
+  // CRITICAL: For desktop flow with Payment Intent ID, do NOT look up transaction server-side
+  // Desktop flow uses SuccessClient which handles GET-only lookup and polling
+  // Server-side lookup would fail if webhook hasn't processed yet, causing errors
+  // If session_id or pi parameters are present, use SuccessClient (Stripe flow)
+  if (session_id || pi) {
+    // Desktop flow: SuccessClient will handle GET-only lookup and polling
+    // Mobile flow: SuccessClient will detect mobile and redirect to ticket-qr page
+    // Do NOT try to look up transaction server-side - let client component handle it
+    return (
+      <Suspense fallback={<LoadingSkeleton />}>
+        <SuccessClient
+          session_id={session_id || ''}
+          payment_intent={pi || ''}
+        />
+      </Suspense>
+    );
   }
 
-  // Check if transaction already exists on server side
-  const { exists: transactionExists, transaction } = session_id ? await checkTransactionExistsServer(session_id) : { exists: false } as any;
+  // Event registration flow: require eventId parameter
+  const parsedEventId = eventId ? parseInt(eventId) : null;
+  if (!parsedEventId || isNaN(parsedEventId)) {
+    notFound();
+  }
 
-  if (transactionExists) {
-    console.log(`Transaction already exists for session ${session_id}, redirecting to homepage`);
-    console.log(`This could be due to: page refresh, back button, or duplicate access`);
-    console.log(`Transaction ID: ${transaction?.id}, Status: ${transaction?.status}`);
-    // Keep user on success page after first load; only redirect on explicit refresh
-    // Detect a refresh via a special query flag
-    const refreshed = (resolvedParams as any)?.ref === '1';
-    if (refreshed) {
-      redirect('/?payment=already-processed');
+  return (
+    <Suspense fallback={<LoadingSkeleton />}>
+      <SuccessPageContent eventId={parsedEventId} attendeeId={attendeeId} />
+    </Suspense>
+  );
+}
+
+async function SuccessPageContent({ eventId, attendeeId }: { eventId: number; attendeeId?: string }) {
+  const eventDetails = await fetchEventDetails(eventId);
+
+  if (!eventDetails) {
+    notFound();
+  }
+
+  // Fetch attendee and guest information if attendeeId is provided
+  let attendee: EventAttendeeDTO | null = null;
+  let guests: EventAttendeeGuestDTO[] = [];
+
+  if (attendeeId) {
+    try {
+      const parsedAttendeeId = parseInt(attendeeId);
+      if (!isNaN(parsedAttendeeId)) {
+        attendee = await getEventAttendee(parsedAttendeeId);
+        if (attendee) {
+          guests = await getEventAttendeeGuests(parsedAttendeeId);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching attendee details:', error);
     }
   }
 
-  // For mobile users with payment intent, we need to convert pi to session_id
-  // Pass both parameters to SuccessClient to handle the conversion
-  return <SuccessClient session_id={session_id || ''} payment_intent={pi} />;
+  const eventDate = formatInTimeZone(
+    eventDetails.startDate,
+    eventDetails.timezone,
+    'EEEE, MMMM d, yyyy (zzz)'
+  );
+
+  return (
+    <div className="max-w-5xl mx-auto px-8 py-8">
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="text-center">
+          <div className="text-green-600 text-6xl mb-4">✓</div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Registration Confirmed!</h1>
+
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+            <h2 className="text-xl font-semibold text-green-800 mb-2">
+              {eventDetails.title}
+            </h2>
+            <p className="text-green-700 mb-2">
+              <strong>Date:</strong> {eventDate}
+            </p>
+            {eventDetails.startTime && eventDetails.endTime && (
+              <p className="text-green-700 mb-2">
+                <strong>Time:</strong> {eventDetails.startTime} - {eventDetails.endTime}
+              </p>
+            )}
+            {eventDetails.location && (
+              <p className="text-green-700">
+                <strong>Location:</strong> {eventDetails.location}
+              </p>
+            )}
+          </div>
+
+          {/* Registration Details */}
+          {attendee && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+              <h3 className="text-lg font-semibold text-blue-800 mb-3">Registration Details</h3>
+              <div className="text-left space-y-2">
+                <p className="text-blue-700">
+                  <strong>Primary Attendee:</strong> {attendee.firstName} {attendee.lastName}
+                </p>
+                <p className="text-blue-700">
+                  <strong>Email:</strong> {attendee.email}
+                </p>
+                {attendee.phone && (
+                  <p className="text-blue-700">
+                    <strong>Phone:</strong> {attendee.phone}
+                  </p>
+                )}
+                <p className="text-blue-700">
+                  <strong>Registration Status:</strong> {attendee.registrationStatus}
+                </p>
+                {attendee.totalNumberOfGuests && attendee.totalNumberOfGuests > 0 && (
+                  <p className="text-blue-700">
+                    <strong>Total Guests:</strong> {attendee.totalNumberOfGuests}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Guest Information */}
+          {guests.length > 0 && (
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-6">
+              <h3 className="text-lg font-semibold text-purple-800 mb-3">Guest Information</h3>
+              <div className="space-y-3">
+                {guests.map((guest, index) => (
+                  <div key={index} className="bg-white rounded-lg p-4 border border-purple-100">
+                    <p className="font-medium text-purple-800">
+                      {guest.firstName} {guest.lastName}
+                    </p>
+                    <div className="text-sm text-purple-600 space-y-1">
+                      <p><strong>Age Group:</strong> {guest.ageGroup}</p>
+                      <p><strong>Relationship:</strong> {guest.relationship}</p>
+                      {guest.email && <p><strong>Email:</strong> {guest.email}</p>}
+                      {guest.phone && <p><strong>Phone:</strong> {guest.phone}</p>}
+                      {guest.specialRequirements && (
+                        <p><strong>Special Requirements:</strong> {guest.specialRequirements}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* QR Code Section */}
+          {attendee && attendee.qrCodeData && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+              <h3 className="text-lg font-semibold text-yellow-800 mb-3">Your QR Code</h3>
+              <div className="text-center">
+                <div className="bg-white p-4 rounded-lg inline-block">
+                  <img
+                    src={attendee.qrCodeData}
+                    alt="Registration QR Code"
+                    className="mx-auto"
+                    style={{ maxWidth: '200px', maxHeight: '200px' }}
+                  />
+                </div>
+                <p className="text-sm text-yellow-700 mt-2">
+                  Present this QR code at the event for check-in
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-blue-800 mb-3">What's Next?</h3>
+            <ul className="text-blue-700 text-left space-y-2">
+              <li>• You will receive a confirmation email shortly</li>
+              <li>• Your registration is subject to approval</li>
+              <li>• You will be notified of the final status</li>
+              <li>• Check your email for any additional instructions</li>
+              {attendee?.qrCodeData && (
+                <li>• Save your QR code for easy check-in at the event</li>
+              )}
+            </ul>
+          </div>
+
+          <div className="flex justify-center gap-4">
+            <a
+              href="/"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md"
+            >
+              Return to Home
+            </a>
+            <a
+              href="/events"
+              className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-md"
+            >
+              View All Events
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { formatDateLocal } from '@/lib/date';
 import { useMemo, useState } from 'react';
+import { AspectRatio } from 'radix-ui';
 
 interface EventCardProps {
   event: EventWithMedia;
@@ -64,71 +65,115 @@ export function EventCard({ event, placeholderText }: EventCardProps) {
   console.log(`EventCard ${event.id}: thumbnailUrl = ${event.thumbnailUrl}, imageError = ${imageError}`);
 
   return (
-    <div className="event-item bg-gray-50 rounded-lg shadow-lg p-4 flex flex-col items-center h-full hover:shadow-2xl transition-shadow duration-200 cursor-pointer w-[320px] max-w-[calc(100vw-2rem)]">
-      <Link href={`/events/${event.id}`} className="block w-full h-full group flex flex-col items-center" tabIndex={-1}>
-        <div className="event-image rounded-lg overflow-hidden mb-3 relative"
-          style={{ width: '100%', height: 160 }}>
-          {event.thumbnailUrl && !imageError ? (
-            event.thumbnailUrl.includes('s3.amazonaws.com') ? (
-              // Use regular img tag for S3 URLs
-              <img
-                src={event.thumbnailUrl}
-                alt={event.title}
-                className="object-cover w-full h-full"
-                onError={(e) => {
-                  console.error(`Image failed to load for event ${event.id}:`, event.thumbnailUrl, e);
-                  setImageError(true);
-                }}
-                onLoad={() => {
-                  console.log(`Image loaded successfully for event ${event.id}:`, event.thumbnailUrl);
-                }}
-              />
-            ) : (
-              // Use Next.js Image for other URLs
-              <Image
-                src={event.thumbnailUrl}
-                alt={event.title}
-                fill
-                className="object-cover"
-                onError={(e) => {
-                  console.error(`Image failed to load for event ${event.id}:`, event.thumbnailUrl, e);
-                  setImageError(true);
-                }}
-                onLoad={() => {
-                  console.log(`Image loaded successfully for event ${event.id}:`, event.thumbnailUrl);
-                }}
-              />
-            )
-          ) : (
-            <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center p-4">
-              <div className="text-center">
-                <div className="text-gray-400 text-4xl mb-2">📷</div>
-                <div className="text-gray-600 font-medium text-sm leading-tight">
-                  {placeholderText || 'No poster available for this event yet'}
+    <div 
+      className="group cursor-pointer w-full m-0 p-0"
+      style={{
+        margin: 0,
+        padding: 0,
+        borderRadius: 0,
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        transition: 'box-shadow 0.3s ease'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+      }}
+    >
+      <Link href={`/events/${event.id}`} className="block" tabIndex={-1}>
+        {/* Enhanced Image Container with Increased Height - No Padding for Edge-to-Edge */}
+        <div className="w-full m-0 p-0" style={{ margin: 0, padding: 0 }}>
+          <div 
+            className="relative w-full overflow-hidden bg-gray-50"
+            style={{ 
+              height: '400px', // Significantly increased height
+              minHeight: '400px',
+              margin: 0,
+              padding: 0,
+              borderRadius: 0
+            }}
+          >
+            {event.thumbnailUrl && !imageError ? (
+              event.thumbnailUrl.includes('s3.amazonaws.com') ? (
+                // Use regular img tag for S3 URLs with enhanced padding and sizing
+                <div className="w-full h-full p-6 flex items-center justify-center">
+                  <img
+                    src={event.thumbnailUrl}
+                    alt={event.title}
+                    className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300 rounded-xl shadow-lg"
+                    style={{
+                      backgroundColor: 'transparent',
+                      objectFit: 'contain',
+                      objectPosition: 'center'
+                    }}
+                    onError={(e) => {
+                      console.error(`Image failed to load for event ${event.id}:`, event.thumbnailUrl, e);
+                      setImageError(true);
+                    }}
+                    onLoad={() => {
+                      console.log(`Image loaded successfully for event ${event.id}:`, event.thumbnailUrl);
+                    }}
+                  />
                 </div>
-                <div className="text-gray-500 text-xs mt-1">
-                  Check back soon!
+              ) : (
+                // Use Next.js Image for other URLs with enhanced container
+                <div className="relative w-full h-full p-6 flex items-center justify-center">
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={event.thumbnailUrl}
+                      alt={event.title}
+                      fill
+                      className="object-contain group-hover:scale-105 transition-transform duration-300 rounded-xl shadow-lg"
+                      style={{
+                        backgroundColor: 'transparent',
+                        objectFit: 'contain',
+                        objectPosition: 'center'
+                      }}
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      onError={(e) => {
+                        console.error(`Image failed to load for event ${event.id}:`, event.thumbnailUrl, e);
+                        setImageError(true);
+                      }}
+                      onLoad={() => {
+                        console.log(`Image loaded successfully for event ${event.id}:`, event.thumbnailUrl);
+                      }}
+                    />
+                  </div>
+                </div>
+              )
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-transparent p-6">
+                <div className="text-center">
+                  <span className="text-gray-400 text-6xl block mb-4">📅</span>
+                  <span className="text-gray-500 text-sm">No Image Available</span>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-        <div className="event-content text-center flex-grow">
-          <h4 className="event-title text-lg font-semibold mb-1">{event.title}</h4>
+        
+        {/* Content Section */}
+        <div className="p-4 text-center">
+          <h4 className="text-lg font-semibold mb-1 line-clamp-2">{event.title}</h4>
           <p className="text-gray-600 mb-3 text-sm line-clamp-2">{event.description}</p>
           <div className="text-yellow-600 font-bold mb-1 text-sm">
             {formatDateLocal(event.startDate)}
           </div>
-          <div className="text-gray-500 text-xs">
+          <div className="text-gray-500 text-xs mb-4">
             {event.startTime} - {event.endTime}
           </div>
+          <span className="inline-block bg-yellow-400 text-gray-900 px-5 py-2 rounded-lg font-semibold text-xs shadow group-hover:bg-yellow-300 transition">
+            Learn More
+          </span>
         </div>
-        <span className="mt-3 inline-block bg-yellow-400 text-gray-900 px-5 py-2 rounded-lg font-semibold text-xs shadow group-hover:bg-yellow-300 transition">
-          Learn More
-        </span>
       </Link>
+      
+      {/* Calendar Section */}
       {isUpcoming && calendarLink && (
-        <div className="flex flex-col items-center mt-4">
+        <div className="flex flex-col items-center pb-4">
           <a href={calendarLink} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center group">
             <img src="/images/icons8-calendar.gif" alt="Calendar" className="w-7 h-7 rounded shadow mx-auto" />
             <span className="text-xs text-blue-700 font-semibold mt-1">Add to Calendar</span>

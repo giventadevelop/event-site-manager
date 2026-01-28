@@ -13,16 +13,22 @@ type Props = {
   cart: CartItem[];
   eventId: number | string;
   email?: string;
+  customerName?: string;
+  customerPhone?: string;
   discountCodeId?: number | null;
   enabled: boolean; // whether fields are valid; when false, we show disabled overlay/placeholder
   showPlaceholder?: boolean; // show a disabled-looking placeholder if not eligible yet
   amountCents?: number; // optional current total for display
+  publishableKey?: string; // Backend-provided publishable key (domain-agnostic)
   onInvalidClick?: () => void; // called when user clicks placeholder/disabled state to surface validation
 };
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string);
+// Default Stripe promise (fallback for backward compatibility)
+const defaultStripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
-function InnerPRB({ cart, eventId, email, discountCodeId, enabled, showPlaceholder, amountCents, onInvalidClick }: Props) {
+function InnerPRB({ cart, eventId, email, customerName, customerPhone, discountCodeId, enabled, showPlaceholder, amountCents, onInvalidClick }: Props) {
   const stripe = useStripe();
   const [paymentRequest, setPaymentRequest] = useState<StripePaymentRequest | null>(null);
   const [ready, setReady] = useState(false);
@@ -46,7 +52,11 @@ function InnerPRB({ cart, eventId, email, discountCodeId, enabled, showPlacehold
   }, [enabled]);
 
   useEffect(() => {
-    if (!stripe || !enabled) return;
+    console.log('[PRB] INIT useEffect triggered:', { hasStripe: !!stripe, enabled, cart: cart.length, email });
+    if (!stripe || !enabled) {
+      console.log('[PRB] INIT blocked:', { hasStripe: !!stripe, enabled });
+      return;
+    }
 
     // Create PR only once per enable window
     const prConfig = {
@@ -146,7 +156,14 @@ function InnerPRB({ cart, eventId, email, discountCodeId, enabled, showPlacehold
           const res = await fetch('/api/stripe/payment-intent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cart, eventId, email, discountCodeId }),
+            body: JSON.stringify({
+              cart,
+              eventId,
+              email,
+              customerName,
+              customerPhone,
+              discountCodeId
+            }),
           });
           if (!res.ok) {
             if (!isApplePay) { try { ev.complete('fail'); } catch { } }
@@ -300,10 +317,23 @@ function InnerPRB({ cart, eventId, email, discountCodeId, enabled, showPlacehold
   );
 
   if (!stripe || !paymentRequest || !ready) {
+    console.log('[PRB] RENDER: Showing placeholder or null', {
+      hasStripe: !!stripe,
+      hasPaymentRequest: !!paymentRequest,
+      ready,
+      showPlaceholder,
+      eligible
+    });
     return showPlaceholder ? renderPlaceholderImage : null;
   }
 
   // When enabled, render live PR button
+  console.log('[PRB] RENDER: Rendering live PaymentRequestButtonElement', {
+    hasStripe: !!stripe,
+    hasPaymentRequest: !!paymentRequest,
+    ready,
+    eligible
+  });
 
   return (
     <div id="prb-container" style={{ minHeight: 48, display: 'block', position: 'relative' }}>
@@ -318,7 +348,26 @@ function InnerPRB({ cart, eventId, email, discountCodeId, enabled, showPlacehold
 }
 
 export function StripePaymentRequestButton(props: Props) {
+  // Use backend-provided publishable key or fallback to env var
+  const publishableKey = props.publishableKey || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  const stripePromise = useMemo(() => {
+    if (!publishableKey) {
+      console.warn('[StripePaymentRequestButton] No publishable key provided');
+      return defaultStripePromise;
+    }
+    return loadStripe(publishableKey);
+  }, [publishableKey]);
+
   const elementsOptions = useMemo<StripeElementsOptions>(() => ({ appearance: { theme: 'stripe' } }), []);
+
+  if (!stripePromise) {
+    return (
+      <div className="w-full border rounded-lg p-3 text-sm text-gray-600 bg-white opacity-60">
+        Stripe wallet buttons are not available. Please provide a publishable key.
+      </div>
+    );
+  }
+
   return (
     <Elements stripe={stripePromise} options={elementsOptions}>
       {/* @ts-ignore - stripe types at runtime */}
@@ -326,5 +375,8 @@ export function StripePaymentRequestButton(props: Props) {
     </Elements>
   );
 }
+
+// Default export for backward compatibility
+export default StripePaymentRequestButton;
 
 

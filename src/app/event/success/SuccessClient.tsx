@@ -10,6 +10,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import LocationDisplay from '@/components/LocationDisplay';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { sendTicketEmailAsync } from '@/lib/emailUtils';
+import MobileDebugConsole from '@/components/MobileDebugConsole';
 
 interface SuccessClientProps {
   session_id: string;
@@ -32,41 +33,111 @@ export default function SuccessClient({ session_id, payment_intent }: SuccessCli
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [readyToShowNotFound, setReadyToShowNotFound] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // Enhanced desktop debug logging
-  console.log('[DESKTOP SUCCESS DEBUG] SuccessClient component initialized');
-  console.log('[DESKTOP SUCCESS DEBUG] Props:', { session_id, payment_intent });
-  console.log('[DESKTOP SUCCESS DEBUG] User Agent:', typeof window !== 'undefined' ? navigator.userAgent : 'SSR');
-  console.log('[DESKTOP SUCCESS DEBUG] URL:', typeof window !== 'undefined' ? window.location.href : 'SSR');
-  console.log('[DESKTOP SUCCESS DEBUG] Referrer:', typeof window !== 'undefined' ? document.referrer : 'SSR');
-
-  // Log component initialization
-  console.log('[SuccessClient] Component initialized with props:', {
-    session_id,
-    payment_intent
-  });
 
   // Mobile detection and redirect logic - show brief success then redirect
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-      window.innerWidth <= 768;
-
-    console.log('[DESKTOP SUCCESS DEBUG] Mobile detection result:', {
-      isMobile,
-      userAgent: navigator.userAgent,
-      windowWidth: window.innerWidth,
-      session_id,
-      payment_intent,
-      mobileRegexMatch: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-      narrowScreenMatch: window.innerWidth <= 768
+    // Enhanced debug logging - now inside useEffect
+    console.log('[MOBILE-DETECTION] ============================================');
+    console.log('[MOBILE-DETECTION] SuccessClient component mounted');
+    console.log('[MOBILE-DETECTION] ============================================');
+    console.log('[MOBILE-DETECTION] Props:', { session_id, payment_intent });
+    console.log('[MOBILE-DETECTION] User Agent:', navigator.userAgent);
+    console.log('[MOBILE-DETECTION] URL:', window.location.href);
+    console.log('[MOBILE-DETECTION] Referrer:', document.referrer);
+    console.log('[MOBILE-DETECTION] Window dimensions:', {
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      outerWidth: window.outerWidth,
+      outerHeight: window.outerHeight,
+      screenWidth: window.screen?.width,
+      screenHeight: window.screen?.height,
+    });
+    console.log('[MOBILE-DETECTION] Platform:', {
+      platform: navigator.platform,
+      userAgentData: (navigator as any).userAgentData,
     });
 
+    // Enhanced mobile detection with multiple methods
+    const userAgent = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+
+    // Method 1: User agent regex (primary method) - ENHANCED with more patterns
+    const mobileRegexMatch = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS|FxiOS|EdgiOS/i.test(userAgent);
+
+    // Method 2: Platform detection
+    const platformMatch = /iPhone|iPad|iPod|Android|BlackBerry|Windows Phone/i.test(platform);
+
+    // Method 3: Screen width detection (only for mobile if ALSO has mobile user agent)
+    // CRITICAL: Don't use screen width alone - desktop browsers can have narrow windows
+    const narrowScreenMatch = window.innerWidth <= 768;
+    const hasMobileUserAgent = mobileRegexMatch || platformMatch;
+
+    // Method 4: Touch capability (only relevant if also has mobile user agent)
+    const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    // Method 5: User agent data API (if available)
+    const userAgentData = (navigator as any).userAgentData;
+    const isMobileFromUA = userAgentData?.mobile || false;
+
+    // CRITICAL: Desktop detection fix - Only consider mobile if:
+    // 1. User agent indicates mobile (primary method), OR
+    // 2. User agent data API says mobile, OR
+    // 3. Narrow screen AND mobile user agent (not just narrow screen alone)
+    // This prevents desktop browsers with narrow windows from being detected as mobile
+    const isMobile = mobileRegexMatch || platformMatch || isMobileFromUA || (hasMobileUserAgent && narrowScreenMatch);
+
+    console.log('[MOBILE-DETECTION] ============================================');
+    console.log('[MOBILE-DETECTION] Mobile Detection Analysis:');
+    console.log('[MOBILE-DETECTION] ============================================');
+    console.log('[MOBILE-DETECTION] Method 1 - User Agent Regex:', {
+      match: mobileRegexMatch,
+      userAgent: userAgent.substring(0, 100),
+      matchedPattern: mobileRegexMatch ? userAgent.match(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile/i)?.[0] : null,
+    });
+    console.log('[MOBILE-DETECTION] Method 2 - Platform Detection:', {
+      match: platformMatch,
+      platform: platform,
+    });
+    console.log('[MOBILE-DETECTION] Method 3 - Screen Width:', {
+      match: narrowScreenMatch,
+      innerWidth: window.innerWidth,
+      threshold: 768,
+    });
+    console.log('[MOBILE-DETECTION] Method 4 - Touch Capability:', {
+      hasTouchScreen,
+      maxTouchPoints: navigator.maxTouchPoints,
+    });
+    console.log('[MOBILE-DETECTION] Method 5 - User Agent Data API:', {
+      available: !!userAgentData,
+      isMobileFromUA,
+      userAgentData: userAgentData ? JSON.stringify(userAgentData) : 'N/A',
+    });
+    console.log('[MOBILE-DETECTION] ============================================');
+    console.log('[MOBILE-DETECTION] FINAL RESULT:', {
+      isMobile,
+      detectionMethods: {
+        userAgentRegex: mobileRegexMatch,
+        platformMatch: platformMatch,
+        narrowScreen: narrowScreenMatch,
+        touchScreen: hasTouchScreen && narrowScreenMatch,
+        userAgentData: isMobileFromUA,
+      },
+      session_id,
+      payment_intent,
+      timestamp: new Date().toISOString(),
+    });
+    console.log('[MOBILE-DETECTION] ============================================');
+
+    // Set mobile detection state immediately to prevent desktop data fetching
+    setIsMobileDevice(isMobile);
+
     if (isMobile) {
-      console.log('[SuccessClient] Mobile browser detected - will show brief success then redirect');
+      console.log('[MOBILE-DETECTION] ✅✅✅ MOBILE BROWSER DETECTED - Will redirect to /event/ticket-qr');
 
       // Determine which identifier to use and store, with robust URL/sessionStorage fallbacks
       let identifier: string | null = session_id || payment_intent || null;
@@ -101,37 +172,76 @@ export default function SuccessClient({ session_id, payment_intent }: SuccessCli
       });
 
       setTimeout(() => {
+        console.log('[MOBILE-DETECTION] ============================================');
+        console.log('[MOBILE-DETECTION] About to redirect to /event/ticket-qr');
+        console.log('[MOBILE-DETECTION] ============================================');
+        console.log('[MOBILE-DETECTION] Redirect preparation:', {
+          session_id,
+          payment_intent,
+          identifier,
+          currentUrl: window.location.href,
+          timestamp: new Date().toISOString(),
+        });
+
         // Store the identifier in sessionStorage for QR page
         if (session_id || (identifier && (identifier as string).startsWith('cs_'))) {
           const sid = session_id || (identifier as string);
           const redirectUrl = `/event/ticket-qr?session_id=${encodeURIComponent(sid)}`;
-          console.log('[SuccessClient] Redirecting with session_id:', {
+          console.log('[MOBILE-DETECTION] ✅ Redirecting with session_id:', {
             session_id: sid,
             redirectUrl,
-            currentUrl: window.location.href
+            currentUrl: window.location.href,
+            timestamp: new Date().toISOString(),
           });
-          sessionStorage.setItem('stripe_session_id', sid);
+          try {
+            sessionStorage.setItem('stripe_session_id', sid);
+            console.log('[MOBILE-DETECTION] ✅ Stored session_id in sessionStorage');
+          } catch (e) {
+            console.error('[MOBILE-DETECTION] ⚠️ Failed to store in sessionStorage:', e);
+          }
+          console.log('[MOBILE-DETECTION] ✅ Calling router.replace()...');
           router.replace(redirectUrl);
+          console.log('[MOBILE-DETECTION] ✅ router.replace() called - redirect should happen now');
         } else if (payment_intent || (identifier && (identifier as string).startsWith('pi_'))) {
           const pid = payment_intent || (identifier as string);
           const redirectUrl = `/event/ticket-qr?pi=${encodeURIComponent(pid)}`;
-          console.log('[SuccessClient] Redirecting with payment_intent:', {
+          console.log('[MOBILE-DETECTION] ✅ Redirecting with payment_intent:', {
             payment_intent: pid,
             redirectUrl,
-            currentUrl: window.location.href
+            currentUrl: window.location.href,
+            timestamp: new Date().toISOString(),
           });
-          sessionStorage.setItem('stripe_payment_intent', pid);
+          try {
+            sessionStorage.setItem('stripe_payment_intent', pid);
+            console.log('[MOBILE-DETECTION] ✅ Stored payment_intent in sessionStorage');
+          } catch (e) {
+            console.error('[MOBILE-DETECTION] ⚠️ Failed to store in sessionStorage:', e);
+          }
+          console.log('[MOBILE-DETECTION] ✅ Calling router.replace()...');
           router.replace(redirectUrl);
+          console.log('[MOBILE-DETECTION] ✅ router.replace() called - redirect should happen now');
         } else {
-          console.error('[SuccessClient] ERROR: No session_id or payment_intent to redirect with!');
+          console.error('[MOBILE-DETECTION] ⚠️⚠️⚠️ ERROR: No session_id or payment_intent to redirect with!', {
+            session_id,
+            payment_intent,
+            identifier,
+            currentUrl: window.location.href,
+            timestamp: new Date().toISOString(),
+          });
         }
+        console.log('[MOBILE-DETECTION] ============================================');
       }, 2000);
 
       return;
     }
 
     // Desktop flow - continue with normal success page
-    console.log('[SuccessClient] Desktop browser detected - staying on success page');
+    console.log('[MOBILE-DETECTION] ============================================');
+    console.log('[MOBILE-DETECTION] ❌ DESKTOP BROWSER DETECTED - Staying on success page');
+    console.log('[MOBILE-DETECTION] ============================================');
+    console.log('[MOBILE-DETECTION] Desktop flow will continue with normal success page');
+    console.log('[MOBILE-DETECTION] No redirect to /event/ticket-qr');
+    console.log('[MOBILE-DETECTION] ============================================');
   }, [session_id, payment_intent, router]);
 
   // Email sending effect for desktop flow - trigger when QR code is successfully loaded
@@ -171,15 +281,25 @@ export default function SuccessClient({ session_id, payment_intent }: SuccessCli
 
   // Data fetching effect for desktop flow
   useEffect(() => {
-    // Skip data fetching for mobile users - they get the brief success page
-    if (typeof window !== 'undefined') {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-        window.innerWidth <= 768;
-      if (isMobile) {
-        console.log('[SuccessClient] Skipping data fetch for mobile user');
-        return;
-      }
+    // Skip data fetching until mobile detection is complete
+    if (isMobileDevice === null) {
+      console.log('[SuccessClient] Waiting for mobile detection to complete');
+      return;
     }
+
+    // Skip data fetching for mobile users - they get the brief success page
+    if (isMobileDevice === true) {
+      console.log('[SuccessClient] Skipping data fetch for mobile user');
+      return;
+    }
+
+    console.log('[SuccessClient] Desktop user confirmed - proceeding with data fetch');
+    console.log('[DESKTOP FLOW] ============================================');
+    console.log('[DESKTOP FLOW] Desktop browser detected - using GET-only flow');
+    console.log('[DESKTOP FLOW] Desktop will NOT call POST endpoint (mobile-only)');
+    console.log('[DESKTOP FLOW] Desktop will poll GET endpoint if transaction not found');
+    console.log('[DESKTOP FLOW] Webhook should create transaction automatically');
+    console.log('[DESKTOP FLOW] ============================================');
 
     // Desktop data fetching logic
     let cancelled = false;
@@ -187,8 +307,8 @@ export default function SuccessClient({ session_id, payment_intent }: SuccessCli
       setLoading(true);
       setError(null);
       try {
-        console.log('[DESKTOP SUCCESS DEBUG] Desktop - starting data fetch');
-        console.log('[DESKTOP SUCCESS DEBUG] Fetching with identifiers:', { session_id, payment_intent });
+        console.log('[DESKTOP FLOW] Desktop - starting data fetch');
+        console.log('[DESKTOP FLOW] Fetching with identifiers:', { session_id, payment_intent });
         // 1. Try to GET the transaction by session_id or payment_intent (PRB/mobile style)
         if (!session_id && !payment_intent) {
           console.error('[DESKTOP SUCCESS DEBUG] Missing both session_id and payment_intent');
@@ -200,66 +320,156 @@ export default function SuccessClient({ session_id, payment_intent }: SuccessCli
           ? `session_id=${encodeURIComponent(session_id)}`
           : `pi=${encodeURIComponent(payment_intent as string)}`;
         const getUrl = `/api/event/success/process?${getQuery}&_t=${Date.now()}`;
-        console.log('[DESKTOP SUCCESS DEBUG] GET request URL:', getUrl);
+        console.log('[DESKTOP FLOW] GET request URL:', getUrl);
+        console.log('[DESKTOP FLOW] Desktop flow uses GET-only (no POST fallback)');
 
         const getRes = await fetch(getUrl, {
           cache: 'no-store'
         });
 
-        console.log('[DESKTOP SUCCESS DEBUG] GET response status:', getRes.status);
+        console.log('[DESKTOP FLOW] GET response status:', getRes.status);
 
         if (getRes.ok) {
           const data = await getRes.json();
-          console.log('[DESKTOP SUCCESS DEBUG] GET response data:', data);
+          console.log('[DESKTOP SUCCESS DEBUG] GET response data:', {
+            hasTransaction: !!data.transaction,
+            transactionId: data.transaction?.id,
+            error: data.error,
+            message: data.message,
+            responseKeys: Object.keys(data),
+            timestamp: new Date().toISOString()
+          });
 
           if (data.transaction) {
-            console.log('[DESKTOP SUCCESS DEBUG] Transaction found in GET response:', data.transaction.id);
+            console.log('[DESKTOP FLOW] ✅ Transaction found in GET response:', data.transaction.id);
+            console.log('[DESKTOP FLOW] ✅ Desktop flow successful - transaction loaded via GET');
             if (!cancelled) {
               setResult(data);
             }
             setLoading(false);
             return;
           } else {
-            console.log('[DESKTOP SUCCESS DEBUG] No transaction in GET response, will try POST');
+            // Log why transaction wasn't found
+            console.log('[DESKTOP FLOW] Initial GET: Transaction not found', {
+              error: data.error,
+              message: data.message,
+              note: 'Will start polling for webhook-processed transaction'
+            });
+            // CRITICAL: Desktop flow should NOT create transactions - webhook handles that
+            // If transaction not found, wait/poll for webhook to process it
+            console.log('[DESKTOP FLOW] ⚠️ No transaction found - webhook may still be processing');
+            console.log('[DESKTOP FLOW] Desktop flow will poll GET endpoint (webhook should create transaction)');
+            console.log('[DESKTOP FLOW] Desktop will NOT call POST endpoint (mobile-only)');
+
+            // CRITICAL: Desktop flow should NOT create transactions - webhook handles that
+            // Poll GET endpoint to wait for webhook to create transaction
+            // Increase polling attempts and interval for desktop (webhook may take longer)
+            let pollAttempt = 0;
+            const MAX_POLL_ATTEMPTS = 10; // Increased from 5 to 10 for desktop
+            const POLL_INTERVAL = 3000; // Increased from 2s to 3s for desktop
+
+            console.log(`[DESKTOP FLOW] Starting polling loop - waiting for webhook to create transaction...`);
+            console.log(`[DESKTOP FLOW] Will poll up to ${MAX_POLL_ATTEMPTS} times with ${POLL_INTERVAL}ms intervals`);
+
+            while (pollAttempt < MAX_POLL_ATTEMPTS && !cancelled) {
+              pollAttempt++;
+              console.log(`[DESKTOP FLOW] Polling attempt ${pollAttempt}/${MAX_POLL_ATTEMPTS} - waiting for webhook...`);
+
+              // Wait before polling (except first attempt which already waited)
+              if (pollAttempt > 1) {
+                await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+              }
+
+              // Update URL timestamp to prevent caching
+              const pollUrl = `/api/event/success/process?${getQuery}&_t=${Date.now()}&_poll=${pollAttempt}`;
+              console.log(`[DESKTOP FLOW] Polling URL: ${pollUrl}`);
+
+              try {
+                const pollRes = await fetch(pollUrl, { cache: 'no-store' });
+                console.log(`[DESKTOP FLOW] Poll response status (attempt ${pollAttempt}):`, pollRes.status);
+
+                if (pollRes.ok) {
+                  const pollData = await pollRes.json();
+                  console.log(`[DESKTOP FLOW] Poll response data (attempt ${pollAttempt}):`, {
+                    hasTransaction: !!pollData.transaction,
+                    transactionId: pollData.transaction?.id,
+                    error: pollData.error,
+                    message: pollData.message,
+                    responseKeys: Object.keys(pollData),
+                    timestamp: new Date().toISOString()
+                  });
+
+                  if (pollData.transaction) {
+                    console.log('[DESKTOP FLOW] ✅ Transaction found after polling:', pollData.transaction.id);
+                    console.log('[DESKTOP FLOW] ✅ Desktop flow successful - transaction loaded via GET polling');
+                    if (!cancelled) {
+                      setResult(pollData);
+                    }
+                    setLoading(false);
+                    return;
+                  } else {
+                    // Log why transaction wasn't found
+                    console.log(`[DESKTOP FLOW] Poll attempt ${pollAttempt}: Transaction not found yet`, {
+                      error: pollData.error,
+                      message: pollData.message,
+                      note: 'Webhook may still be processing the transaction'
+                    });
+                  }
+                } else {
+                  const errorText = await pollRes.text();
+                  console.warn(`[DESKTOP FLOW] Poll request failed (attempt ${pollAttempt}):`, {
+                    status: pollRes.status,
+                    statusText: pollRes.statusText,
+                    errorText,
+                    timestamp: new Date().toISOString()
+                  });
+                }
+              } catch (pollErr: any) {
+                console.warn(`[DESKTOP FLOW] Poll request error (attempt ${pollAttempt}):`, pollErr?.message);
+                // Continue polling even if one request fails
+              }
+            }
+
+            // If still not found after polling, show helpful error message
+            console.error('[DESKTOP FLOW] ⚠️⚠️⚠️ Transaction not found after polling:', {
+              pollAttempts: MAX_POLL_ATTEMPTS,
+              pollInterval: POLL_INTERVAL,
+              totalWaitTime: `${(MAX_POLL_ATTEMPTS * POLL_INTERVAL) / 1000} seconds`,
+              paymentIntentId: payment_intent || session_id,
+              note: 'Webhook may be delayed or failed. Desktop flow did NOT call POST endpoint (correct behavior).',
+              timestamp: new Date().toISOString()
+            });
+            if (!cancelled) {
+              setError(
+                `Your payment was successful, but we're still processing your ticket. ` +
+                `We checked ${MAX_POLL_ATTEMPTS} times over ${(MAX_POLL_ATTEMPTS * POLL_INTERVAL) / 1000} seconds, ` +
+                `but the transaction hasn't been created yet. ` +
+                `This usually means the webhook is delayed. ` +
+                `Please wait a moment and refresh this page, or check your email for confirmation. ` +
+                `Payment Intent: ${payment_intent || session_id || 'N/A'}`
+              );
+            }
+            setLoading(false);
+            return;
           }
         } else {
           const errorText = await getRes.text();
-          console.error('[DESKTOP SUCCESS DEBUG] GET request failed:', getRes.status, errorText);
-        }
-        // 2. If not found, POST to create it
-        console.log('[DESKTOP SUCCESS DEBUG] Making POST request to create transaction');
-        const postBody = session_id ? { session_id } : { pi: payment_intent } as any;
-        console.log('[DESKTOP SUCCESS DEBUG] POST body:', postBody);
-
-        const postRes = await fetch("/api/event/success/process", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(postBody),
-        });
-
-        console.log('[DESKTOP SUCCESS DEBUG] POST response status:', postRes.status);
-
-        if (!postRes.ok) {
-          const errorText = await postRes.text();
-          console.error('[DESKTOP SUCCESS DEBUG] POST request failed:', postRes.status, errorText);
-          throw new Error(errorText);
-        }
-
-        const postData = await postRes.json();
-        console.log('[DESKTOP SUCCESS DEBUG] POST response data:', postData);
-
-        if (!cancelled) {
-          console.log('[DESKTOP SUCCESS DEBUG] Setting result data:', postData);
-          setResult(postData);
+          console.error('[DESKTOP FLOW] GET request failed:', getRes.status, errorText);
+          console.error('[DESKTOP FLOW] Desktop flow did NOT call POST endpoint (correct behavior)');
+          if (!cancelled) {
+            setError(`Failed to fetch transaction: ${errorText}`);
+          }
         }
       } catch (err: any) {
         if (!cancelled) {
-          console.error('[DESKTOP SUCCESS DEBUG] Error in fetchData:', err);
-          console.error('[DESKTOP SUCCESS DEBUG] Error details:', {
+          console.error('[DESKTOP FLOW] Error in fetchData:', err);
+          console.error('[DESKTOP FLOW] Error details:', {
             message: err?.message,
             stack: err?.stack,
-            session_id
+            session_id,
+            payment_intent
           });
+          console.error('[DESKTOP FLOW] Desktop flow did NOT call POST endpoint (correct behavior)');
           setError(err?.message || "Unknown error");
         }
       } finally {
@@ -271,18 +481,63 @@ export default function SuccessClient({ session_id, payment_intent }: SuccessCli
 
     fetchData();
     return () => { cancelled = true; };
-  }, [session_id]);
+  }, [session_id, isMobileDevice]);
 
 
   if (loading) {
     return <LoadingTicket sessionId={session_id} />;
   }
   if (error) {
+    console.error('[SuccessClient] Error state:', error);
+    console.error('[SuccessClient] Error context:', {
+      session_id,
+      payment_intent,
+      isMobileDevice
+    });
+
+    // Check if this is a desktop flow transaction-not-found error
+    const isTransactionNotFoundError = error.includes('Transaction is still being processed') ||
+                                      error.includes('Transaction not found');
+
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-center p-4">
-        <FaInfoCircle className="text-4xl text-red-500 mb-4" />
-        <h1 className="text-2xl font-bold text-gray-800">Error</h1>
-        <p className="text-gray-600 mt-2">{error}</p>
+        <FaInfoCircle className={`text-4xl ${isTransactionNotFoundError ? 'text-yellow-500' : 'text-red-500'} mb-4`} />
+        <h1 className="text-2xl font-bold text-gray-800">
+          {isTransactionNotFoundError ? 'Processing Your Payment' : 'Error'}
+        </h1>
+        <p className="text-gray-600 mt-2 max-w-2xl">{error}</p>
+
+        {isTransactionNotFoundError && (
+          <div className="mt-6 space-y-3">
+            <p className="text-sm text-gray-500">
+              Your payment was successful, but we're still processing your ticket. This usually takes a few moments.
+            </p>
+            <button
+              onClick={() => {
+                console.log('[DESKTOP FLOW] User clicked refresh button');
+                setError(null);
+                setLoading(true);
+                // Trigger re-fetch by updating a dependency
+                window.location.reload();
+              }}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Refresh Page
+            </button>
+            <p className="text-xs text-gray-400 mt-2">
+              Payment Intent: {payment_intent || session_id || 'N/A'}
+            </p>
+          </div>
+        )}
+        <button
+          onClick={() => router.push('/')}
+          className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Return Home
+        </button>
+
+        {/* Mobile Debug Console */}
+        <MobileDebugConsole />
       </div>
     );
   }
@@ -317,11 +572,29 @@ export default function SuccessClient({ session_id, payment_intent }: SuccessCli
     localStorage.removeItem('eventId');
   }
   if (!transaction) {
+    console.error('[SuccessClient] Transaction not found');
+    console.error('[SuccessClient] Transaction context:', {
+      session_id,
+      payment_intent,
+      hasResult: !!result,
+      resultKeys: result ? Object.keys(result) : []
+    });
+
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-center p-4">
         <FaInfoCircle className="text-4xl text-red-500 mb-4" />
         <h1 className="text-2xl font-bold text-gray-800">Transaction Not Found</h1>
         <p className="text-gray-600 mt-2">We could not find the details for your transaction. Please check your email for a confirmation.</p>
+        <p className="text-sm text-gray-500 mt-2">Payment Intent: {payment_intent || 'N/A'}</p>
+        <button
+          onClick={() => router.push('/')}
+          className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Return Home
+        </button>
+
+        {/* Mobile Debug Console */}
+        <MobileDebugConsole />
       </div>
     );
   }

@@ -3,12 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const allParams = Object.fromEntries(searchParams.entries());
-  // Convert headers to plain object to avoid Next.js 15+ iteration issues
-  const headers: Record<string, string> = {};
-  req.headers.forEach((value, key) => {
-    headers[key] = value;
-  });
-
+  const headers = Object.fromEntries(req.headers.entries());
+  
   const debugInfo = {
     timestamp: new Date().toISOString(),
     url: req.url,
@@ -25,12 +21,12 @@ export async function GET(req: NextRequest) {
     },
     note: 'This endpoint was called to test mobile flow debugging'
   };
-
+  
   // Multiple console.log attempts to ensure visibility
   console.log('[DEBUG MOBILE] ===== MOBILE DEBUG ENDPOINT CALLED =====');
   console.log('[DEBUG MOBILE] Mobile debug request:', JSON.stringify(debugInfo, null, 2));
   console.log('[DEBUG MOBILE] ===== END MOBILE DEBUG =====');
-
+  
   return NextResponse.json({
     message: 'Mobile debug endpoint working',
     debug: debugInfo,
@@ -44,11 +40,11 @@ export async function POST(req: NextRequest) {
     const debugInfo = {
       timestamp: new Date().toISOString(),
       body: body,
-      headers: headers
+      headers: Object.fromEntries(req.headers.entries())
     };
-
+    
     console.log('[DEBUG MOBILE POST] Mobile debug post request:', debugInfo);
-
+    
     return NextResponse.json({
       message: 'Mobile debug POST endpoint',
       received: body,

@@ -1,14 +1,16 @@
 "use server";
-import { getTenantId, getAppUrl } from "@/lib/env";
+import { getAppUrl, effectiveTenantId, appendTenantIfPresent } from "@/lib/env";
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
 import { withTenantId } from "@/lib/withTenantId";
 import { DiscountCodeDTO } from "@/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export async function fetchDiscountCodesForEvent(eventId: string): Promise<DiscountCodeDTO[]> {
-  const tenantId = getTenantId();
-  const url = `${API_BASE_URL}/api/discount-codes?eventId.equals=${eventId}&tenantId.equals=${tenantId}`;
+export async function fetchDiscountCodesForEvent(eventId: string, tenantId?: string): Promise<DiscountCodeDTO[]> {
+  const params = new URLSearchParams();
+  params.set('eventId.equals', eventId);
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  const url = `${API_BASE_URL}/api/discount-codes?${params.toString()}`;
 
   const response = await fetchWithJwtRetry(url, {
       next: { revalidate: 0 },
@@ -98,18 +100,19 @@ export async function fetchDiscountCodeByIdServer(
 
 export async function patchDiscountCodeServer(
   id: number,
-  code: Partial<Omit<DiscountCodeDTO, "tenantId" | "eventId" | "createdAt" | "updatedAt">> & { eventId: number }
+  code: Partial<Omit<DiscountCodeDTO, "tenantId" | "eventId" | "createdAt" | "updatedAt">> & { eventId: number },
+  tenantId?: string
 ): Promise<DiscountCodeDTO> {
   const baseUrl = getAppUrl();
   const url = `${baseUrl}/api/proxy/discount-codes/${id}`;
   const now = new Date().toISOString();
+  const tid = effectiveTenantId(tenantId);
   const payload: Partial<DiscountCodeDTO> = {
     ...code,
     id,
     eventId: code.eventId,
     updatedAt: now,
-    tenantId: getTenantId(),
-    // createdAt should be preserved from the original, not overwritten
+    ...(tid != null ? { tenantId: tid } : {}),
   };
   console.log('[DEBUG] Payload before PATCH:', payload);
   if (!payload.tenantId) throw new Error('tenantId missing from payload');

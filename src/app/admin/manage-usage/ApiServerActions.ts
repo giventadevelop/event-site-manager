@@ -1,7 +1,7 @@
 // This file was renamed from actions.ts to ApiServerActions.ts as a standard for server-side API calls in this module.
 "use server";
-import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
-import { getTenantId } from '@/lib/env';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+import { effectiveTenantId, appendTenantIfPresent, getDefaultPageSize } from '@/lib/env';
 import { UserProfileDTO } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -18,31 +18,49 @@ async function fetchWithJwt(url: string, options: any = {}) {
   return res;
 }
 
-export async function fetchAllUsersServer(): Promise<UserProfileDTO[]> {
-  const url = `${API_BASE_URL}/api/user-profiles?tenantId.equals=${getTenantId()}`;
-  const res = await fetchWithJwt(url, { cache: 'no-store' });
+export async function fetchAllUsersServer(tenantId?: string): Promise<UserProfileDTO[]> {
+  const params = new URLSearchParams();
+  params.set('page', '0');
+  params.set('size', String(getDefaultPageSize()));
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  const url = `${API_BASE_URL}/api/user-profiles?${params.toString()}`;
+  const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return [];
   return res.json();
 }
 
-export async function fetchAdminProfileServer(userId: string): Promise<UserProfileDTO | null> {
-    if (!userId) return null;
-    const url = `${API_BASE_URL}/api/user-profiles/by-user/${userId}?tenantId.equals=${getTenantId()}`;
-    const res = await fetchWithJwt(url, { cache: 'no-store' });
-    if (res.ok) {
-        const data = await res.json();
-        return Array.isArray(data) ? data[0] : data;
-    }
+export async function fetchAdminProfileServer(userId: string, tenantId?: string): Promise<UserProfileDTO | null> {
+  if (!userId) return null;
+  try {
+    const params = new URLSearchParams();
+    params.append('userId.equals', userId);
+    params.append('size', '1');
+    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    const url = `${API_BASE_URL}/api/user-profiles?${params.toString()}`;
+
+    const res = await fetchWithJwtRetry(url, {
+      cache: 'no-store',
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) return data[0] as UserProfileDTO;
+    if (data && typeof data === 'object') return data as UserProfileDTO;
     return null;
+  } catch (error) {
+    console.error('Error fetching admin profile:', error);
+    return null;
+  }
 }
 
-export async function fetchUsersServer({ search, searchField, status, role, page, pageSize }: {
+export async function fetchUsersServer({ search, searchField, status, role, page, pageSize, tenantId }: {
   search: string;
   searchField: string;
   status: string;
   role: string;
   page: number;
   pageSize: number;
+  tenantId?: string;
 }) {
   const params = new URLSearchParams();
   if (search && searchField) {
@@ -50,46 +68,33 @@ export async function fetchUsersServer({ search, searchField, status, role, page
   }
   if (status) params.append('userStatus.equals', status);
   if (role) params.append('userRole.equals', role);
-  params.append('page', String(page - 1));
-  params.append('size', String(pageSize));
-  params.append('tenantId.equals', getTenantId());
-  let token = await getCachedApiJwt();
-  let res = await fetch(`${API_BASE_URL}/api/user-profiles?${params.toString()}`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+  params.append('page', String((page ?? 1) - 1));
+  params.append('size', String(pageSize ?? getDefaultPageSize()));
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles?${params.toString()}`, {
     cache: 'no-store',
   });
-  if (res.status === 401) {
-    token = await generateApiJwt();
-    res = await fetch(`${API_BASE_URL}/api/user-profiles?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-      cache: 'no-store',
-    });
-  }
   const totalCount = res.headers.get('X-Total-Count');
   const data = await res.json();
   return { data, totalCount: totalCount ? parseInt(totalCount, 10) : 0 };
 }
 
-export async function patchUserProfileServer(userId: number, payload: Partial<UserProfileDTO>) {
+export async function patchUserProfileServer(userId: number, payload: Partial<UserProfileDTO>, tenantId?: string) {
   const url = `${API_BASE_URL}/api/user-profiles/${userId}`;
-
-  let token = await getCachedApiJwt();
-  if (!token) {
-    token = await generateApiJwt();
-  }
-
+  const tid = effectiveTenantId(tenantId);
   const finalPayload = {
     ...payload,
     id: userId,
+    ...(tid != null ? { tenantId: tid } : {}),
   };
 
-  const res = await fetch(url, {
+  const res = await fetchWithJwtRetry(url, {
     method: 'PATCH',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Content-Type': 'application/merge-patch+json',
     },
     body: JSON.stringify(finalPayload),
+    cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -100,26 +105,14 @@ export async function patchUserProfileServer(userId: number, payload: Partial<Us
   return res.json();
 }
 
-export async function bulkUploadUsersServer(users: any[]) {
-  let token = await getCachedApiJwt();
-  let res = await fetch(`${API_BASE_URL}/api/user-profiles/bulk`, {
+export async function bulkUploadUsersServer(users: any[], tenantId?: string) {
+  const tid = effectiveTenantId(tenantId);
+  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles/bulk`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(users.map(u => ({ ...u, tenantId: getTenantId() }))),
+    body: JSON.stringify(users.map(u => ({ ...u, ...(tid != null ? { tenantId: tid } : {}) }))),
   });
-  if (res.status === 401) {
-    token = await generateApiJwt();
-    res = await fetch(`${API_BASE_URL}/api/user-profiles/bulk`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(users.map(u => ({ ...u, tenantId: getTenantId() }))),
-    });
-  }
   return await res.json();
 }

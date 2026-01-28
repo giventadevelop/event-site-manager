@@ -1,12 +1,14 @@
 import { EventCalendarEntryDTO, EventTypeDetailsDTO } from '@/types';
-import { getTenantId, getAppUrl } from '@/lib/env';
+import { getAppUrl, effectiveTenantId, appendTenantIfPresent } from '@/lib/env';
 
-export async function fetchCalendarEventsServer(): Promise<EventCalendarEntryDTO[]> {
+export async function fetchCalendarEventsServer(tenantId?: string): Promise<EventCalendarEntryDTO[]> {
   const baseUrl = getAppUrl();
-  const tenantId = getTenantId();
+  const params = new URLSearchParams();
+  params.set('size', '1000');
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
 
   try {
-    const response = await fetch(`${baseUrl}/api/proxy/event-calendar-entries?size=1000&tenantId.equals=${tenantId}`, {
+    const response = await fetch(`${baseUrl}/api/proxy/event-calendar-entries?${params.toString()}`, {
       cache: 'no-store'
     });
 
@@ -21,12 +23,13 @@ export async function fetchCalendarEventsServer(): Promise<EventCalendarEntryDTO
   }
 }
 
-export async function fetchEventTypesServer(): Promise<EventTypeDetailsDTO[]> {
+export async function fetchEventTypesServer(tenantId?: string): Promise<EventTypeDetailsDTO[]> {
   const baseUrl = getAppUrl();
-  const tenantId = getTenantId();
+  const params = new URLSearchParams();
+  appendTenantIfPresent(params, effectiveTenantId(tenantId));
 
   try {
-    const response = await fetch(`${baseUrl}/api/proxy/event-type-details?tenantId.equals=${tenantId}`, {
+    const response = await fetch(`${baseUrl}/api/proxy/event-type-details?${params.toString()}`, {
       cache: 'no-store'
     });
 

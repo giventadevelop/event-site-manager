@@ -16,9 +16,10 @@ out/
 # Environment variables
 # Ignore all .env files
 .env*
+.env.*
 
 # Except .env.example (keep as template)
-!.env.example
+.env.example
 
 # Task master env files
 .task-master/.env*
@@ -61,3 +62,16 @@ dev.js
 .qoder/rules/byterover-rules.md
 .augment/rules/byterover-rules.md# Clerk credentials
 .clerk/
+
+# Test authentication state (contains session tokens)
+TestSprite/sanity-tests/.auth-state.json
+TestSprite/sanity-tests/screenshots/
+TestSprite/**/screenshots/
+
+# Admin test credentials and state
+TestSprite/admin-tests/auth.json
+TestSprite/admin-tests/.auth-state.json
+TestSprite/admin-tests/screenshots/
+
+# All screenshot folders (catch-all pattern for any screenshots directory)
+**/screenshots/

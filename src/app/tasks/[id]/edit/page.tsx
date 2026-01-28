@@ -1,16 +1,17 @@
-import { auth } from '@clerk/nextjs'
-import { TaskForm } from '@/components/task-form'
-import { notFound } from 'next/navigation'
+import { auth } from '@clerk/nextjs/server';
+import { notFound } from 'next/navigation';
+import { TaskForm } from '@/components/task-form';
 
 interface EditTaskPageProps {
   params: Promise<{ id: string }> | { id: string }
 }
 
 export default async function EditTaskPage(props: EditTaskPageProps) {
-  const { userId } = auth()
+  // Fix for Next.js 15+: await auth() before using
+  const { userId } = await auth();
 
   if (!userId) {
-    return null
+    return null;
   }
 
   // Await params for Next.js 15+ compatibility
@@ -32,7 +33,7 @@ export default async function EditTaskPage(props: EditTaskPageProps) {
   }
 
   if (!task) {
-    notFound()
+    notFound();
   }
 
   return (
@@ -47,5 +48,5 @@ export default async function EditTaskPage(props: EditTaskPageProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

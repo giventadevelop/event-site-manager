@@ -2,7 +2,7 @@ import { stripe } from '@/lib/stripe';
 import type { UserProfileDTO, EventTicketTypeDTO } from '@/types';
 import { fetchDiscountCodeByIdServer } from '@/app/admin/events/[id]/discount-codes/list/ApiServerActions';
 import Stripe from 'stripe';
-import { getTenantId, getAppUrl } from '@/lib/env';
+import { getTenantId, getPaymentMethodDomainId, getAppUrl } from '@/lib/env';
 
 interface CartItem {
   ticketType: EventTicketTypeDTO;
@@ -38,6 +38,44 @@ export async function createStripeCheckoutSession(
     ? ['card', 'link', 'cashapp'] // Add more options for production
     : ['card', 'link']; // Keep it simple for local development
 
+  // Get tenant ID and Payment Method Domain ID from environment variables
+  // CRITICAL: These must be set in production environment variables
+  let tenantId: string;
+  let paymentMethodDomainId: string;
+
+  try {
+    tenantId = getTenantId();
+    console.log('[STRIPE_CHECKOUT] ✅ Tenant ID retrieved:', {
+      tenantId,
+      hasValue: !!tenantId,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[STRIPE_CHECKOUT] ⚠️⚠️⚠️ CRITICAL ERROR: NEXT_PUBLIC_TENANT_ID is not set:', error);
+    console.error('[STRIPE_CHECKOUT] Environment check:', {
+      NEXT_PUBLIC_TENANT_ID: process.env.NEXT_PUBLIC_TENANT_ID ? 'SET' : 'NOT SET',
+      timestamp: new Date().toISOString()
+    });
+    throw new Error(`NEXT_PUBLIC_TENANT_ID is not set in environment variables. Cannot create checkout session without Tenant ID.`);
+  }
+
+  try {
+    paymentMethodDomainId = getPaymentMethodDomainId();
+    console.log('[STRIPE_CHECKOUT] ✅ Payment Method Domain ID retrieved:', {
+      paymentMethodDomainId,
+      hasValue: !!paymentMethodDomainId,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[STRIPE_CHECKOUT] ⚠️⚠️⚠️ CRITICAL ERROR: NEXT_PUBLIC_PAYMENT_METHOD_DOMAIN_ID is not set:', error);
+    console.error('[STRIPE_CHECKOUT] Environment check:', {
+      NEXT_PUBLIC_PAYMENT_METHOD_DOMAIN_ID: process.env.NEXT_PUBLIC_PAYMENT_METHOD_DOMAIN_ID ? 'SET' : 'NOT SET',
+      NEXT_PUBLIC_TENANT_ID: process.env.NEXT_PUBLIC_TENANT_ID ? 'SET' : 'NOT SET',
+      timestamp: new Date().toISOString()
+    });
+    throw new Error(`NEXT_PUBLIC_PAYMENT_METHOD_DOMAIN_ID is not set in environment variables. Cannot create checkout session without Payment Method Domain ID.`);
+  }
+
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     payment_method_types: paymentMethods,
     line_items,
@@ -49,6 +87,8 @@ export async function createStripeCheckoutSession(
       ...(user.userId && { userId: user.userId }),
       eventId: String(eventId),
       ticketTypeId: String(ticketTypeId),
+      tenantId: tenantId, // CRITICAL: Add tenant ID to metadata for webhook tenant identification
+      paymentMethodDomainId: paymentMethodDomainId, // CRITICAL: Add Payment Method Domain ID for triple validation
       cart: JSON.stringify(
         cart.map(item => ({
           ticketTypeId: item.ticketType.id,
@@ -64,6 +104,8 @@ export async function createStripeCheckoutSession(
         ...(user.userId && { userId: user.userId }),
         eventId: String(eventId),
         ticketTypeId: String(ticketTypeId),
+        tenantId: tenantId, // CRITICAL: Add tenant ID to PaymentIntent metadata for webhook tenant identification
+        paymentMethodDomainId: paymentMethodDomainId, // CRITICAL: Add Payment Method Domain ID for triple validation
         cart: JSON.stringify(
           cart.map(item => ({
             ticketTypeId: item.ticketType.id,
