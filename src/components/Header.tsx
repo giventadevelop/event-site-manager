@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, ChevronDown, X, LogOut, User, Sparkles } from 'lucide-react';
+import { Search, ChevronDown, X, LogOut, User } from 'lucide-react';
 import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 import { useTenantSettings } from '@/components/TenantSettingsProvider';
 import Image from 'next/image';
@@ -472,9 +472,21 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
     // We use the proxy API endpoint which is public and doesn't require authentication
     const checkAdminStatus = async () => {
       try {
-        // Tenant-agnostic: do not inject tenantId from env; only userId for profile lookup
+        const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
+        if (!tenantId) {
+          console.warn('[Header] NEXT_PUBLIC_TENANT_ID not set, cannot check admin status');
+          // Fallback to server-verified flag or Clerk metadata
+          if (typeof isTenantAdmin === 'boolean') {
+            setIsAdmin(isTenantAdmin);
+          } else {
+            setIsAdmin(false);
+          }
+          return;
+        }
+
+        // Use proxy API endpoint to check admin status (public route, no auth required)
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const url = `${baseUrl}/api/proxy/user-profiles?userId.equals=${encodeURIComponent(userId)}&size=1`;
+        const url = `${baseUrl}/api/proxy/user-profiles?userId.equals=${encodeURIComponent(userId)}&tenantId.equals=${encodeURIComponent(tenantId)}&size=1`;
 
         const resp = await fetch(url, {
           cache: 'no-store',
@@ -552,26 +564,41 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
     // Broadcast sign-out to other tabs
     localStorage.setItem('clerk_signout_broadcast', Date.now().toString());
 
-    // For satellite domains, redirect to primary domain's sign-out URL
     const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-    const satelliteDomain = process.env.NEXT_PUBLIC_CLERK_DOMAIN || 'mosc-temp.com';
-    const isSatellite = hostname.includes('mosc-temp.com') || hostname.includes(satelliteDomain.replace('www.', ''));
+    const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
+    const primaryHost = primaryDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
+    // CRITICAL: If we're on the primary domain, always do normal sign out (never redirect).
+    // This prevents sign-out errors when NEXT_PUBLIC_CLERK_DOMAIN is mis-set on primary app.
+    const isPrimary =
+      hostname === primaryHost ||
+      hostname === primaryDomain ||
+      hostname.includes(primaryHost.replace('www.', '')) ||
+      hostname.includes(primaryDomain.replace('www.', ''));
+
+    if (isPrimary) {
+      try {
+        await signOut();
+        window.location.href = '/';
+      } catch (error) {
+        console.error('[Header] Error signing out:', error);
+        setIsSigningOut(false);
+      }
+      return;
+    }
+
+    // Only redirect to primary sign-out when we're on a known satellite domain (mosc-temp.com).
+    // Do not use NEXT_PUBLIC_CLERK_DOMAIN for this check - it can be set to primary by mistake.
+    const isSatellite = hostname.includes('mosc-temp.com');
     if (isSatellite) {
       console.log('[Header] Satellite domain detected, redirecting to primary domain sign-out...');
-
-      // Get primary domain from environment variable
-      const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
-
-      // Redirect to primary domain's dedicated sign-out page
-      const primarySignOutUrl = `https://${primaryDomain}/auth/signout-redirect`;
+      const primarySignOutUrl = `https://${primaryHost}/auth/signout-redirect`;
       const returnUrl = encodeURIComponent(window.location.origin);
-
       window.location.href = `${primarySignOutUrl}?redirect_url=${returnUrl}`;
       return;
     }
 
-    // Primary domain: normal sign out
+    // Fallback: not primary and not satellite (e.g. localhost) - normal sign out
     try {
       await signOut();
       window.location.href = '/';
@@ -609,8 +636,8 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
           if (targetId === 'team-section') {
             // Check if element has actual content (team members loaded)
             const hasContent = targetElement.querySelector('.max-w-7xl') &&
-                               (targetElement.querySelector('.grid') || targetElement.querySelector('.flex') ||
-                                targetElement.querySelector('[class*="team"]'));
+              (targetElement.querySelector('.grid') || targetElement.querySelector('.flex') ||
+                targetElement.querySelector('[class*="team"]'));
             if (!hasContent) {
               // Element exists but content not loaded yet, keep waiting
               const elapsed = Date.now() - startTime;
@@ -707,18 +734,21 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-[4.5rem]">
             {/* Left side - Unite India Text Logo with Editorial Typography */}
-            <div className="flex items-center">
-              <Link href="/" className="group flex items-center gap-3">
-                {/* Optional: Decorative element */}
-                <div className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-amber-500 shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/30 transition-all duration-300 group-hover:scale-105">
-                  <Sparkles size={20} className="text-white" />
+            <div className="flex items-center h-full">
+              <Link href="/" className="group flex items-center gap-3 h-full">
+                {/* Unite India logo icon - full header height, 102px wide */}
+                <div className="flex items-center justify-center h-full w-[102px] min-w-[102px] rounded-xl flex-shrink-0 overflow-hidden transition-all duration-300 group-hover:scale-105">
+                  <Image
+                    src="/images/logos/Malayalees_US/Malayalees_US_Header_Branding.png"
+                    alt="Unite India"
+                    width={102}
+                    height={72}
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <div className="text-left">
                   <div className="header-logo-primary text-[1.375rem] leading-tight group-hover:text-[var(--header-accent-primary)] transition-colors duration-300">
-                    Unite India
-                  </div>
-                  <div className="header-logo-secondary uppercase group-hover:text-[var(--header-accent-secondary)]">
-                    A Nonprofit Corporation
+                    MALAYALEES.US
                   </div>
                 </div>
               </Link>
@@ -749,11 +779,10 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
                         {hasDropdown ? (
                           <>
                             <div
-                              className={`header-nav-link flex items-center gap-1.5 cursor-pointer ${
-                                (item.name === 'About' && isAboutActive) || (item.name === 'Features' && isFeaturesActive)
+                              className={`header-nav-link flex items-center gap-1.5 cursor-pointer ${(item.name === 'About' && isAboutActive) || (item.name === 'Features' && isFeaturesActive)
                                   ? 'active'
                                   : ''
-                              }`}
+                                }`}
                               aria-haspopup="true"
                               aria-expanded="false"
                               role="button"
@@ -979,24 +1008,26 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
       {/* Mobile Menu Sidebar */}
       <div
         id="mobile-menu"
-        className={`header-mobile-menu fixed top-0 right-0 h-full w-80 max-w-[85vw] z-50 transform transition-transform duration-300 ease-out lg:hidden ${
-          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`header-mobile-menu fixed top-0 right-0 h-full w-80 max-w-[85vw] z-50 transform transition-transform duration-300 ease-out lg:hidden ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
         aria-hidden={!isMobileMenuOpen}
       >
         <div className="flex flex-col h-full">
           {/* Mobile Menu Header */}
           <div className="flex items-center justify-between p-5 border-b border-[var(--header-border)]">
             <Link href="/" className="flex items-center gap-2.5" onClick={closeMobileMenu}>
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-violet-600 to-amber-500">
-                <Sparkles size={16} className="text-white" />
+              <div className="flex items-center justify-center w-[86px] min-w-[86px] h-14 rounded-lg flex-shrink-0 overflow-hidden">
+                <Image
+                  src="/images/logos/Malayalees_US/Malayalees_US_Header_Branding.png"
+                  alt="Unite India"
+                  width={86}
+                  height={56}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div className="text-left">
                 <div className="header-logo-primary text-lg leading-tight">
-                  Unite India
-                </div>
-                <div className="header-logo-secondary">
-                  A Nonprofit Corporation
+                  MALAYALEES.US
                 </div>
               </div>
             </Link>
