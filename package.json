@@ -28,7 +28,9 @@
     "test:admin:dynamic": "node TestSprite/admin-tests/dynamic-event-test-suite.js",
     "test:admin:all": "npm run test:admin && npm run test:admin:dynamic",
     "test:admin:diagnose": "node TestSprite/admin-tests/diagnose-event-discovery.js",
-    "test:install-playwright": "npx playwright install chromium"
+    "test:install-playwright": "npx playwright install chromium",
+    "record:scroll-video": "node scripts/record-mosc-scroll-video.js",
+    "record:screenshot-scroll": "node scripts/record-screenshot-scroll-video.js"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.29.9",
