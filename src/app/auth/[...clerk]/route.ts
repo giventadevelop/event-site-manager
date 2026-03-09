@@ -1,4 +1,3 @@
-import { authMiddleware } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 
 export async function GET() {

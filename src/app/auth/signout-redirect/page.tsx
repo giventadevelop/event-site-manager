@@ -10,61 +10,95 @@
  * the satellite as signed out.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
+import { getSatelliteBareDomains } from '@/lib/satelliteConfig';
+
+/** All known satellite bare domains + localhost, loaded from config/satellites.json */
+const ALLOWED_SATELLITES = [...getSatelliteBareDomains(), 'localhost'];
+
+/** Max time (ms) to wait for Clerk JS to load before redirecting anyway */
+const CLERK_LOAD_TIMEOUT_MS = 5000;
+
+function buildFinalUrl(redirectUrlRaw: string): string {
+  let decoded = typeof redirectUrlRaw === 'string' ? redirectUrlRaw : '';
+  try {
+    if (decoded && decoded.includes('%')) decoded = decodeURIComponent(decoded);
+  } catch {
+    // leave decoded as-is
+  }
+
+  // Only allow redirect to known satellite or localhost; otherwise send to /
+  const allowedHost =
+    decoded.startsWith('http') &&
+    ALLOWED_SATELLITES.some((host) => decoded.includes(host));
+  const baseUrl = allowedHost ? decoded.replace(/\/$/, '') : '';
+  return baseUrl
+    ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}clerk_signout=true`
+    : '/';
+}
 
 export default function SignOutRedirectPage() {
   const searchParams = useSearchParams();
-  const { signOut } = useClerk();
+  const { signOut, loaded } = useClerk();
   const [error, setError] = useState<string | null>(null);
+  const redirectedRef = useRef(false);
 
+  // Compute the final redirect URL once
+  const redirectUrlRaw = searchParams?.get('redirect_url') ?? '';
+  const finalUrl = buildFinalUrl(redirectUrlRaw);
+
+  // Safety-net: if Clerk never loads (e.g. DNS failure for clerk.event-site-manager.com),
+  // redirect after timeout so the user isn't stuck on a blank spinner forever.
   useEffect(() => {
-    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!redirectedRef.current) {
+        console.warn('[signout-redirect] Clerk did not load within timeout. Redirecting without sign-out.');
+        redirectedRef.current = true;
+        window.location.href = finalUrl;
+      }
+    }, CLERK_LOAD_TIMEOUT_MS);
+
+    return () => clearTimeout(timer);
+  }, [finalUrl]);
+
+  // Main sign-out logic: runs when Clerk is loaded (or immediately if signOut is unavailable)
+  useEffect(() => {
+    if (redirectedRef.current) return;
 
     const runSignOut = async () => {
-      const redirectUrlRaw = searchParams?.get('redirect_url') ?? '';
-      let decoded = typeof redirectUrlRaw === 'string' ? redirectUrlRaw : '';
-      try {
-        if (decoded && decoded.includes('%')) decoded = decodeURIComponent(decoded);
-      } catch {
-        // leave decoded as-is
-      }
-
-      // Only allow redirect to known satellite or localhost; otherwise send to /
-      const allowedHost =
-        decoded.startsWith('http') &&
-        (decoded.includes('mosc-temp.com') || decoded.includes('localhost'));
-      const baseUrl = allowedHost ? decoded.replace(/\/$/, '') : '';
-      const finalUrl = baseUrl
-        ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}clerk_signout=true`
-        : '/';
+      // If Clerk hasn't loaded yet, wait for the loaded flag or the timeout above
+      if (!loaded && signOut) return;
 
       if (!signOut) {
-        // Clerk not ready yet; redirect anyway so user isn't stuck
+        // Clerk not available at all; redirect anyway
+        console.warn('[signout-redirect] signOut not available. Redirecting.');
+        redirectedRef.current = true;
         window.location.href = finalUrl;
         return;
       }
 
       try {
         await signOut();
-        if (cancelled) return;
+        if (redirectedRef.current) return;
+        redirectedRef.current = true;
         window.location.href = finalUrl;
       } catch (err) {
-        if (cancelled) return;
+        if (redirectedRef.current) return;
         console.error('[signout-redirect] Sign out failed:', err);
         setError('Sign out failed. Redirecting...');
         setTimeout(() => {
-          window.location.href = finalUrl;
+          if (!redirectedRef.current) {
+            redirectedRef.current = true;
+            window.location.href = finalUrl;
+          }
         }, 2000);
       }
     };
 
     runSignOut();
-    return () => {
-      cancelled = true;
-    };
-  }, [searchParams, signOut]);
+  }, [loaded, signOut, finalUrl]);
 
   if (error) {
     return (

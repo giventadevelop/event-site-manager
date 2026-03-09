@@ -214,6 +214,49 @@ export function isSatelliteDomain(url: string): boolean {
 }
 
 /**
+ * Get Clerk-compatible allowedRedirectOrigins for the primary domain's ClerkProvider.
+ * Returns both www and non-www variants plus localhost for dev.
+ * Used by layout.tsx to dynamically allow redirects from all satellites.
+ */
+export function getAllowedRedirectOrigins(): string[] {
+  const origins: string[] = [];
+  for (const sat of getSatelliteConfigs()) {
+    // Add the configured domain URL (e.g. "https://www.mosc-temp.com")
+    origins.push(sat.domain);
+    // Also add the non-www or www variant
+    const bare = sat.hostname.replace(/^www\./, '');
+    if (sat.hostname.startsWith('www.')) {
+      origins.push(`https://${bare}`);
+    } else {
+      origins.push(`https://www.${bare}`);
+    }
+  }
+  return origins;
+}
+
+/**
+ * Check if a given hostname belongs to a known satellite domain.
+ * Matches against the bare domain (e.g. "mosc-temp.com" matches "www.mosc-temp.com").
+ * Used by middleware and signout-redirect to validate redirect targets.
+ */
+export function isKnownSatelliteHost(hostname: string): boolean {
+  const bare = hostname.replace(/^www\./, '');
+  return getSatelliteConfigs().some(sat => {
+    const satBare = sat.hostname.replace(/^www\./, '');
+    return bare === satBare || hostname === sat.hostname;
+  });
+}
+
+/**
+ * Get the bare domain names (without www) for all satellites.
+ * Useful for simple string-includes checks in client components.
+ * e.g. ["mosc-temp.com", "mcefee-temp.com", "md-strikers.com"]
+ */
+export function getSatelliteBareDomains(): string[] {
+  return getSatelliteConfigs().map(sat => sat.hostname.replace(/^www\./, ''));
+}
+
+/**
  * Get statistics about satellite configuration
  */
 export function getSatelliteStats() {

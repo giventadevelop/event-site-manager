@@ -1015,6 +1015,42 @@ export interface EventProgramDirectorsDTO {
   event?: EventDetailsDTO;
 }
 
+/**
+ * DTO for satellite domains, matches backend SatelliteDomainDTO.
+ */
+export interface SatelliteDomainDTO {
+  id?: number;
+  satelliteKey: string;
+  domain: string;
+  hostname: string;
+  displayName: string;
+  tenantId?: string;
+  enabled?: boolean;
+  addedDate?: string;
+  orgName?: string;
+  fullName?: string;
+  tagline?: string;
+  logoType?: string;
+  logoUrl?: string;
+  logoPrimaryColor?: string;
+  logoSecondaryColor?: string;
+  themePrimaryColor?: string;
+  themeHoverColor?: string;
+  themeActiveColor?: string;
+  contactAddress?: string;
+  contactPhone?: string;
+  contactTollFree?: string;
+  contactEmail?: string;
+  socialFacebook?: string;
+  socialTwitter?: string;
+  socialLinkedin?: string;
+  socialYoutube?: string;
+  showOnAuthHeader?: boolean;
+  showOnAuthFooter?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // WhatsApp Integration Types
 
 /**

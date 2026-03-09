@@ -1,8 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run dev:*)"
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "*",
+      "mcp__byterover-mcp__cipher_extract_and_operate_memory",
+      "mcp__byterover-mcp__cipher_memory_search"
     ],
-    "deny": []
-  }
+    "deny": [],
+    "defaultMode": "bypassPermissions"
+  },
+  "skipDangerousModePermissionPrompt": true
 }

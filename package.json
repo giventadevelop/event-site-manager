@@ -33,7 +33,7 @@
     "record:screenshot-scroll": "node scripts/record-screenshot-scroll-video.js"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.29.9",
+    "@clerk/nextjs": "^6.37.3",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.6.0",
     "@prisma/extension-accelerate": "^1.3.0",

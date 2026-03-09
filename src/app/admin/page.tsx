@@ -131,6 +131,13 @@ export default function AdminPage() {
       key: 'tenant-organizations'
     },
     {
+      href: '/admin/satellite-domains',
+      icon: 'globe',
+      label: 'Satellite Domains',
+      color: 'sky',
+      key: 'satellite-domains'
+    },
+    {
       href: '/admin/tenant-management/settings',
       icon: 'cog',
       label: 'Tenant Settings',
@@ -348,6 +355,8 @@ export default function AdminPage() {
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>;
       case 'moneyBill':
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+      case 'globe':
+        return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9 0 01-9-9m9 9c0 01.53.053 0 019 9m-9-9a9 9 0 019-9m-9 9a9 9 0 019 9m0 0a9 9 0 01-9 9m9-9a9 9 0 009 9" /></svg>;
       default:
         return null;
     }

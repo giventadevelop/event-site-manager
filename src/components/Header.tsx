@@ -79,7 +79,8 @@ const adminSubmenuItems = [
   { name: 'Test Stripe', href: '/admin/test-stripe' },
   { name: 'Media Management', href: '/admin/media' },
   { name: 'Executive Committee', href: '/admin/executive-committee' },
-  { name: 'Event Sponsors', href: '/admin/event-sponsors' }
+  { name: 'Event Sponsors', href: '/admin/event-sponsors' },
+  { name: 'Satellite Domains', href: '/admin/satellite-domains' }
 ];
 
 type HeaderProps = {
