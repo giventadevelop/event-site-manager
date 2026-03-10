@@ -87,15 +87,24 @@ export default async function RootLayout({
   // Detect if this is a satellite domain — uses config/satellites.json as source of truth
   const isSatellite = isKnownSatelliteHost(hostname);
 
+  // Detect production environment (not localhost/dev) for proxy URL usage
+  // In production, Clerk SDK tries to reach clerk.<hostname> which may not exist in DNS
+  // (e.g., clerk.www.event-site-manager.com). The proxyUrl routes requests through
+  // the /__clerk rewrite in next.config.mjs instead, bypassing the DNS lookup.
+  const isProduction = !hostname.includes('localhost') && !hostname.includes('127.0.0.1');
+
   // Satellite domains must redirect to primary domain for authentication
   const clerkProps = isSatellite
     ? {
       isSatellite: true,
       domain: satelliteDomain, // Use env var to match DNS record
+      ...(isProduction ? { proxyUrl: `https://${primaryDomain}/__clerk` } : {}),
       signInUrl: `https://${primaryDomain}/sign-in`,
       signUpUrl: `https://${primaryDomain}/sign-up`,
     }
     : {
+      // Primary domain: use proxy to avoid clerk.<hostname> DNS lookup in production
+      ...(isProduction ? { proxyUrl: '/__clerk' } : {}),
       // Primary domain allows redirects from all satellites (loaded from config/satellites.json)
       allowedRedirectOrigins: [
         ...(appUrl ? [appUrl] : []),
