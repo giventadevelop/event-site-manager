@@ -1,107 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
-import { getTenantId } from '@/lib/env';
+import { generateEmailSubscriptionTokenServer } from '@/app/profile/ApiServerActions';
 
+export const dynamic = 'force-dynamic';
+
+/**
+ * API route to generate email subscription token for a profile.
+ * Used by client components (e.g. ProfileForm) to avoid importing server-only ApiServerActions.
+ */
 export async function POST(req: NextRequest) {
   try {
-    console.log('[GENERATE-EMAIL-TOKEN] 🚀 Generate email token API called');
-
-    // Get the authenticated user
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
     const body = await req.json();
-    const { email, tenantId } = body;
+    const profileId = body?.profileId != null ? Number(body.profileId) : NaN;
 
-    if (!email || !tenantId) {
+    if (!Number.isInteger(profileId) || profileId < 1) {
       return NextResponse.json(
-        { success: false, message: 'Email and tenantId are required' },
+        { success: false, error: 'Valid profileId is required' },
         { status: 400 }
       );
     }
 
-    // Get API base URL
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    if (!apiBaseUrl) {
-      throw new Error('API base URL not configured');
-    }
-
-    // Get JWT token for backend calls
-    let jwtToken = await getCachedApiJwt();
-    if (!jwtToken) {
-      jwtToken = await generateApiJwt();
-    }
-
-    // Generate a simple token for email subscription operations
-    // In a real implementation, this would be a proper JWT token
-    const emailToken = `email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    console.log('[GENERATE-EMAIL-TOKEN] ✅ Email token generated:', emailToken);
-
-    return NextResponse.json({
-      success: true,
-      token: emailToken,
-      message: 'Email token generated successfully'
-    });
-
+    const result = await generateEmailSubscriptionTokenServer(profileId);
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('[GENERATE-EMAIL-TOKEN] ❌ Error generating email token:', error);
+    console.error('[GENERATE-EMAIL-TOKEN] Error:', error);
     return NextResponse.json(
       {
         success: false,
-        message: 'Failed to generate email token',
         error: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

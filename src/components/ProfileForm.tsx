@@ -7,7 +7,6 @@ import { flushSync } from "react-dom";
 import { UserProfileDTO } from "@/types";
 import { getTenantId } from '@/lib/env';
 import { resubscribeEmailAction, unsubscribeEmailAction } from '@/app/profile/actions';
-import { generateEmailSubscriptionTokenServer, fetchUserProfileByEmailServer } from '@/app/profile/ApiServerActions';
 
 type UserProfileFormData = Omit<UserProfileDTO, 'createdAt' | 'updatedAt' | 'id'> & { id?: number };
 const defaultFormData: UserProfileFormData = {
@@ -388,7 +387,16 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
       if (!token || !profileId) {
         console.log('[ProfileForm] No email subscription token or profile ID found, fetching profile by email...');
 
-        const profile = await fetchUserProfileByEmailServer(email);
+        const fetchRes = await fetch('/api/profile/fetch-by-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        if (!fetchRes.ok) {
+          setResubscribeError('Failed to load profile.');
+          return;
+        }
+        const profile = await fetchRes.json();
         if (!profile) {
           setResubscribeError('User profile not found. Please make sure you have completed your profile setup first.');
           return;
@@ -412,12 +420,16 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
       if (!token) {
         console.log('[ProfileForm] No email subscription token found in profile, generating new one...');
 
-        const tokenResult = await generateEmailSubscriptionTokenServer(profileId);
+        const tokenRes = await fetch('/api/profile/generate-email-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profileId }),
+        });
+        const tokenResult = tokenRes.ok ? await tokenRes.json() : { success: false, error: 'Request failed' };
         if (!tokenResult.success) {
-          setResubscribeError(`Failed to generate email subscription token: ${tokenResult.error}`);
+          setResubscribeError(`Failed to generate email subscription token: ${tokenResult.error ?? 'Unknown error'}`);
           return;
         }
-
         token = tokenResult.token!;
         // Update the form data with the new token
         setFormData((prev) => ({

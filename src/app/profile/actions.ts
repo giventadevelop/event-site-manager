@@ -1,10 +1,14 @@
 "use server";
 
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { getAppUrl, getTenantId } from '@/lib/env';
-import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
+import { auth } from '@clerk/nextjs/server';
+import { getTenantId } from '@/lib/env';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import type { UserProfileDTO } from '@/types';
-import { updateUserProfileServer, createUserProfileServer } from './ApiServerActions';
+
+// Do NOT import ApiServerActions at top level (per .cursor/rules/nextjs_api_routes.mdc):
+// ApiServerActions imports @clerk/nextjs/server, which would pull server-only code into
+// the client bundle when ProfileForm (client) imports this file. Use dynamic import inside
+// the server actions that delegate to ApiServerActions so the client never bundles it.
 
 /**
  * Server action to trigger profile reconciliation after authentication
@@ -28,18 +32,6 @@ export async function triggerProfileReconciliationServer() {
     }
 
     console.log('[PROFILE-RECONCILIATION-SERVER] 👤 User authenticated:', userId);
-
-    // Get API base URL
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    if (!apiBaseUrl) {
-      throw new Error('API base URL not configured');
-    }
-
-    // Get JWT token for backend calls
-    let token = await getCachedApiJwt();
-    if (!token) {
-      token = await generateApiJwt();
-    }
 
     // 1. Fetch Clerk user data to get current names and email
     const clerkUserResponse = await fetch(`https://api.clerk.dev/v1/users/${userId}`, {
@@ -79,14 +71,16 @@ export async function triggerProfileReconciliationServer() {
       };
     }
 
-    // 2. Lookup existing profile by email
-    const profileRes = await fetch(`${apiBaseUrl}/api/user-profiles?email.equals=${encodeURIComponent(email)}`, {
+    // 2. Lookup existing profile by email (per nextjs_api_routes.mdc: use fetchWithJwtRetry)
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    if (!apiBaseUrl) {
+      throw new Error('API base URL not configured');
+    }
+    const profileUrl = `${apiBaseUrl}/api/user-profiles?email.equals=${encodeURIComponent(email)}`;
+    const profileRes = await fetchWithJwtRetry(profileUrl, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+      headers: { 'Content-Type': 'application/json' }
+    }, '[triggerProfileReconciliationServer] profile-lookup');
 
     if (!profileRes.ok) {
       console.log('[PROFILE-RECONCILIATION-SERVER] ❌ Failed to lookup profile by email:', profileRes.status);
@@ -163,15 +157,15 @@ export async function triggerProfileReconciliationServer() {
 
     console.log('[PROFILE-RECONCILIATION-SERVER] 📝 Update payload:', updatePayload);
 
-    // Update the profile
-    const updateRes = await fetch(`${apiBaseUrl}/api/user-profiles/${existingProfile.id}`, {
+    // Update the profile (per nextjs_api_routes.mdc: use fetchWithJwtRetry)
+    const updateUrl = `${apiBaseUrl}/api/user-profiles/${existingProfile.id}`;
+    const updateRes = await fetchWithJwtRetry(updateUrl, {
       method: 'PATCH',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/merge-patch+json'
       },
       body: JSON.stringify(updatePayload)
-    });
+    }, '[triggerProfileReconciliationServer] profile-update');
 
     if (!updateRes.ok) {
       const errorText = await updateRes.text();
@@ -214,6 +208,7 @@ export async function triggerProfileReconciliationServer() {
  */
 export async function updateUserProfileAction(profileId: number, payload: Partial<UserProfileDTO>): Promise<UserProfileDTO | null> {
   console.log('[Profile Action] Updating profile:', profileId, 'with payload:', payload);
+  const { updateUserProfileServer } = await import('./ApiServerActions');
   return updateUserProfileServer(profileId, payload);
 }
 
@@ -222,6 +217,7 @@ export async function updateUserProfileAction(profileId: number, payload: Partia
  * Uses centralized createUserProfileServer
  */
 export async function createUserProfileAction(payload: Omit<UserProfileDTO, 'id' | 'createdAt' | 'updatedAt'>): Promise<UserProfileDTO | null> {
+  const { createUserProfileServer } = await import('./ApiServerActions');
   return createUserProfileServer(payload);
 }
 
@@ -237,23 +233,15 @@ export async function resubscribeEmailAction(email: string, token: string): Prom
       throw new Error('API base URL not configured');
     }
 
-    // Get JWT token for backend calls
-    let jwtToken = await getCachedApiJwt();
-    if (!jwtToken) {
-      jwtToken = await generateApiJwt();
-    }
-
     // Get tenant ID
     const tenantId = getTenantId();
 
-    // Call backend API directly with proper parameters
-    const response = await fetch(`${apiBaseUrl}/api/user-profiles/resubscribe-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, {
+    // Call backend (per nextjs_api_routes.mdc: use fetchWithJwtRetry)
+    const url = `${apiBaseUrl}/api/user-profiles/resubscribe-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`;
+    const response = await fetchWithJwtRetry(url, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${jwtToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
+      headers: { 'Content-Type': 'application/json' }
+    }, '[resubscribeEmailAction]');
 
     if (response.ok) {
       console.log('[RESUBSCRIBE-EMAIL-SERVER] ✅ Email resubscribed successfully');
@@ -309,23 +297,15 @@ export async function unsubscribeEmailAction(email: string, token: string): Prom
       throw new Error('API base URL not configured');
     }
 
-    // Get JWT token for backend calls
-    let jwtToken = await getCachedApiJwt();
-    if (!jwtToken) {
-      jwtToken = await generateApiJwt();
-    }
-
     // Get tenant ID
     const tenantId = getTenantId();
 
-    // Call backend API directly with proper parameters
-    const response = await fetch(`${apiBaseUrl}/api/user-profiles/unsubscribe-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`, {
+    // Call backend (per nextjs_api_routes.mdc: use fetchWithJwtRetry)
+    const url = `${apiBaseUrl}/api/user-profiles/unsubscribe-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`;
+    const response = await fetchWithJwtRetry(url, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${jwtToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
+      headers: { 'Content-Type': 'application/json' }
+    }, '[unsubscribeEmailAction]');
 
     if (response.ok) {
       console.log('[UNSUBSCRIBE-EMAIL-SERVER] ✅ Email unsubscribed successfully');
