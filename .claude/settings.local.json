@@ -9,7 +9,11 @@
       "Grep(*)",
       "*",
       "mcp__byterover-mcp__cipher_extract_and_operate_memory",
-      "mcp__byterover-mcp__cipher_memory_search"
+      "mcp__byterover-mcp__cipher_memory_search",
+      "WebSearch",
+      "WebFetch(domain:clerk.com)",
+      "WebFetch(domain:deepwiki.com)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "defaultMode": "bypassPermissions"

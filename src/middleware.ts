@@ -64,7 +64,12 @@ const isPublicRoute = createRouteMatcher([
   '/member-portal(.*)',
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware({
+  // CRITICAL: Enable Frontend API proxy to route Clerk handshake requests through /__clerk
+  // Without this, clerkMiddleware issues a 307 redirect to clerk.<hostname> (e.g., clerk.www.event-site-manager.com)
+  // which may not exist in DNS. With frontendApiProxy, the handshake goes through /__clerk/* instead.
+  frontendApiProxy: { enabled: true },
+}, async (auth, req) => {
   const pathname = req.nextUrl.pathname;
   const isApiRoute = pathname.startsWith('/api/');
   const isApiProxy = pathname.startsWith('/api/proxy');
@@ -101,8 +106,8 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files
-    '/((?!_next|[^?]*\\.[\\w]+$).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes and Clerk proxy path
+    '/(api|trpc|__clerk)(.*)',
   ],
 };
