@@ -10,13 +10,23 @@
  * the satellite as signed out.
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { Suspense, useEffect, useState, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
-import { getSatelliteBareDomains } from '@/lib/satelliteConfig';
 
-/** All known satellite bare domains + localhost, loaded from config/satellites.json */
-const ALLOWED_SATELLITES = [...getSatelliteBareDomains(), 'localhost'];
+/**
+ * Known satellite bare domains.
+ * Hardcoded to avoid importing server-side config in a client component
+ * which can cause "window is not defined" errors during SSR.
+ * Must be kept in sync with config/satellites.json.
+ */
+const ALLOWED_SATELLITES = [
+  'mcefee-temp.com',
+  'mosc-temp.com',
+  'md-strikers.com',
+  'event-site-manager.com',
+  'localhost',
+];
 
 /** Max time (ms) to wait for Clerk JS to load before redirecting anyway */
 const CLERK_LOAD_TIMEOUT_MS = 5000;
@@ -39,7 +49,10 @@ function buildFinalUrl(redirectUrlRaw: string): string {
     : '/';
 }
 
-export default function SignOutRedirectPage() {
+/**
+ * Inner component that uses useSearchParams (must be wrapped in Suspense)
+ */
+function SignOutRedirectInner() {
   const searchParams = useSearchParams();
   const { signOut, loaded } = useClerk();
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +60,7 @@ export default function SignOutRedirectPage() {
 
   // Compute the final redirect URL once
   const redirectUrlRaw = searchParams?.get('redirect_url') ?? '';
-  const finalUrl = buildFinalUrl(redirectUrlRaw);
+  const finalUrl = useMemo(() => buildFinalUrl(redirectUrlRaw), [redirectUrlRaw]);
 
   // Safety-net: if Clerk never loads (e.g. DNS failure for clerk.event-site-manager.com),
   // redirect after timeout so the user isn't stuck on a blank spinner forever.
@@ -117,5 +130,25 @@ export default function SignOutRedirectPage() {
         <p className="text-gray-600">Signing out...</p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Page component with Suspense boundary for useSearchParams (Next.js 15+ requirement)
+ */
+export default function SignOutRedirectPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+            <p className="text-gray-600">Signing out...</p>
+          </div>
+        </div>
+      }
+    >
+      <SignOutRedirectInner />
+    </Suspense>
   );
 }
