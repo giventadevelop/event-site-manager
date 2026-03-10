@@ -64,12 +64,7 @@ const isPublicRoute = createRouteMatcher([
   '/member-portal(.*)',
 ]);
 
-export default clerkMiddleware({
-  // CRITICAL: Enable Frontend API proxy to route Clerk handshake requests through /__clerk
-  // Without this, clerkMiddleware issues a 307 redirect to clerk.<hostname> (e.g., clerk.www.event-site-manager.com)
-  // which may not exist in DNS. With frontendApiProxy, the handshake goes through /__clerk/* instead.
-  frontendApiProxy: { enabled: true },
-}, async (auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
   const pathname = req.nextUrl.pathname;
   const isApiRoute = pathname.startsWith('/api/');
   const isApiProxy = pathname.startsWith('/api/proxy');
@@ -101,6 +96,11 @@ export default clerkMiddleware({
   if (!isPublicRoute(req)) {
     await auth.protect();
   }
+}, {
+  // CRITICAL: Enable Frontend API proxy to route Clerk handshake requests through /__clerk
+  // Without this, clerkMiddleware issues a 307 redirect to clerk.<hostname> (e.g., clerk.www.event-site-manager.com)
+  // which may not exist in DNS. With frontendApiProxy, the handshake goes through /__clerk/* instead.
+  frontendApiProxy: { enabled: true },
 });
 
 export const config = {
