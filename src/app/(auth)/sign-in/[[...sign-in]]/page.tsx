@@ -124,7 +124,7 @@ export default function SignInPage() {
       <SignIn
         routing="path"
         path="/sign-in"
-        redirectUrl={afterSignInRedirect}
+        forceRedirectUrl={afterSignInRedirect}
         signUpUrl={process.env.NEXT_PUBLIC_PRIMARY_DOMAIN ? `https://${process.env.NEXT_PUBLIC_PRIMARY_DOMAIN}/sign-up` : '/sign-up'}
       />
     </main>
