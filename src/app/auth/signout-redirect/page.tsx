@@ -74,6 +74,8 @@ function SignOutRedirectInner() {
     let cancelled = false;
     async function loadDomains() {
       try {
+        // NOTE: Uses Pages Router endpoint path (not App Router) because Amplify
+        // doesn't reliably serve App Router API routes (they 404).
         const res = await fetch('/api/public/satellite-domains', {
           cache: 'force-cache', // Use cached response when available
         });

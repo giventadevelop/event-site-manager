@@ -418,29 +418,57 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [openMobileDropdowns, setOpenMobileDropdowns] = useState<Record<string, boolean>>({});
 
-  // CRITICAL: Check for sign-out flag IMMEDIATELY on mount, before Clerk loads
+  // CRITICAL: When returning from primary domain sign-out, call Clerk signOut()
+  // on the satellite to clear its own session cookie. Just clearing localStorage
+  // is NOT enough — the Clerk session cookie persists and keeps the user signed in.
+  // We wait for Clerk to load (isLoaded + signOut available) before calling signOut().
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const urlParams = new URLSearchParams(window.location.search);
     const clerkSignedOut = urlParams.get('clerk_signout');
 
-    if (clerkSignedOut === 'true') {
-      console.log('[Header] Detected clerk_signout=true flag');
+    if (clerkSignedOut !== 'true') return;
 
-      // Clear all Clerk-related items from localStorage
-      Object.keys(localStorage).forEach(key => {
-        if (key.includes('clerk') || key.includes('__clerk')) {
-          localStorage.removeItem(key);
-        }
-      });
-
-      // Remove flag from URL and reload
-      urlParams.delete('clerk_signout');
-      const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-      window.location.replace(newUrl);
+    // Wait for Clerk to be loaded before attempting sign-out
+    if (!isLoaded) {
+      console.log('[Header] clerk_signout=true detected, waiting for Clerk to load...');
+      return;
     }
-  }, []);
+
+    console.log('[Header] Detected clerk_signout=true flag, clearing satellite session...');
+
+    // Clear all Clerk-related items from localStorage
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('clerk') || key.includes('__clerk')) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    // Build the clean URL (without clerk_signout param) for after sign-out
+    urlParams.delete('clerk_signout');
+    const cleanUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+
+    // Call Clerk signOut() to properly clear the session cookie on this satellite domain.
+    // Without this, the satellite still has a valid session cookie and will appear signed in.
+    if (signOut) {
+      signOut({ redirectUrl: cleanUrl })
+        .then(() => {
+          console.log('[Header] signOut() completed on satellite domain');
+          // Clerk should redirect via redirectUrl. If it doesn't, fall back to manual redirect.
+          window.location.replace(cleanUrl);
+        })
+        .catch((err: unknown) => {
+          console.error('[Header] signOut() failed on satellite:', err);
+          // Still redirect even if signOut fails — the localStorage is already cleared
+          window.location.replace(cleanUrl);
+        });
+    } else {
+      // signOut not available (edge case) — just clean URL and reload
+      console.warn('[Header] signOut not available, redirecting without clearing session');
+      window.location.replace(cleanUrl);
+    }
+  }, [isLoaded, signOut]);
 
   // Debug: Log auth state changes
   useEffect(() => {
@@ -588,9 +616,11 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
       return;
     }
 
-    // Only redirect to primary sign-out when we're on a known satellite domain (mosc-temp.com).
+    // Check if we're on a known satellite domain (any domain that isn't the primary).
     // Do not use NEXT_PUBLIC_CLERK_DOMAIN for this check - it can be set to primary by mistake.
-    const isSatellite = hostname.includes('mosc-temp.com');
+    // Match against known satellite domains so sign-out works for all satellites, not just mosc-temp.
+    const knownSatellites = ['mosc-temp.com', 'mcefee-temp.com', 'md-strikers.com'];
+    const isSatellite = knownSatellites.some(sat => hostname.includes(sat));
     if (isSatellite) {
       console.log('[Header] Satellite domain detected, redirecting to primary domain sign-out...');
       const primarySignOutUrl = `https://${primaryHost}/auth/signout-redirect`;
