@@ -123,7 +123,7 @@ function SignOutRedirectInner() {
   useEffect(() => {
     if (redirectedRef.current) return;
 
-    const runSignOut = async () => {
+    const runSignOut = () => {
       // If Clerk hasn't loaded yet, wait for the loaded flag or the timeout above
       if (!loaded && signOut) return;
 
@@ -135,26 +135,32 @@ function SignOutRedirectInner() {
         return;
       }
 
-      try {
-        console.log('[signout-redirect] Calling signOut with redirectUrl:', finalUrl);
-        redirectedRef.current = true;
-        // CRITICAL: Pass redirectUrl directly to signOut() so Clerk handles the
-        // redirect after clearing the session. Without this, Clerk uses its default
-        // post-signout redirect (usually '/'), which sends the user to the primary
-        // domain homepage instead of back to the satellite domain.
-        await signOut({ redirectUrl: finalUrl });
-        // Clerk should have redirected by now. If it didn't (e.g. no active session),
-        // fall through to manual redirect as a safety net.
-        if (typeof window !== 'undefined') {
-          window.location.href = finalUrl;
-        }
-      } catch (err) {
-        console.error('[signout-redirect] Sign out failed:', err);
-        setError('Sign out failed. Redirecting...');
-        setTimeout(() => {
-          window.location.href = finalUrl;
-        }, 1500);
-      }
+      console.log('[signout-redirect] Calling signOut, then redirecting to:', finalUrl);
+      redirectedRef.current = true;
+
+      // CRITICAL: Fire-and-forget approach for cross-domain sign-out.
+      // We call signOut() WITHOUT awaiting — this initiates the session clear on
+      // the primary domain. Then we redirect to the satellite MANUALLY after a
+      // short delay. This avoids relying on Clerk's redirectUrl which may not
+      // handle cross-domain redirects properly (Clerk can redirect to '/' instead
+      // of the satellite URL). The satellite's clerk_signout=true handler will
+      // call signOut() again on its own domain to fully clear the local session.
+      signOut()
+        .then(() => {
+          console.log('[signout-redirect] signOut() resolved on primary domain');
+        })
+        .catch((err: unknown) => {
+          console.error('[signout-redirect] signOut() error (session may still be cleared):', err);
+        });
+
+      // Redirect to satellite after a brief delay to let the signOut API call fire.
+      // 500ms is enough for the Clerk client to send the sign-out request to the server.
+      // Even if the redirect happens before the promise resolves, the server-side
+      // session invalidation will proceed independently.
+      setTimeout(() => {
+        console.log('[signout-redirect] Redirecting to satellite:', finalUrl);
+        window.location.href = finalUrl;
+      }, 500);
     };
 
     runSignOut();
