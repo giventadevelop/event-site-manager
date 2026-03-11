@@ -104,7 +104,10 @@ export default async function RootLayout({
     }
     : {
       // Primary domain: use proxy to avoid clerk.<hostname> DNS lookup in production
-      ...(isProduction ? { proxyUrl: '/__clerk' } : {}),
+      // CRITICAL: Must use absolute URL (not relative '/__clerk') because Clerk's internal
+      // getClerkJSUrl resolves relative paths via `new URL(path, window.location.origin)`
+      // which crashes during SSR with "window is not defined" on AWS Amplify.
+      ...(isProduction ? { proxyUrl: `https://${primaryDomain}/__clerk` } : {}),
       // Primary domain allows redirects from all satellites (loaded from config/satellites.json)
       allowedRedirectOrigins: [
         ...(appUrl ? [appUrl] : []),
