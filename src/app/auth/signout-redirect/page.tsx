@@ -127,27 +127,31 @@ function SignOutRedirectInner() {
 
       if (!signOut) {
         // Clerk not available at all; redirect anyway
-        console.warn('[signout-redirect] signOut not available. Redirecting.');
+        console.warn('[signout-redirect] signOut not available. Redirecting to:', finalUrl);
         redirectedRef.current = true;
         window.location.href = finalUrl;
         return;
       }
 
       try {
-        await signOut();
-        if (redirectedRef.current) return;
+        console.log('[signout-redirect] Calling signOut with redirectUrl:', finalUrl);
         redirectedRef.current = true;
-        window.location.href = finalUrl;
+        // CRITICAL: Pass redirectUrl directly to signOut() so Clerk handles the
+        // redirect after clearing the session. Without this, Clerk uses its default
+        // post-signout redirect (usually '/'), which sends the user to the primary
+        // domain homepage instead of back to the satellite domain.
+        await signOut({ redirectUrl: finalUrl });
+        // Clerk should have redirected by now. If it didn't (e.g. no active session),
+        // fall through to manual redirect as a safety net.
+        if (typeof window !== 'undefined') {
+          window.location.href = finalUrl;
+        }
       } catch (err) {
-        if (redirectedRef.current) return;
         console.error('[signout-redirect] Sign out failed:', err);
         setError('Sign out failed. Redirecting...');
         setTimeout(() => {
-          if (!redirectedRef.current) {
-            redirectedRef.current = true;
-            window.location.href = finalUrl;
-          }
-        }, 2000);
+          window.location.href = finalUrl;
+        }, 1500);
       }
     };
 
