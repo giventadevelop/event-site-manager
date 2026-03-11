@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { getAppUrl, getTenantId, getPaymentMethodDomainId } from '@/lib/env';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 
 export async function POST(req: NextRequest) {

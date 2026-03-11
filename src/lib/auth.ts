@@ -1,3 +1,8 @@
+// NOTE: Importing from '@clerk/nextjs' (not '/server') is intentional here.
+// This file is imported by client components (e.g. src/app/examples/auth-usage/page.tsx).
+// Importing from '@clerk/nextjs/server' triggers the 'server-only' guard and breaks the build.
+// The proper server-side auth utilities are in src/lib/auth/server.ts and src/lib/safe-auth.ts.
+// TODO: Refactor this file — split server-only exports into auth/server.ts, keep client-safe exports here.
 import { auth } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';

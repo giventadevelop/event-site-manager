@@ -11,7 +11,7 @@ import ConditionalLayout from "../components/ConditionalLayout";
 import MobileDebugConsole from "../components/MobileDebugConsole";
 import { TenantSettingsProvider } from "../components/TenantSettingsProvider";
 import { headers } from "next/headers";
-import { auth, currentUser } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { getAppUrl } from "@/lib/env";
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
 import { getAllowedRedirectOrigins, isKnownSatelliteHost } from "@/lib/satelliteConfig";
@@ -211,7 +211,7 @@ export default async function RootLayout({
                     id: existingProfile.id, // MUST include id in PATCH payload per backend requirements
                     userId: userId, // Update to current Clerk userId
                     clerkUserId: userId, // Also update clerkUserId
-                    tenantId: tenantId, // Include tenantId
+                    tenantId: existingProfile.tenantId, // Preserve existing tenantId from the profile
                     updatedAt: new Date().toISOString(),
                   };
 

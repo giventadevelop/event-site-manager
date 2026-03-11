@@ -101,6 +101,20 @@ export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     await auth.protect();
   }
+
+  // CRITICAL: Forward x-pathname as a request header so the root layout can determine
+  // the current route. Without this header, layout.tsx cannot detect whether a route
+  // is public or protected, which prevents auth checks and admin detection from running.
+  // Using request headers (not response headers) ensures the value is available to
+  // server components via headers() without interfering with Clerk's session management.
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-pathname', pathname);
+
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 });
 
 export const config = {

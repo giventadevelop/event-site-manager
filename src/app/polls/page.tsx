@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { headers } from 'next/headers';
 import { PollList } from '@/components/polls/PollList';
 import { fetchUserProfileServer } from '@/app/profile/ApiServerActions';

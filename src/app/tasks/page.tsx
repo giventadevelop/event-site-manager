@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs'
+import { auth } from '@clerk/nextjs/server'
 import { TaskList } from '@/components/task-list'
 import Link from 'next/link'
 import { Pagination } from '@/components/Pagination'

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { notFound } from 'next/navigation';
 import { PollDetailsPage } from './PollDetailsPage';
 import { fetchEventPollServer, fetchEventPollOptionsServer } from '@/app/admin/polls/ApiServerActions';

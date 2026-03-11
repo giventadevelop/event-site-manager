@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
 import type { UserProfileDTO, UserSubscriptionDTO } from '@/types';
 import { getAppUrl } from '@/lib/env';
