@@ -69,11 +69,7 @@ const isPublicRoute = createRouteMatcher([
   '/member-portal(.*)',
 ]);
 
-export default clerkMiddleware({
-  frontendApiProxy: {
-    enabled: true,
-  },
-}, async (auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
   const pathname = req.nextUrl.pathname;
   const isApiRoute = pathname.startsWith('/api/');
   const isApiProxy = pathname.startsWith('/api/proxy');
@@ -119,6 +115,10 @@ export default clerkMiddleware({
       headers: requestHeaders,
     },
   });
+}, {
+  frontendApiProxy: {
+    enabled: true,
+  },
 });
 
 export const config = {
