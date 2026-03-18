@@ -115,24 +115,22 @@ export default clerkMiddleware(async (auth, req) => {
       headers: requestHeaders,
     },
   });
-}, {
-  frontendApiProxy: {
-    // Only enable in production — in local dev, Clerk uses its own dev FAPI domain
-    // directly (e.g., humble-monkey-3.clerk.accounts.dev) and doesn't need a proxy.
-    // In production, the proxy is required because clerk.event-site-manager.com needs
-    // to be reached through /__clerk/* with proper headers.
-    enabled: process.env.NODE_ENV === 'production',
-  },
 });
+// NOTE: frontendApiProxy has been REMOVED. The CNAME record clerk.event-site-manager.com
+// is verified and points to frontend-api.clerk.services, so Clerk can reach its FAPI
+// directly without a proxy. The old proxy (both the manual rewrite and frontendApiProxy)
+// was causing auth failures because it couldn't be registered in the Clerk Dashboard
+// (chicken-and-egg validation issue). With the CNAME working, no proxy is needed.
+// If third-party cookie issues arise in the future, re-enable frontendApiProxy and
+// register the proxy URL in Clerk Dashboard FIRST (with Jordan's help).
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and static files
-    // NOTE: __clerk is now INCLUDED (not excluded) because frontendApiProxy in clerkMiddleware
-    // handles the proxy requests with proper headers (Clerk-Proxy-Url, Clerk-Secret-Key, X-Forwarded-For).
-    // The old manual rewrite in next.config.mjs has been removed.
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes and Clerk proxy path
-    '/(api|trpc|__clerk)(.*)',
+    // Skip Next.js internals, static files, AND /__clerk path
+    // __clerk is EXCLUDED because we're using the CNAME (clerk.event-site-manager.com) directly
+    // instead of proxying through the app. No proxy = no need to match __clerk.
+    '/((?!_next|__clerk|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
   ],
 };
