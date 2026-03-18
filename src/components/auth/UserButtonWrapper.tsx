@@ -8,7 +8,6 @@ export function UserButtonWrapper() {
   return (
     <Suspense fallback={<UserButtonSkeleton />}>
       <UserButton
-        afterSignOutUrl="/"
         appearance={{
           elements: {
             avatarBox: "h-10 w-10",

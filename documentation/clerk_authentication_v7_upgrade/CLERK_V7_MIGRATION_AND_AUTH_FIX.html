@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Clerk v7 (Core 3) Migration Guide — FAPI Proxy Fix, Satellite Domain Sign-In/Sign-Out, and Google OAuth Resolution">
+    <title>Clerk v7 Migration & Authentication Fix — Complete Guide</title>
+    <style>
+        /* ===== Base Typography ===== */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #1a1a2e;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            border-left: 4px solid #0066cc;
+            padding-left: 15px;
+            margin-top: 40px;
+            color: #1a1a2e;
+        }
+
+        h3 {
+            font-size: 1.4em;
+            color: #333;
+            margin-top: 25px;
+        }
+
+        h4 {
+            font-size: 1.2em;
+            color: #555;
+        }
+
+        /* ===== Table of Contents ===== */
+        .toc {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border: 1px solid #b8d4e3;
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px 25px;
+            margin: 25px 0;
+        }
+
+        .toc h2 {
+            border-left: none;
+            padding-left: 0;
+            margin-top: 0;
+            font-size: 1.4em;
+            color: #0066cc;
+        }
+
+        .toc ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .toc li {
+            margin: 8px 0;
+        }
+
+        .toc a {
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== Code Highlighting ===== */
+        code {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .code-highlight {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+            font-family: 'Courier New', monospace;
+        }
+
+        pre {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #b8d4e3;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background-color: transparent;
+            color: #0d3b66;
+            padding: 0;
+            border: none;
+            font-size: inherit;
+        }
+
+        .script-name {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+        }
+
+        /* ===== Section Containers ===== */
+        .section-container {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+        }
+
+        .section-container.parameters {
+            background: linear-gradient(135deg, #fff5e6 0%, #ffe6cc 100%);
+            border-left-color: #ff9800;
+        }
+
+        .section-container.output {
+            background: linear-gradient(135deg, #e6ffe6 0%, #ccffcc 100%);
+            border-left-color: #28a745;
+        }
+
+        .section-container.usage {
+            background: linear-gradient(135deg, #f0e6ff 0%, #e6ccff 100%);
+            border-left-color: #9c27b0;
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: white;
+            padding: 12px 20px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 8px 8px 0 0;
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-header.parameters {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        .section-header.output {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+        }
+
+        .section-header.usage {
+            background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+        }
+
+        .section-header.error {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .section-header.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #333;
+        }
+
+        .section-intro {
+            background: linear-gradient(135deg, #e8f4f8 0%, #d1e7f0 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+        }
+
+        .section-intro code {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 3px 8px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+        }
+
+        /* ===== Info/Warning/Success/Error Boxes ===== */
+        .info {
+            background-color: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            border-radius: 5px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .info code, .info .code-highlight {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 5px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .warning code, .warning .code-highlight {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            border-radius: 5px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .success code, .success .code-highlight {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            border-radius: 5px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .error code, .error .code-highlight {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+        }
+
+        /* ===== Tables ===== */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: #e3f2fd;
+            transition: background-color 0.2s ease;
+        }
+
+        td code {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 3px 8px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* ===== Timeline ===== */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            margin: 20px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, #0066cc 0%, #28a745 50%, #dc3545 100%);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -26px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #0066cc;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px #0066cc;
+        }
+
+        .timeline-item.resolved::before {
+            background: #28a745;
+            box-shadow: 0 0 0 2px #28a745;
+        }
+
+        .timeline-item.error-item::before {
+            background: #dc3545;
+            box-shadow: 0 0 0 2px #dc3545;
+        }
+
+        .timeline-date {
+            font-size: 0.85em;
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        /* ===== Diff Blocks ===== */
+        .diff-block {
+            margin: 15px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #d1d5db;
+        }
+
+        .diff-header {
+            padding: 8px 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .diff-header.removed {
+            background: #ffeef0;
+            color: #cb2431;
+            border-bottom: 1px solid #fdb8c0;
+        }
+
+        .diff-header.added {
+            background: #e6ffec;
+            color: #22863a;
+            border-bottom: 1px solid #acf2bd;
+        }
+
+        .diff-content {
+            padding: 12px 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+
+        .diff-content.removed {
+            background: #ffeef0;
+            color: #cb2431;
+        }
+
+        .diff-content.added {
+            background: #e6ffec;
+            color: #22863a;
+        }
+
+        /* ===== Copy Button ===== */
+        .copy-button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            float: right;
+        }
+
+        .copy-button:hover {
+            background-color: #0052a3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .copy-button.copied {
+            background-color: #28a745;
+        }
+
+        /* ===== Architecture Diagram ===== */
+        .architecture-box {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .flow-diagram {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.8;
+            text-align: left;
+            display: inline-block;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #b8d4e3;
+        }
+
+        .flow-arrow {
+            color: #0066cc;
+            font-weight: bold;
+        }
+
+        .flow-error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .flow-success {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        /* ===== Status Badges ===== */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .badge-resolved {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #28a745;
+        }
+
+        .badge-root-cause {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #dc3545;
+        }
+
+        .badge-deployed {
+            background: #cce5ff;
+            color: #004085;
+            border: 1px solid #0066cc;
+        }
+
+        .badge-pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+        }
+
+        /* ===== Metadata ===== */
+        .metadata {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            font-size: 0.95em;
+        }
+
+        .metadata-row {
+            display: flex;
+            gap: 10px;
+            margin: 5px 0;
+        }
+
+        .metadata-label {
+            font-weight: 600;
+            color: #555;
+            min-width: 160px;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            h1 { font-size: 1.8em; }
+            h2 { font-size: 1.4em; }
+            pre { font-size: 0.8em; }
+            .metadata-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>🔐 Clerk v7 Migration & Authentication Fix — Complete Guide</h1>
+
+<div class="metadata">
+    <div class="metadata-row"><span class="metadata-label">Date:</span> March 12–17, 2026</div>
+    <div class="metadata-row"><span class="metadata-label">Projects Affected:</span> event-site-manager (primary), mosc-temp (satellite)</div>
+    <div class="metadata-row"><span class="metadata-label">Migration:</span> <code>@clerk/nextjs</code> v6.39.0 → v7.0.4 (Core 3)</div>
+    <div class="metadata-row"><span class="metadata-label">Status:</span> <span class="badge badge-resolved">Code Complete</span> <span class="badge badge-pending">Awaiting Deployment</span></div>
+    <div class="metadata-row"><span class="metadata-label">Clerk Support Ticket:</span> Jordan (Clerk Support) — trace ID <code>567225b5ea1a05f453946f6baca2cb98</code></div>
+</div>
+
+<div class="toc">
+    <h2>📑 Table of Contents</h2>
+    <ol>
+        <li><a href="#executive-summary">Executive Summary</a></li>
+        <li><a href="#issues-encountered">Issues Encountered</a>
+            <ol>
+                <li><a href="#issue-satellite-signout">Satellite Domain Sign-Out Bug</a></li>
+                <li><a href="#issue-oauth">Google OAuth authorization_invalid Error</a></li>
+                <li><a href="#issue-email">Email Verification Code Not Arriving</a></li>
+                <li><a href="#issue-root-cause">Root Cause: FAPI Proxy Missing Headers</a></li>
+            </ol>
+        </li>
+        <li><a href="#architecture">Architecture Overview</a></li>
+        <li><a href="#debugging-timeline">Debugging Timeline</a></li>
+        <li><a href="#satellite-signout-fix">Fix 1: Satellite Domain Sign-Out</a></li>
+        <li><a href="#clerk-v7-migration">Fix 2: Clerk v7 Migration (frontendApiProxy)</a>
+            <ol>
+                <li><a href="#v7-event-site-manager">event-site-manager Changes</a></li>
+                <li><a href="#v7-mosc-temp">mosc-temp Changes</a></li>
+                <li><a href="#v7-breaking-changes">Core 3 Breaking Changes Addressed</a></li>
+            </ol>
+        </li>
+        <li><a href="#google-oauth-config">Google Cloud Console Configuration</a></li>
+        <li><a href="#env-vars">Environment Variable Changes</a></li>
+        <li><a href="#deployment-checklist">Deployment Checklist</a></li>
+        <li><a href="#clerk-support-correspondence">Clerk Support Correspondence Summary</a></li>
+    </ol>
+</div>
+
+<!-- ============================== SECTION 1 ============================== -->
+<h2 id="executive-summary">1. Executive Summary</h2>
+
+<div class="section-intro">
+    <p>This document covers the complete investigation and resolution of <strong>three interconnected authentication failures</strong> affecting both the primary domain (<code>event-site-manager.com</code>) and satellite domain (<code>mosc-temp.com</code>). The root cause was a <strong>misconfigured FAPI proxy</strong> that was missing required headers, which broke all authentication methods (Google OAuth, email verification, and session management).</p>
+</div>
+
+<div class="section-container">
+    <div class="section-header">🎯 Issues &amp; Resolutions Summary</div>
+    <table>
+        <tr>
+            <th>Issue</th>
+            <th>Root Cause</th>
+            <th>Fix</th>
+            <th>Status</th>
+        </tr>
+        <tr>
+            <td>Satellite domain stays logged in after sign-out</td>
+            <td>Only cleared localStorage, not HTTP-only Clerk cookies</td>
+            <td>Two-phase <code>signOut()</code> in Header.tsx</td>
+            <td><span class="badge badge-resolved">Resolved</span></td>
+        </tr>
+        <tr>
+            <td>Google OAuth <code>authorization_invalid</code></td>
+            <td>FAPI proxy missing required headers + Google OAuth in testing mode</td>
+            <td>Clerk v7 <code>frontendApiProxy</code> + Google Console fix</td>
+            <td><span class="badge badge-deployed">Code Complete</span></td>
+        </tr>
+        <tr>
+            <td>Email verification codes not arriving</td>
+            <td>FAPI proxy missing required headers</td>
+            <td>Clerk v7 <code>frontendApiProxy</code></td>
+            <td><span class="badge badge-deployed">Code Complete</span></td>
+        </tr>
+        <tr>
+            <td>FAPI proxy missing headers</td>
+            <td>Plain Next.js rewrite didn't forward <code>Clerk-Proxy-Url</code>, <code>Clerk-Secret-Key</code>, <code>X-Forwarded-For</code></td>
+            <td>Migrated to <code>@clerk/nextjs</code> v7 with built-in <code>frontendApiProxy</code></td>
+            <td><span class="badge badge-deployed">Code Complete</span></td>
+        </tr>
+    </table>
+</div>
+
+
+<!-- ============================== SECTION 2 ============================== -->
+<h2 id="issues-encountered">2. Issues Encountered</h2>
+
+<h3 id="issue-satellite-signout">2.1 Satellite Domain Sign-Out Bug</h3>
+
+<div class="section-container">
+    <div class="section-header error">🐛 Problem</div>
+    <p>After signing out from the primary domain (<code>event-site-manager.com</code>), the satellite domain (<code>mosc-temp.com</code>) still showed the user as logged in — avatar and Admin menu remained visible. The sign-out redirect appended <code>?clerk_signout=true</code> to the satellite URL, but the satellite's Header component only cleared <code>localStorage</code>.</p>
+    <p><strong>Why this didn't work:</strong> Clerk stores session tokens in <strong>HTTP-only cookies</strong>, which cannot be cleared via JavaScript's <code>localStorage.removeItem()</code>. Only Clerk's <code>signOut()</code> API can clear these cookies because it makes a server call to invalidate the session.</p>
+</div>
+
+<h3 id="issue-oauth">2.2 Google OAuth <code>authorization_invalid</code> Error</h3>
+
+<div class="section-container">
+    <div class="section-header error">🐛 Problem</div>
+    <p>After the sign-out fix was deployed and working, login via Google OAuth broke on <strong>both</strong> the primary and satellite domains.</p>
+    <p><strong>Error chain:</strong></p>
+    <pre><code>POST /__clerk/v1/client/sign_ins → 500 (Internal Server Error)
+GET clerk.event-site-manager.com/v1/oauth_callback?err_code=authorization_invalid → 403 (Forbidden)</code></pre>
+    <p><strong>Error JSON:</strong></p>
+    <pre><code>{
+  "errors": [{
+    "message": "Unauthorized request",
+    "long_message": "You are not authorized to perform this request",
+    "code": "authorization_invalid"
+  }],
+  "clerk_trace_id": "567225b5ea1a05f453946f6baca2cb98"
+}</code></pre>
+</div>
+
+<h3 id="issue-email">2.3 Email Verification Code Not Arriving</h3>
+
+<div class="section-container">
+    <div class="section-header error">🐛 Problem</div>
+    <p>Email/password login also failed. After entering an email address, the verification code email <strong>never arrived</strong>. The sign-in form displayed "you are signed out" during the verification step. Tested with multiple email addresses and in incognito mode — same result.</p>
+</div>
+
+<h3 id="issue-root-cause">2.4 Root Cause: FAPI Proxy Missing Headers</h3>
+
+<div class="error">
+    <strong>🔴 ROOT CAUSE (confirmed by Clerk Support — Jordan):</strong>
+    <p>The application was using a <strong>plain Next.js rewrite rule</strong> to proxy Clerk FAPI requests through <code>/__clerk/*</code>. This basic rewrite <strong>did not forward three required headers</strong> that Clerk's backend needs to accept proxied requests:</p>
+    <ol>
+        <li><code class="code-highlight">Clerk-Proxy-Url</code> — the full proxy URL</li>
+        <li><code class="code-highlight">Clerk-Secret-Key</code> — the Clerk secret key for server-side verification</li>
+        <li><code class="code-highlight">X-Forwarded-For</code> — the original client's IP address</li>
+    </ol>
+    <p>Without these headers, Clerk's backend rejected all proxied requests, which explains why <strong>both</strong> Google OAuth and email verification failed simultaneously.</p>
+</div>
+
+<div class="info">
+    <strong>💡 Why the proxy exists:</strong>
+    <p>The Clerk publishable key encodes the FAPI domain as <code class="code-highlight">clerk.event-site-manager.com</code> (no www). But the site runs at <code class="code-highlight">www.event-site-manager.com</code>. Without a proxy, Clerk tries to reach <code class="code-highlight">clerk.www.event-site-manager.com</code> which doesn't exist in DNS. The proxy routes <code class="code-highlight">/__clerk/*</code> through the app's own domain to avoid this DNS mismatch.</p>
+</div>
+
+<div class="warning">
+    <strong>⚠️ Additional contributing factor — Google OAuth:</strong>
+    <p>The Google Cloud Console OAuth consent screen was in <strong>"Testing" mode</strong> (project named <code class="code-highlight">oauthlocal-310103</code>). This was promoted to "In production" during debugging. A new client secret was also generated and updated in the Clerk Dashboard.</p>
+</div>
+
+
+<!-- ============================== SECTION 3 ============================== -->
+<h2 id="architecture">3. Architecture Overview</h2>
+
+<div class="section-container">
+    <div class="section-header">🏗️ Multi-Domain Architecture</div>
+
+    <h4>Domain Setup</h4>
+    <table>
+        <tr>
+            <th>Domain</th>
+            <th>Role</th>
+            <th>Tenant ID</th>
+            <th>Project</th>
+        </tr>
+        <tr>
+            <td><code>www.event-site-manager.com</code></td>
+            <td>Primary (hosts Clerk auth)</td>
+            <td><code>tenant_demo_001</code></td>
+            <td>event-site-manager</td>
+        </tr>
+        <tr>
+            <td><code>www.mosc-temp.com</code></td>
+            <td>Satellite</td>
+            <td><code>tenant_demo_002</code></td>
+            <td>mosc-temp</td>
+        </tr>
+        <tr>
+            <td><code>www.mcefee-temp.com</code></td>
+            <td>Satellite</td>
+            <td>varies</td>
+            <td>separate deployment</td>
+        </tr>
+        <tr>
+            <td><code>www.md-strikers.com</code></td>
+            <td>Satellite</td>
+            <td>varies</td>
+            <td>separate deployment</td>
+        </tr>
+    </table>
+
+    <h4>Auth Flow (Before Fix — Broken)</h4>
+    <div class="architecture-box">
+        <div class="flow-diagram">
+Browser → <span class="flow-arrow">POST /__clerk/v1/client/sign_ins</span>
+       → Next.js rewrite rule (no headers added!)
+       → <span class="flow-arrow">clerk.event-site-manager.com</span>
+       → <span class="flow-error">❌ 500 Internal Server Error (missing Clerk-Proxy-Url, Clerk-Secret-Key, X-Forwarded-For)</span>
+       → <span class="flow-error">❌ authorization_invalid</span>
+        </div>
+    </div>
+
+    <h4>Auth Flow (After Fix — Working)</h4>
+    <div class="architecture-box">
+        <div class="flow-diagram">
+Browser → <span class="flow-arrow">POST /__clerk/v1/client/sign_ins</span>
+       → clerkMiddleware frontendApiProxy (headers injected automatically)
+       → <span class="flow-arrow">clerk.event-site-manager.com</span>
+       → <span class="flow-success">✅ 200 OK (session created)</span>
+       → <span class="flow-success">✅ OAuth / Email verification works</span>
+        </div>
+    </div>
+</div>
+
+
+<!-- ============================== SECTION 4 ============================== -->
+<h2 id="debugging-timeline">4. Debugging Timeline</h2>
+
+<div class="timeline">
+    <div class="timeline-item">
+        <div class="timeline-date">March 12, 2026 — Initial Report</div>
+        <p><strong>Symptom:</strong> After signing out from primary domain, satellite domain (<code>mosc-temp.com</code>) still shows user as logged in with avatar and Admin menu visible.</p>
+    </div>
+
+    <div class="timeline-item resolved">
+        <div class="timeline-date">March 12, 2026 — Sign-Out Fix Implemented</div>
+        <p><strong>Fix:</strong> Added two-phase <code>signOut()</code> logic to mosc-temp's <code>Header.tsx</code>. Detects <code>clerk_signout=true</code> URL param, waits for Clerk to load, then calls <code>signOut()</code> to clear HTTP-only cookies. User confirmed: "the sign out worked."</p>
+    </div>
+
+    <div class="timeline-item error-item">
+        <div class="timeline-date">March 12, 2026 — Login Breaks</div>
+        <p><strong>Symptom:</strong> After sign-out fix, login fails on BOTH primary and satellite domains. Google OAuth returns <code>authorization_invalid</code>. Email verification codes never arrive.</p>
+    </div>
+
+    <div class="timeline-item">
+        <div class="timeline-date">March 12–13, 2026 — Extensive Debugging</div>
+        <p><strong>Ruled out:</strong> DNS (correct), Clerk billing (active Pro plan), Clerk status (operational), API keys (Backend API works), sign-in page code (correct), browser cache (cleared), incognito mode (same error).</p>
+    </div>
+
+    <div class="timeline-item">
+        <div class="timeline-date">March 13, 2026 — Google Cloud Console Fixes</div>
+        <p><strong>Actions:</strong> Promoted OAuth consent screen from "Testing" to "In production". Generated new client secret and updated in Clerk Dashboard. Added <code>accounts.event-site-manager.com</code> to JavaScript Origins. Error persisted.</p>
+    </div>
+
+    <div class="timeline-item">
+        <div class="timeline-date">March 13, 2026 — Clerk Support Ticket Filed</div>
+        <p><strong>Provided:</strong> Comprehensive details of all troubleshooting steps, error logs, trace ID <code>567225b5ea1a05f453946f6baca2cb98</code>, environment configuration, and screenshots.</p>
+    </div>
+
+    <div class="timeline-item resolved">
+        <div class="timeline-date">March 14–17, 2026 — Root Cause Identified by Clerk Support</div>
+        <p><strong>Jordan (Clerk Support):</strong> Identified the FAPI proxy as the root cause. The plain Next.js rewrite was missing required headers (<code>Clerk-Proxy-Url</code>, <code>Clerk-Secret-Key</code>, <code>X-Forwarded-For</code>). Recommended migrating to <code>@clerk/nextjs</code> v7 with built-in <code>frontendApiProxy</code>.</p>
+    </div>
+
+    <div class="timeline-item resolved">
+        <div class="timeline-date">March 17, 2026 — Clerk v7 Migration Implemented</div>
+        <p><strong>Both projects</strong> (event-site-manager and mosc-temp) upgraded to <code>@clerk/nextjs@7.0.4</code>. All code changes made and builds verified clean (exit code 0).</p>
+    </div>
+</div>
+
+
+<!-- ============================== SECTION 5 ============================== -->
+<h2 id="satellite-signout-fix">5. Fix 1: Satellite Domain Sign-Out</h2>
+
+<div class="section-container">
+    <div class="section-header output">✅ Fix Applied to mosc-temp Header.tsx</div>
+
+    <p><strong>File:</strong> <code class="script-name">E:\project_workspace\mosc-temp\src\components\Header.tsx</code></p>
+
+    <h4>Old Code (Broken — only cleared localStorage):</h4>
+    <div class="diff-block">
+        <div class="diff-header removed">❌ Removed</div>
+        <div class="diff-content removed">
+<pre><code>// Old approach: Only cleared localStorage — insufficient!
+// Clerk stores sessions in HTTP-only cookies that JS can't access.
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const clerkSignedOut = urlParams.get('clerk_signout');
+  if (clerkSignedOut === 'true') {
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('clerk') || key.includes('__clerk')) {
+        localStorage.removeItem(key);
+      }
+    });
+    window.location.reload();
+  }
+}, []);</code></pre>
+        </div>
+    </div>
+
+    <h4>New Code (Fixed — calls signOut() to clear cookies):</h4>
+    <div class="diff-block">
+        <div class="diff-header added">✅ Added</div>
+        <div class="diff-content added">
+<pre><code>// Two-phase approach: Wait for Clerk to load, then call signOut()
+const [pendingSignOut, setPendingSignOut] = useState(false);
+
+// Phase 1: Detect flag on mount (runs before Clerk loads)
+useEffect(() => {
+  if (typeof window === 'undefined') return;
+  const urlParams = new URLSearchParams(window.location.search);
+  const clerkSignedOut = urlParams.get('clerk_signout');
+  if (clerkSignedOut === 'true') {
+    setPendingSignOut(true);
+    // Clean URL immediately
+    urlParams.delete('clerk_signout');
+    const newUrl = window.location.pathname +
+      (urlParams.toString() ? '?' + urlParams.toString() : '');
+    window.history.replaceState({}, '', newUrl);
+  }
+}, []);
+
+// Phase 2: Once Clerk is loaded, call signOut()
+useEffect(() => {
+  if (!pendingSignOut || !isLoaded) return;
+  const performSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('[Header] signOut() error:', error);
+    }
+    // Clear localStorage as backup
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('clerk') || key.includes('__clerk')) {
+        localStorage.removeItem(key);
+      }
+    });
+    setPendingSignOut(false);
+    window.location.replace(window.location.pathname);
+  };
+  performSignOut();
+}, [pendingSignOut, isLoaded, signOut]);</code></pre>
+        </div>
+    </div>
+</div>
+
+
+<!-- ============================== SECTION 6 ============================== -->
+<h2 id="clerk-v7-migration">6. Fix 2: Clerk v7 Migration (frontendApiProxy)</h2>
+
+<div class="section-intro">
+    <p>Migrated both projects from <code>@clerk/nextjs@6.39.0</code> to <code>@clerk/nextjs@7.0.4</code> (Core 3). The key change is replacing the manual Next.js rewrite proxy with Clerk's built-in <code>frontendApiProxy</code> middleware option, which automatically injects the required headers.</p>
+</div>
+
+<h3 id="v7-event-site-manager">6.1 event-site-manager Changes (Primary Domain)</h3>
+
+<div class="section-container usage">
+    <div class="section-header usage">📦 Package Upgrade</div>
+    <pre><code>npm install @clerk/nextjs@^7.0.4</code></pre>
+    <p>Peer dependency check: Next.js 15.5.12 satisfies <code>^15.5.9</code> requirement. ✅</p>
+</div>
+
+<div class="section-container">
+    <div class="section-header">📝 middleware.ts — Added frontendApiProxy</div>
+    <p><strong>File:</strong> <code class="script-name">src/middleware.ts</code></p>
+
+    <div class="diff-block">
+        <div class="diff-header removed">❌ Old (v6)</div>
+        <div class="diff-content removed">
+<pre><code>export default clerkMiddleware(async (auth, req) => {
+  // ... handler logic
+});
+
+export const config = {
+  matcher: [
+    // __clerk EXCLUDED from matcher (handled by next.config rewrite)
+    '/((?!_next|__clerk|[^?]*\\.(...)).*)',
+    '/(api|trpc)(.*)',
+  ],
+};</code></pre>
+        </div>
+    </div>
+
+    <div class="diff-block">
+        <div class="diff-header added">✅ New (v7)</div>
+        <div class="diff-content added">
+<pre><code>export default clerkMiddleware({
+  frontendApiProxy: {
+    enabled: true,
+  },
+}, async (auth, req) => {
+  // ... handler logic (unchanged)
+});
+
+export const config = {
+  matcher: [
+    // __clerk now INCLUDED — frontendApiProxy handles it with proper headers
+    '/((?!_next|[^?]*\\.(...)).*)',
+    '/(api|trpc|__clerk)(.*)',
+  ],
+};</code></pre>
+        </div>
+    </div>
+</div>
+
+<div class="section-container">
+    <div class="section-header">📝 next.config.mjs — Removed Manual Rewrite</div>
+    <p><strong>File:</strong> <code class="script-name">next.config.mjs</code></p>
+
+    <div class="diff-block">
+        <div class="diff-header removed">❌ Old — Manual rewrite (missing headers!)</div>
+        <div class="diff-content removed">
+<pre><code>async rewrites() {
+  const clerkFrontendApi = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
+    || 'https://clerk.event-site-manager.com';
+  return [{
+    source: '/__clerk/:path*',
+    destination: `${clerkFrontendApi}/:path*`,
+  }];
+},</code></pre>
+        </div>
+    </div>
+
+    <div class="diff-block">
+        <div class="diff-header added">✅ New — Empty (proxy handled by middleware)</div>
+        <div class="diff-content added">
+<pre><code>// Clerk FAPI proxy is now handled by clerkMiddleware's
+// frontendApiProxy option (v7+). The old manual rewrite for
+// /__clerk/* has been removed because it didn't forward
+// required headers (Clerk-Proxy-Url, Clerk-Secret-Key,
+// X-Forwarded-For).
+async rewrites() {
+  return [];
+},</code></pre>
+        </div>
+    </div>
+</div>
+
+<div class="section-container">
+    <div class="section-header">📝 layout.tsx — ClerkProvider Changes</div>
+    <p><strong>File:</strong> <code class="script-name">src/app/layout.tsx</code></p>
+
+    <p><strong>Changes made:</strong></p>
+    <ol>
+        <li><strong>Moved <code>ClerkProvider</code> inside <code>&lt;body&gt;</code></strong> — Core 3 requires it must not wrap <code>&lt;html&gt;</code></li>
+        <li><strong>Removed <code>proxyUrl</code> prop</strong> — no longer needed since <code>frontendApiProxy</code> handles it</li>
+        <li><strong>Removed <code>afterSignOutUrl</code></strong> from <code>UserButton</code> — deprecated in Core 3</li>
+    </ol>
+
+    <div class="diff-block">
+        <div class="diff-header removed">❌ Old — ClerkProvider wrapping html</div>
+        <div class="diff-content removed">
+<pre><code>return (
+  &lt;ClerkProvider publishableKey={...} {...clerkProps}&gt;
+    &lt;html lang="en"&gt;
+      &lt;body&gt;...&lt;/body&gt;
+    &lt;/html&gt;
+  &lt;/ClerkProvider&gt;
+);</code></pre>
+        </div>
+    </div>
+
+    <div class="diff-block">
+        <div class="diff-header added">✅ New — ClerkProvider inside body</div>
+        <div class="diff-content added">
+<pre><code>return (
+  &lt;html lang="en"&gt;
+    &lt;body&gt;
+      &lt;ClerkProvider publishableKey={...} {...clerkProps}&gt;
+        ...
+      &lt;/ClerkProvider&gt;
+    &lt;/body&gt;
+  &lt;/html&gt;
+);</code></pre>
+        </div>
+    </div>
+</div>
+
+
+<h3 id="v7-mosc-temp">6.2 mosc-temp Changes (Satellite Domain)</h3>
+
+<div class="section-container">
+    <div class="section-header">📝 Satellite-Specific Changes</div>
+    <p>The same core changes were applied to mosc-temp with satellite-specific configuration:</p>
+    <ul>
+        <li><strong>Package upgrade:</strong> <code>@clerk/nextjs@^7.0.4</code></li>
+        <li><strong>middleware.ts:</strong> Added <code>frontendApiProxy: { enabled: true }</code>, included <code>__clerk</code> in matcher</li>
+        <li><strong>next.config.mjs:</strong> Removed manual <code>/__clerk/*</code> rewrite</li>
+        <li><strong>layout.tsx:</strong> Moved <code>ClerkProvider</code> inside <code>&lt;body&gt;</code>, removed <code>proxyUrl</code> prop</li>
+        <li><strong>ClerkProvider props:</strong> Retained <code>isSatellite: true</code> and <code>domain</code> for satellite behavior</li>
+    </ul>
+</div>
+
+
+<h3 id="v7-breaking-changes">6.3 Core 3 Breaking Changes Addressed</h3>
+
+<div class="section-container parameters">
+    <div class="section-header parameters">⚠️ Breaking Changes Checklist</div>
+    <table>
+        <tr>
+            <th>Breaking Change</th>
+            <th>Impact on Our Code</th>
+            <th>Action Taken</th>
+        </tr>
+        <tr>
+            <td><code>ClerkProvider</code> must be inside <code>&lt;body&gt;</code></td>
+            <td>Was wrapping <code>&lt;html&gt;</code></td>
+            <td>Moved inside <code>&lt;body&gt;</code> in both projects</td>
+        </tr>
+        <tr>
+            <td><code>afterSignInUrl</code> / <code>afterSignUpUrl</code> removed</td>
+            <td>Already using <code>forceRedirectUrl</code></td>
+            <td>No change needed ✅</td>
+        </tr>
+        <tr>
+            <td><code>SignedIn</code>/<code>SignedOut</code>/<code>Protect</code> → <code>Show</code></td>
+            <td>Not used in codebase</td>
+            <td>No change needed ✅</td>
+        </tr>
+        <tr>
+            <td><code>getToken()</code> throws during SSR</td>
+            <td>Not used in codebase</td>
+            <td>No change needed ✅</td>
+        </tr>
+        <tr>
+            <td><code>frontendApiProxy</code> replaces manual rewrite</td>
+            <td>Was using Next.js rewrite</td>
+            <td>Migrated to <code>frontendApiProxy</code></td>
+        </tr>
+        <tr>
+            <td>Minimum Next.js 15.2.3</td>
+            <td>Running 15.5.12</td>
+            <td>Compatible ✅</td>
+        </tr>
+    </table>
+    <div class="info">
+        <strong>📖 Full migration guide:</strong> <a href="https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3" target="_blank" rel="noopener">Clerk Core 3 Upgrade Guide</a>
+    </div>
+</div>
+
+
+<!-- ============================== SECTION 7 ============================== -->
+<h2 id="google-oauth-config">7. Google Cloud Console Configuration</h2>
+
+<div class="section-container">
+    <div class="section-header">🔑 OAuth Configuration (Project: oauthlocal-310103)</div>
+
+    <h4>OAuth Consent Screen</h4>
+    <table>
+        <tr><th>Setting</th><th>Value</th></tr>
+        <tr><td>Publishing Status</td><td><strong>In production</strong> (was "Testing" — promoted during debugging)</td></tr>
+        <tr><td>User Type</td><td>External</td></tr>
+        <tr><td>OAuth User Cap</td><td>0 / 100</td></tr>
+    </table>
+
+    <h4>Authorized JavaScript Origins</h4>
+    <table>
+        <tr><th>#</th><th>Origin</th></tr>
+        <tr><td>1</td><td><code>https://www.adwiise.com</code></td></tr>
+        <tr><td>2</td><td><code>https://humble-monkey-3.clerk.accounts.dev</code></td></tr>
+        <tr><td>3</td><td><code>http://localhost:3000</code></td></tr>
+        <tr><td>4</td><td><code>http://localhost:8080</code></td></tr>
+        <tr><td>5</td><td><code>https://feature-common-clerk.d1508w3f27cyps.amplifyapp.com</code></td></tr>
+        <tr><td>6</td><td><code>https://www.mosc-temp.com</code></td></tr>
+        <tr><td>7</td><td><code>https://www.event-site-manager.com</code></td></tr>
+        <tr><td>8</td><td><code>https://www.mcefee-temp.com</code></td></tr>
+        <tr><td>9</td><td><code>https://accounts.event-site-manager.com</code> (added during debugging)</td></tr>
+        <tr><td>10</td><td><code>https://clerk.event-site-manager.com</code> (added during debugging)</td></tr>
+    </table>
+
+    <h4>Authorized Redirect URIs</h4>
+    <table>
+        <tr><th>#</th><th>Redirect URI</th></tr>
+        <tr><td>1</td><td><code>https://clerk.adwiise.com/v1/oauth_callback</code></td></tr>
+        <tr><td>2</td><td><code>https://humble-monkey-3.clerk.accounts.dev/v1/oauth_callback</code></td></tr>
+        <tr><td>3</td><td><code>https://feature-common-clerk.d1508w3f27cyps.amplifyapp.com/sso-callback</code></td></tr>
+        <tr><td>4</td><td><code>https://www.mosc-temp.com/sso-callback</code></td></tr>
+        <tr><td>5</td><td><code>https://clerk.event-site-manager.com/v1/oauth_callback</code></td></tr>
+    </table>
+
+    <h4>Clerk SSO Scopes</h4>
+    <ul>
+        <li><code>openid</code></li>
+        <li><code>https://www.googleapis.com/auth/userinfo.email</code></li>
+        <li><code>https://www.googleapis.com/auth/userinfo.profile</code></li>
+    </ul>
+</div>
+
+<div class="warning">
+    <strong>⚠️ Note on Google Cloud Project Name:</strong>
+    <p>The project is named <code class="code-highlight">oauthlocal-310103</code>, which suggests it was originally created for local development. Consider migrating to a properly-named production project in the future.</p>
+</div>
+
+
+<!-- ============================== SECTION 8 ============================== -->
+<h2 id="env-vars">8. Environment Variable Changes</h2>
+
+<div class="section-container parameters">
+    <div class="section-header parameters">⚙️ Amplify Environment Variable Updates</div>
+    <table>
+        <tr>
+            <th>Variable</th>
+            <th>Action</th>
+            <th>Notes</th>
+        </tr>
+        <tr>
+            <td><code>NEXT_PUBLIC_CLERK_PROXY_URL</code></td>
+            <td><span class="badge badge-pending">Remove after deploy</span></td>
+            <td>No longer needed — <code>frontendApiProxy</code> auto-derives the proxy URL</td>
+        </tr>
+        <tr>
+            <td><code>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code></td>
+            <td>No change</td>
+            <td><code>pk_live_Y2xl...</code></td>
+        </tr>
+        <tr>
+            <td><code>CLERK_SECRET_KEY</code></td>
+            <td>No change</td>
+            <td><code>sk_live_KVFLv...</code></td>
+        </tr>
+    </table>
+</div>
+
+
+<!-- ============================== SECTION 9 ============================== -->
+<h2 id="deployment-checklist">9. Deployment Checklist</h2>
+
+<div class="section-container output">
+    <div class="section-header output">🚀 Pre-Deployment Steps</div>
+    <table>
+        <tr><th>Step</th><th>Project</th><th>Status</th></tr>
+        <tr>
+            <td>Upgrade <code>@clerk/nextjs</code> to v7.0.4</td>
+            <td>Both</td>
+            <td><span class="badge badge-resolved">Done</span></td>
+        </tr>
+        <tr>
+            <td>Add <code>frontendApiProxy: { enabled: true }</code> to middleware</td>
+            <td>Both</td>
+            <td><span class="badge badge-resolved">Done</span></td>
+        </tr>
+        <tr>
+            <td>Include <code>__clerk</code> in middleware matcher</td>
+            <td>Both</td>
+            <td><span class="badge badge-resolved">Done</span></td>
+        </tr>
+        <tr>
+            <td>Remove <code>/__clerk/*</code> rewrite from next.config.mjs</td>
+            <td>Both</td>
+            <td><span class="badge badge-resolved">Done</span></td>
+        </tr>
+        <tr>
+            <td>Move <code>ClerkProvider</code> inside <code>&lt;body&gt;</code></td>
+            <td>Both</td>
+            <td><span class="badge badge-resolved">Done</span></td>
+        </tr>
+        <tr>
+            <td>Remove <code>proxyUrl</code> prop from <code>ClerkProvider</code></td>
+            <td>Both</td>
+            <td><span class="badge badge-resolved">Done</span></td>
+        </tr>
+        <tr>
+            <td>Build passes with no errors</td>
+            <td>Both</td>
+            <td><span class="badge badge-resolved">Done</span></td>
+        </tr>
+        <tr>
+            <td>Commit and push to Git</td>
+            <td>Both</td>
+            <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+            <td>Deploy to AWS Amplify</td>
+            <td>Both</td>
+            <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+        <tr>
+            <td>Remove <code>NEXT_PUBLIC_CLERK_PROXY_URL</code> from Amplify env vars</td>
+            <td>Both</td>
+            <td><span class="badge badge-pending">Pending</span></td>
+        </tr>
+    </table>
+</div>
+
+<div class="section-container">
+    <div class="section-header">✅ Post-Deployment Verification</div>
+    <ol>
+        <li><strong>Primary domain sign-in (Google OAuth):</strong> Visit <code>event-site-manager.com/sign-in</code> → Click "Sign in with Google" → Should complete without <code>authorization_invalid</code></li>
+        <li><strong>Primary domain sign-in (Email):</strong> Visit <code>event-site-manager.com/sign-in</code> → Enter email → Verification code should arrive</li>
+        <li><strong>Satellite domain sign-in:</strong> Visit <code>mosc-temp.com</code> → Click sign-in → Should redirect to primary, auth, then redirect back</li>
+        <li><strong>Satellite domain sign-out:</strong> Sign out from primary → Navigate to <code>mosc-temp.com</code> → User should appear logged out (no avatar/admin menu)</li>
+        <li><strong>Session sync:</strong> Sign in on primary → Visit satellite → Should be signed in on both</li>
+    </ol>
+</div>
+
+
+<!-- ============================== SECTION 10 ============================== -->
+<h2 id="clerk-support-correspondence">10. Clerk Support Correspondence Summary</h2>
+
+<div class="section-container">
+    <div class="section-header">📧 Support Ticket Timeline</div>
+
+    <h4>Message 1 — Our Ticket (March 13)</h4>
+    <div class="info">
+        <p>Filed comprehensive ticket documenting:</p>
+        <ul>
+            <li>Both Google OAuth and email verification failing simultaneously</li>
+            <li>17 troubleshooting steps completed for OAuth</li>
+            <li>6 troubleshooting steps completed for email</li>
+            <li>Environment details, error logs, trace ID</li>
+        </ul>
+    </div>
+
+    <h4>Message 2 — Jordan's First Response</h4>
+    <div class="info">
+        <p>Jordan tested signing up via email and saw "you are signed out" during verification. Asked about the sign-out bug and what was implemented to fix it.</p>
+    </div>
+
+    <h4>Message 3 — Our Response</h4>
+    <div class="info">
+        <p>Explained the satellite sign-out bug and two-phase fix. Clarified the fix is satellite-only and shouldn't affect primary domain sign-in. Noted the sign-in issue occurs on the primary domain too.</p>
+    </div>
+
+    <h4>Message 4 — Jordan Identifies Root Cause</h4>
+    <div class="success">
+        <strong>✅ Key finding:</strong>
+        <p>Jordan identified the FAPI proxy as the root cause. The plain Next.js rewrite was missing required headers. Recommended migrating to <code class="code-highlight">@clerk/nextjs</code> v7 with <code class="code-highlight">frontendApiProxy</code>.</p>
+    </div>
+
+    <h4>Message 5 — Version Compatibility Check</h4>
+    <div class="info">
+        <p>We confirmed <code>frontendApiProxy</code> requires v7+ (not available in v6.39.0). Asked about breaking changes. Jordan provided links to Core 3 upgrade guide.</p>
+    </div>
+
+    <h4>Message 6 — Migration Implemented</h4>
+    <div class="success">
+        <p>Both projects upgraded to v7.0.4. Code changes completed. Builds verified clean. Awaiting deployment.</p>
+    </div>
+</div>
+
+
+<!-- ============================== FOOTER ============================== -->
+<hr style="margin-top: 40px; border: 1px solid #dee2e6;">
+<div class="metadata">
+    <div class="metadata-row"><span class="metadata-label">Document Created:</span> March 17, 2026</div>
+    <div class="metadata-row"><span class="metadata-label">Last Updated:</span> March 17, 2026</div>
+    <div class="metadata-row"><span class="metadata-label">Author:</span> Development Team (with Claude Code assistance)</div>
+    <div class="metadata-row"><span class="metadata-label">References:</span>
+        <ul style="margin: 5px 0; padding-left: 20px;">
+            <li><a href="https://clerk.com/docs/guides/dashboard/dns-domains/proxy-fapi" target="_blank" rel="noopener">Clerk FAPI Proxy Docs</a></li>
+            <li><a href="https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3" target="_blank" rel="noopener">Clerk Core 3 Upgrade Guide</a></li>
+            <li><a href="https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3#sdk-specific-changes" target="_blank" rel="noopener">Core 3 SDK-Specific Changes</a></li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    function copyCommand(button, commandId) {
+        const commandElement = document.getElementById(commandId);
+        if (!commandElement) return;
+        const commandText = commandElement.textContent.trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(commandText).then(() => {
+                button.classList.add('copied');
+                button.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    button.classList.remove('copied');
+                    button.textContent = '📋 Copy';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+    }
+</script>
+
+</body>
+</html>

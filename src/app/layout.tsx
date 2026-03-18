@@ -87,32 +87,26 @@ export default async function RootLayout({
   // Detect if this is a satellite domain — uses config/satellites.json as source of truth
   const isSatellite = isKnownSatelliteHost(hostname);
 
-  // Detect production environment (not localhost/dev) for proxy URL usage
-  // In production, Clerk SDK tries to reach clerk.<hostname> which may not exist in DNS
-  // (e.g., clerk.www.event-site-manager.com). The proxyUrl routes requests through
-  // the /__clerk rewrite in next.config.mjs instead, bypassing the DNS lookup.
-  const isProduction = !hostname.includes('localhost') && !hostname.includes('127.0.0.1');
+  // Clerk v7 / Core 3: proxyUrl is no longer needed on ClerkProvider.
+  // The frontendApiProxy option in clerkMiddleware handles all FAPI proxying automatically
+  // with proper headers (Clerk-Proxy-Url, Clerk-Secret-Key, X-Forwarded-For).
 
   // Satellite domains must redirect to primary domain for authentication
   const clerkProps = isSatellite
     ? {
       isSatellite: true,
       domain: satelliteDomain, // Use env var to match DNS record
-      ...(isProduction ? { proxyUrl: `https://${primaryDomain}/__clerk` } : {}),
       signInUrl: `https://${primaryDomain}/sign-in`,
       signUpUrl: `https://${primaryDomain}/sign-up`,
+      afterSignOutUrl: '/', // Clerk v7: afterSignOutUrl moved from UserButton to provider
     }
     : {
-      // Primary domain: use proxy to avoid clerk.<hostname> DNS lookup in production
-      // CRITICAL: Must use absolute URL (not relative '/__clerk') because Clerk's internal
-      // getClerkJSUrl resolves relative paths via `new URL(path, window.location.origin)`
-      // which crashes during SSR with "window is not defined" on AWS Amplify.
-      ...(isProduction ? { proxyUrl: `https://${primaryDomain}/__clerk` } : {}),
       // Primary domain allows redirects from all satellites (loaded from config/satellites.json)
       allowedRedirectOrigins: [
         ...(appUrl ? [appUrl] : []),
         ...getAllowedRedirectOrigins(),
       ],
+      afterSignOutUrl: '/', // Clerk v7: afterSignOutUrl moved from UserButton to provider
     };
 
   // Determine tenant-scoped admin flag on the server
@@ -353,19 +347,20 @@ export default async function RootLayout({
   console.log('[Layout] 🔍 Final admin status:', { isTenantAdmin, isPublicRoute, pathname });
 
   return (
-    <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      {...clerkProps}
-    >
-      <html lang="en" suppressHydrationWarning>
-        <head>
-          {/* Header Design System Fonts - DM Serif Display + Plus Jakarta Sans */}
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Epilogue:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-        </head>
-        <body className={inter.className + " flex flex-col min-h-screen"} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Header Design System Fonts - DM Serif Display + Plus Jakarta Sans */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Epilogue:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+      </head>
+      <body className={inter.className + " flex flex-col min-h-screen"} suppressHydrationWarning>
+        {/* Clerk v7 / Core 3: ClerkProvider must be inside <body>, not wrapping <html> */}
+        <ClerkProvider
+          publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+          {...clerkProps}
+        >
           <TrpcProvider>
             <TenantSettingsProvider>
               <ConditionalLayout
@@ -376,29 +371,29 @@ export default async function RootLayout({
               </ConditionalLayout>
             </TenantSettingsProvider>
           </TrpcProvider>
-          <Script
-            id="hcaptcha-config"
-            strategy="beforeInteractive"
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.hcaptchaConfig = {
-                  passive: true,
-                  usePassiveEventListeners: true
-                };
-              `,
-            }}
-          />
-          {/* Givebutter Widget Script */}
-          <Script
-            id="givebutter-widget"
-            src="https://widgets.givebutter.com/latest.umd.cjs?acct=mKoUpYQebNsn6RqA&p=other"
-            strategy="afterInteractive"
-            async
-          />
-          {/* Mobile Debug Console - Always available for log copying, even on error pages */}
-          <MobileDebugConsole />
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+        <Script
+          id="hcaptcha-config"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.hcaptchaConfig = {
+                passive: true,
+                usePassiveEventListeners: true
+              };
+            `,
+          }}
+        />
+        {/* Givebutter Widget Script */}
+        <Script
+          id="givebutter-widget"
+          src="https://widgets.givebutter.com/latest.umd.cjs?acct=mKoUpYQebNsn6RqA&p=other"
+          strategy="afterInteractive"
+          async
+        />
+        {/* Mobile Debug Console - Always available for log copying, even on error pages */}
+        <MobileDebugConsole />
+      </body>
+    </html>
   );
 }

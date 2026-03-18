@@ -13,7 +13,7 @@ export default function Layout({ children }: LayoutProps) {
       <TopNav>
         <div className="ml-auto">
           <div suppressHydrationWarning>
-            <UserButton afterSignOutUrl="/" />
+            <UserButton />
           </div>
         </div>
       </TopNav>

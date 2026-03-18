@@ -410,7 +410,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
                       </div>
                     )}
 
-                    <UserButton afterSignOutUrl="/charity-theme" />
+                    <UserButton />
                   </>
                 )}
               </div>
@@ -712,7 +712,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
                   )}
 
                   <div className="flex justify-center pt-4">
-                    <UserButton afterSignOutUrl="/charity-theme" />
+                    <UserButton />
                   </div>
                 </>
               )}

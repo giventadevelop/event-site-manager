@@ -10,7 +10,7 @@ export function UserNav() {
           Edit Profile
         </Button>
       </Link>
-      <UserButton afterSignOutUrl="/" />
+      <UserButton />
     </div>
   );
 }
