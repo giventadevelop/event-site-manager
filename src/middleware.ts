@@ -117,7 +117,11 @@ export default clerkMiddleware(async (auth, req) => {
   });
 }, {
   frontendApiProxy: {
-    enabled: true,
+    // Only enable in production — in local dev, Clerk uses its own dev FAPI domain
+    // directly (e.g., humble-monkey-3.clerk.accounts.dev) and doesn't need a proxy.
+    // In production, the proxy is required because clerk.event-site-manager.com needs
+    // to be reached through /__clerk/* with proper headers.
+    enabled: process.env.NODE_ENV === 'production',
   },
 });
 
