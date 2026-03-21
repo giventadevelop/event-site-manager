@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { SignIn, useAuth, useUser } from '@clerk/nextjs';
 import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
 
@@ -11,7 +12,6 @@ import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerA
  * Hash routing lets Clerk render sign-in on `/` without conflicting with `/sign-in` path routing.
  */
 export default function RootAuthLanding() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -22,12 +22,6 @@ export default function RootAuthLanding() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      router.replace('/home');
-    }
-  }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
     if (isLoaded && isSignedIn && userId && user) {
@@ -75,8 +69,17 @@ export default function RootAuthLanding() {
 
   if (isSignedIn) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-600 text-sm">Redirecting…</p>
+      <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 py-10 gap-4">
+        <p className="text-gray-800 text-center">You&apos;re signed in.</p>
+        <p className="text-gray-600 text-sm text-center max-w-md">
+          Open the marketing site when you&apos;re ready — nothing redirects automatically from here.
+        </p>
+        <Link
+          href="/home"
+          className="inline-flex items-center justify-center rounded-xl bg-blue-100 hover:bg-blue-200 px-6 py-3 font-semibold text-blue-800 transition-colors"
+        >
+          Go to /home
+        </Link>
       </main>
     );
   }
@@ -92,8 +95,9 @@ export default function RootAuthLanding() {
     );
   }
 
+  // Stay on `/` after sign-in unless satellite/primary sent an explicit http(s) redirect_url.
   const afterSignInRedirect =
-    redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http') ? redirectUrlFromQuery : '/home';
+    redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http') ? redirectUrlFromQuery : '/';
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 py-10">
