@@ -63,6 +63,41 @@ export async function bootstrapUserProfile({
       return; // Profile exists - do NOT update
     }
 
+    // Some backends return 5xx from /by-user/:id while the criteria list endpoint works (same as root layout / proxy).
+    if (!res.ok && res.status !== 404) {
+      const criteriaUrl = `${API_BASE_URL}/api/user-profiles?userId.equals=${encodeURIComponent(userId)}&tenantId.equals=${encodeURIComponent(tenantId)}&size=1`;
+      let listToken = token;
+      let listRes = await fetch(criteriaUrl, {
+        headers: { Authorization: `Bearer ${listToken}` },
+        cache: 'no-store',
+      });
+      if (listRes.status === 401) {
+        listToken = await generateApiJwt();
+        listRes = await fetch(criteriaUrl, {
+          headers: { Authorization: `Bearer ${listToken}` },
+          cache: 'no-store',
+        });
+      }
+      if (listRes.ok) {
+        const raw = await listRes.json();
+        const profiles = Array.isArray(raw)
+          ? raw
+          : (raw as { _embedded?: { userProfiles?: unknown[] } })?._embedded?.userProfiles;
+        if (Array.isArray(profiles) && profiles.length > 0) {
+          console.log(
+            '[bootstrapUserProfile] ✅ Profile found via criteria fallback (/by-user returned ' + res.status + ')'
+          );
+          return;
+        }
+      }
+      console.warn(
+        '[bootstrapUserProfile] /by-user returned',
+        res.status,
+        'and criteria list did not return a profile; skipping bootstrap (non-fatal).'
+      );
+      return;
+    }
+
     // 2. Fallback: lookup by email
     if (res.status === 404) {
       const email = userData?.email || "";
@@ -226,9 +261,6 @@ export async function bootstrapUserProfile({
         });
       }
       return;
-    }
-    if (!res.ok) {
-      throw new Error(`Failed to fetch user profile: ${res.statusText}`);
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

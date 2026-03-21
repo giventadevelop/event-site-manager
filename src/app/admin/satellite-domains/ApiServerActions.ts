@@ -1,9 +1,30 @@
+'use server';
+
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+import { revalidateSatelliteConfigCache } from '@/lib/satelliteConfigRuntime';
 import { appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import type { SatelliteDomainDTO } from '@/types';
+import { fetchTenantSettingsByTenantId } from '@/app/admin/tenant-management/settings/ApiServerActions';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+/**
+ * Returns tenant settings logoImageUrl for a tenant ID (for satellite branding / copy-paste).
+ */
+export async function fetchTenantLogoUrlFromTenantSettingsServer(
+  tenantId: string
+): Promise<string | null> {
+  const tid = tenantId?.trim();
+  if (!tid) return null;
+  try {
+    const settings = await fetchTenantSettingsByTenantId(tid);
+    const url = settings?.logoImageUrl?.trim();
+    return url || null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Fetch paginated list of satellite domains with optional filters.
@@ -103,6 +124,7 @@ export async function createSatelliteDomainServer(
     throw new Error(`Failed to create satellite domain: ${errorText}`);
   }
 
+  revalidateSatelliteConfigCache();
   return await response.json();
 }
 
@@ -126,6 +148,7 @@ export async function updateSatelliteDomainServer(
     throw new Error(`Failed to update satellite domain: ${errorText}`);
   }
 
+  revalidateSatelliteConfigCache();
   return await response.json();
 }
 
@@ -142,5 +165,6 @@ export async function deleteSatelliteDomainServer(id: number): Promise<boolean> 
     throw new Error(`Failed to delete satellite domain: ${errorText}`);
   }
 
+  revalidateSatelliteConfigCache();
   return true;
 }

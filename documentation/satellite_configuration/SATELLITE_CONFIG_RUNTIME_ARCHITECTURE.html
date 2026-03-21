@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Satellite configuration runtime architecture — database, Next.js cache, public API, admin invalidation, and JSON fallback.">
+    <title>Satellite Configuration — Runtime Architecture &amp; Caching</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+        h1 {
+            font-size: 2.5em;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #1a1a2e;
+        }
+        h2 {
+            font-size: 1.8em;
+            border-left: 4px solid #0066cc;
+            padding-left: 15px;
+            margin-top: 40px;
+            color: #1a1a2e;
+        }
+        h3 { font-size: 1.4em; color: #333; margin-top: 25px; }
+        h4 { font-size: 1.2em; color: #555; }
+        .toc {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border: 1px solid #b8d4e3;
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px 25px;
+            margin: 25px 0;
+        }
+        .toc h2 { border-left: none; padding-left: 0; margin-top: 0; font-size: 1.4em; color: #0066cc; }
+        .toc a { color: #0066cc; text-decoration: none; font-weight: 500; }
+        .toc a:hover { text-decoration: underline; }
+        code {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .code-highlight {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+            font-family: 'Courier New', monospace;
+        }
+        pre {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #b8d4e3;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        pre code { background: transparent; border: none; padding: 0; color: #0d3b66; }
+        .script-name {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+        }
+        .section-container {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+        }
+        .section-container.usage {
+            background: linear-gradient(135deg, #f0e6ff 0%, #e6ccff 100%);
+            border-left-color: #9c27b0;
+        }
+        .section-container.parameters {
+            background: linear-gradient(135deg, #fff5e6 0%, #ffe6cc 100%);
+            border-left-color: #ff9800;
+        }
+        .section-container.output {
+            background: linear-gradient(135deg, #e6ffe6 0%, #ccffcc 100%);
+            border-left-color: #28a745;
+        }
+        .section-header {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: white;
+            padding: 12px 20px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 8px 8px 0 0;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .section-header.usage {
+            background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+        }
+        .section-header.parameters {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+        .section-header.output {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+        }
+        .section-intro {
+            background: linear-gradient(135deg, #e8f4f8 0%, #d1e7f0 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+        }
+        .parameters-list {
+            background: linear-gradient(135deg, #fff5e6 0%, #ffe6cc 100%);
+            border-left: 4px solid #ff9800;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+        .parameters-list code {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 3px 8px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            border-radius: 5px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+        .info code, .info .code-highlight {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 5px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+        .warning code, .warning .code-highlight {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+        }
+        .success {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            border-radius: 5px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+        .success code, .success .code-highlight {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr:hover { background-color: #e3f2fd; transition: background-color 0.2s ease; }
+        td code {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            padding: 3px 8px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+        .flow-diagram {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.45;
+            background: #e8f4f8;
+            color: #0d3b66;
+            border: 1px solid #b8d4e3;
+            padding: 16px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            h1 { font-size: 1.8em; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1 id="top">Satellite configuration — runtime architecture &amp; caching</h1>
+
+    <div class="section-intro">
+        <p>This document describes how the Event Site Manager loads <strong>satellite domain</strong> configuration at runtime: from the <strong>PostgreSQL</strong> backend (<code class="code-highlight">satellite_domain</code> table) through the REST API, through <strong>Next.js</strong> request caching, with <strong>automatic invalidation</strong> when admins change data in <code class="code-highlight">/admin/satellite-domains</code>, and with a <strong>static fallback</strong> (<code class="code-highlight">config/satellites.json</code> and <code class="code-highlight">NEXT_PUBLIC_SATELLITE_DOMAINS</code>) when the API returns no rows or fails.</p>
+    </div>
+
+    <nav class="toc" aria-label="Table of contents">
+        <h2>Table of contents</h2>
+        <ol>
+            <li><a href="#overview">High-level overview</a></li>
+            <li><a href="#architecture">Architecture diagram</a></li>
+            <li><a href="#caching">How caching works</a></li>
+            <li><a href="#data-flow">Data flow: database to UI</a></li>
+            <li><a href="#files">Key source files</a></li>
+            <li><a href="#public-api">Public API and clients</a></li>
+            <li><a href="#invalidation">Cache invalidation (admin)</a></li>
+            <li><a href="#fallback">Static fallback</a></li>
+            <li><a href="#entities">Tenant organization vs tenant settings vs satellite</a></li>
+            <li><a href="#related">Related documentation</a></li>
+        </ol>
+    </nav>
+
+    <h2 id="overview">High-level overview</h2>
+    <div class="section-container">
+        <div class="section-header">Purpose</div>
+        <p>Satellite domains are separate hostnames (e.g. a tenant marketing site) that authenticate users through the <strong>primary</strong> Next.js app using Clerk. The app must know:</p>
+        <ul>
+            <li>Which hostnames are satellites (Clerk <code class="code-highlight">allowedRedirectOrigins</code>, satellite mode detection).</li>
+            <li>Optional branding for auth pages (slim strip above the Clerk card, sign-out allowlists).</li>
+        </ul>
+        <p>That information is stored in the backend <strong>database</strong> and exposed via <code class="code-highlight">GET /api/satellite-domains</code>. The Next.js app does <strong>not</strong> require a redeploy to pick up admin changes: merged config is <strong>cached</strong> server-side and <strong>revalidated</strong> after CRUD in the admin UI.</p>
+    </div>
+
+    <h2 id="architecture">Architecture diagram</h2>
+    <div class="section-container usage">
+        <div class="section-header usage">Logical flow</div>
+        <pre class="flow-diagram">Admin UI                    Backend API                 Next.js runtime
+(/admin/satellite-domains)  (Spring / PostgreSQL)       (satelliteConfigRuntime)
+
+     |                                |                              |
+     |  JWT (service) CRUD            |  satellite_domain table      |
+     |------------------------------>|                              |
+     |                                |                              |
+     |                                |  GET enabled rows            |
+     |                                |<-----------------------------|
+     |                                |                              |
+     |                                |         fetchWithJwtRetry    |
+     |                                |         + map DTO -> config  |
+     |                                |         + unstable_cache     |
+     |                                |         + revalidateTag      |
+     |                                |                              |
+     |  revalidateTag (on save)       |                              |
+     |------------------------------>|  (invalidates cache tag)     |
+     |                                |                              |
+     +--- layout.tsx (Clerk)  <------+--- getMergedSatelliteConfigs()
+     +--- /api/public/satellite-domains (JSON for browsers)
+     +--- SatelliteAuthBranding (fetch public API)</pre>
+    </div>
+
+    <h2 id="caching">How caching is achieved</h2>
+    <div class="section-container parameters">
+        <div class="section-header parameters">Next.js unstable_cache</div>
+        <p>The module <code class="script-name">satelliteConfigRuntime.ts</code> wraps the merged loader in <code class="code-highlight">unstable_cache</code> from <code class="code-highlight">next/cache</code>:</p>
+        <ul>
+            <li><strong>Cache key</strong>: a fixed string array <code class="code-highlight">['satellite-configs-merged']</code>.</li>
+            <li><strong>Revalidate</strong>: <code class="code-highlight">300</code> seconds (5 minutes) — time-based revalidation.</li>
+            <li><strong>Tag</strong>: <code class="code-highlight">satellite-domains-runtime</code> — used with <code class="code-highlight">revalidateTag()</code> for immediate invalidation after admin updates.</li>
+        </ul>
+    </div>
+
+    <div class="parameters-list">
+        <p><strong>Cache parameters (summary)</strong></p>
+        <ul>
+            <li><code>unstable_cache</code> — deduplicates work per request lifecycle; stores result for <code>revalidate</code> seconds.</li>
+            <li><code>revalidate: 300</code> — maximum staleness without an explicit invalidation.</li>
+            <li><code>tags: ['satellite-domains-runtime']</code> — enables <code>revalidateTag('satellite-domains-runtime')</code>.</li>
+        </ul>
+    </div>
+
+    <div class="info">
+        <strong>Implementation note:</strong> Inside the cached function, the app calls the backend with <code class="code-highlight">fetchWithJwtRetry</code> (service JWT from <code class="code-highlight">src/lib/api/jwt.ts</code>), not the browser. The fetch uses <code class="code-highlight">cache: 'no-store'</code> so the HTTP client does not add a second opaque cache layer beyond <code>unstable_cache</code>.
+    </div>
+
+    <h2 id="data-flow">Data flow: database to UI</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Step</th>
+                <th>What happens</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>1</strong></td>
+                <td>Rows live in PostgreSQL <code>satellite_domain</code> (hostname, branding fields, <code>tenant_id</code>, <code>enabled</code>, etc.).</td>
+            </tr>
+            <tr>
+                <td><strong>2</strong></td>
+                <td><code>fetchEnabledSatelliteDomainDtos()</code> requests <code>GET /api/satellite-domains?page=0&amp;size=500&amp;enabled.equals=true&amp;sort=displayName,asc</code> (no tenant filter in runtime path — all enabled satellites for the primary app).</td>
+            </tr>
+            <tr>
+                <td><strong>3</strong></td>
+                <td><code>satelliteDomainDtoToSatelliteConfig()</code> in <code class="script-name">satelliteDomainMapper.ts</code> maps flat DTO fields to nested <code>SatelliteConfig</code> / <code>SatelliteBranding</code>.</td>
+            </tr>
+            <tr>
+                <td><strong>4</strong></td>
+                <td>If the API returns <strong>at least one</strong> row, that list is the runtime source. If <strong>zero</strong> rows or an error, <code>getSatelliteConfigsSync()</code> reads <code>config/satellites.json</code> or <code>NEXT_PUBLIC_SATELLITE_DOMAINS</code>.</td>
+            </tr>
+            <tr>
+                <td><strong>5</strong></td>
+                <td><code>getMergedSatelliteConfigs()</code> is consumed by <code>src/app/layout.tsx</code> (Clerk <code>allowedRedirectOrigins</code>, satellite host detection) and by <code>GET /api/public/satellite-domains</code> (browser clients).</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="files">Key source files</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>src/lib/satelliteConfigRuntime.ts</code></td>
+                <td>API fetch, <code>unstable_cache</code>, <code>getMergedSatelliteConfigs()</code>, <code>revalidateSatelliteConfigCache()</code>, constant <code>SATELLITE_CONFIG_CACHE_TAG</code>.</td>
+            </tr>
+            <tr>
+                <td><code>src/lib/satelliteDomainMapper.ts</code></td>
+                <td><code>SatelliteDomainDTO</code> → <code>SatelliteConfig</code> mapping.</td>
+            </tr>
+            <tr>
+                <td><code>src/lib/satelliteConfig.ts</code></td>
+                <td>Sync helpers: <code>getSatelliteConfigsSync()</code>, <code>getAllowedRedirectOrigins(configs?)</code>, <code>isKnownSatelliteHost(hostname, configs?)</code>, <code>extractSatelliteConfig(url, configs?)</code>. Optional <code>configs</code> array overrides static list when passed from merged runtime data.</td>
+            </tr>
+            <tr>
+                <td><code>src/app/layout.tsx</code></td>
+                <td><code>await getMergedSatelliteConfigs()</code> for Clerk provider props.</td>
+            </tr>
+            <tr>
+                <td><code>src/app/api/public/satellite-domains/route.ts</code></td>
+                <td>Public GET returns <code>domains</code>, <code>origins</code>, <code>satellites</code> (serialized merged configs).</td>
+            </tr>
+            <tr>
+                <td><code>src/pages/api/proxy/satellite-domains/</code></td>
+                <td>Authenticated proxy to backend <code>/api/satellite-domains</code> (<code>createProxyHandler</code>, <code>injectTenantId: false</code>).</td>
+            </tr>
+            <tr>
+                <td><code>src/app/admin/satellite-domains/ApiServerActions.ts</code></td>
+                <td>Server Actions with <code>'use server'</code>; after create/update/delete calls <code>revalidateSatelliteConfigCache()</code>.</td>
+            </tr>
+            <tr>
+                <td><code>src/components/auth/SatelliteAuthBranding.tsx</code></td>
+                <td>Client: fetches <code>/api/public/satellite-domains</code>, then <code>extractSatelliteConfig(redirectUrl, satellites)</code>.</td>
+            </tr>
+            <tr>
+                <td><code>config/satellites.json</code></td>
+                <td>Fallback when API returns no enabled rows (or for local/dev without backend data).</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="public-api">Public API and clients</h2>
+    <div class="section-container output">
+        <div class="section-header output">GET /api/public/satellite-domains</div>
+        <p>Returns JSON:</p>
+        <ul>
+            <li><code class="code-highlight">domains</code> — bare hostnames (e.g. <code>mosc-temp.com</code>) for sign-out redirect validation and Header satellite detection.</li>
+            <li><code class="code-highlight">origins</code> — Clerk-compatible origins (www and non-www variants per satellite).</li>
+            <li><code class="code-highlight">satellites</code> — full merged <code>SatelliteConfig</code> array for client-side branding lookup.</li>
+        </ul>
+        <p>This route is listed in Clerk middleware public matchers so unauthenticated clients can read it. It uses the same merged, cached server path as the root layout.</p>
+    </div>
+
+    <div class="warning">
+        <strong>Security note:</strong> The public endpoint exposes hostnames and non-secret branding metadata intended for sign-in/sign-out flows. Do not put secrets in satellite branding fields.
+    </div>
+
+    <h2 id="invalidation">Cache invalidation (admin)</h2>
+    <div class="section-container">
+        <div class="section-header">revalidateTag</div>
+        <p>After <strong>create</strong>, <strong>update</strong>, or <strong>delete</strong> via <code class="script-name">ApiServerActions.ts</code>, the server calls <code class="code-highlight">revalidateSatelliteConfigCache()</code>, which runs <code class="code-highlight">revalidateTag('satellite-domains-runtime')</code>. The next request that needs merged config recomputes it (subject to Next.js data cache behavior).</p>
+        <p>Even if invalidation were skipped, staleness would be bounded by the <strong>5-minute</strong> <code>revalidate</code> window on <code>unstable_cache</code>.</p>
+    </div>
+
+    <h2 id="fallback">Static fallback</h2>
+    <div class="success">
+        <strong>When it applies:</strong> Backend returns HTTP error, empty list, or zero enabled satellites. Then <code>loadMergedSatelliteConfigs()</code> uses <code>getSatelliteConfigsSync()</code>: first non-empty of <code>config/satellites.json</code> satellites array, else <code>NEXT_PUBLIC_SATELLITE_DOMAINS</code> (comma-separated URLs).
+    </div>
+    <div class="info">
+        <strong>Production builds:</strong> Changes to <code>config/satellites.json</code> require a <strong>redeploy</strong> (file is bundled). Database-backed changes do not require redeploy once rows exist and the API is reachable.
+    </div>
+
+    <h2 id="entities">Tenant organization vs tenant settings vs satellite domain</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Entity</th>
+                <th>Typical role</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>tenant_organization</code></td>
+                <td>One row per <code>tenant_id</code>: identity, subscription/billing, org-level logo/colors/contact.</td>
+            </tr>
+            <tr>
+                <td><code>tenant_settings</code></td>
+                <td>Feature flags, homepage sections, integrations, marketing URLs, <code>logo_image_url</code>, <code>homepage_cache_version</code>, etc.</td>
+            </tr>
+            <tr>
+                <td><code>satellite_domain</code></td>
+                <td>Per <strong>hostname</strong> Clerk satellite routing and optional auth-page branding; optional <code>tenant_id</code> link. This is what the runtime satellite pipeline reads for host lists and Clerk.</td>
+            </tr>
+        </tbody>
+    </table>
+    <p>They are complementary: avoid duplicating business meaning in three places unless product requires denormalization for performance; optional <code>tenant_id</code> on <code>satellite_domain</code> can align a host with a tenant for defaults.</p>
+
+    <h2 id="related">Related documentation</h2>
+    <ul>
+        <li>Clerk satellite / primary patterns: <code>documentation/clerk_authentication_v7_upgrade/CLERK_V7_MIGRATION_AND_AUTH_FIX.html</code></li>
+        <li>Older scalability notes: <code>documentation/SATELLITE_CONFIGURATION_SCALABILITY.md</code></li>
+        <li>HTML styling standard: <code>.cursor/rules/html_documentation_styling_guide.mdc</code></li>
+    </ul>
+
+    <p style="margin-top: 40px; font-size: 0.9em; color: #666;"><a href="#top">Back to top</a></p>
+
+</body>
+</html>

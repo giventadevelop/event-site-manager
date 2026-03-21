@@ -15,6 +15,7 @@ import {
   createSatelliteDomainServer,
   updateSatelliteDomainServer,
   deleteSatelliteDomainServer,
+  fetchTenantLogoUrlFromTenantSettingsServer,
 } from './ApiServerActions';
 
 const emptyFormData: Partial<SatelliteDomainDTO> = {
@@ -46,6 +47,20 @@ const emptyFormData: Partial<SatelliteDomainDTO> = {
   showOnAuthFooter: true,
 };
 
+/** Optional URL fields: strip empty/placeholder values (HTML5 type="url" rejects "#" and blocks submit). */
+function optionalUrlField(value: string | undefined | null): string | undefined {
+  const t = value?.trim();
+  if (!t || t === '#') return undefined;
+  return t;
+}
+
+/** Show empty instead of legacy placeholder "#" in the form. */
+function displayOptionalUrl(value: string | undefined | null): string {
+  const t = value?.trim();
+  if (!t || t === '#') return '';
+  return t;
+}
+
 export default function SatelliteDomainsPage() {
   const { userId } = useAuth();
   const tenantId = useAdminTenantId();
@@ -75,11 +90,48 @@ export default function SatelliteDomainsPage() {
 
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  /** Tenant settings logo URL for the Tenant ID field (satellite form reference / prefill). */
+  const [tenantSettingsLogoUrl, setTenantSettingsLogoUrl] = useState<string | null>(null);
+  const [tenantSettingsLogoLoading, setTenantSettingsLogoLoading] = useState(false);
+
+  const domainModalOpen = isCreateModalOpen || isEditModalOpen;
+
   useEffect(() => {
     if (userId) {
       loadDomains();
     }
   }, [userId, page, tenantId]);
+
+  useEffect(() => {
+    const tid = formData.tenantId?.trim();
+    if (!domainModalOpen || !tid) {
+      setTenantSettingsLogoUrl(null);
+      setTenantSettingsLogoLoading(false);
+      return;
+    }
+    setTenantSettingsLogoUrl(null);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setTenantSettingsLogoLoading(true);
+      fetchTenantLogoUrlFromTenantSettingsServer(tid)
+        .then((url) => {
+          if (!cancelled) {
+            setTenantSettingsLogoUrl(url);
+            setTenantSettingsLogoLoading(false);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setTenantSettingsLogoUrl(null);
+            setTenantSettingsLogoLoading(false);
+          }
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [domainModalOpen, formData.tenantId]);
 
   // Auto-dismiss toast after 5 seconds
   useEffect(() => {
@@ -134,7 +186,7 @@ export default function SatelliteDomainsPage() {
         fullName: formData.fullName?.trim() || undefined,
         tagline: formData.tagline?.trim() || undefined,
         logoType: formData.logoType || 'text',
-        logoUrl: formData.logoUrl?.trim() || undefined,
+        logoUrl: optionalUrlField(formData.logoUrl),
         logoPrimaryColor: formData.logoPrimaryColor?.trim() || undefined,
         logoSecondaryColor: formData.logoSecondaryColor?.trim() || undefined,
         themePrimaryColor: formData.themePrimaryColor?.trim() || undefined,
@@ -144,10 +196,10 @@ export default function SatelliteDomainsPage() {
         contactPhone: formData.contactPhone?.trim() || undefined,
         contactTollFree: formData.contactTollFree?.trim() || undefined,
         contactEmail: formData.contactEmail?.trim() || undefined,
-        socialFacebook: formData.socialFacebook?.trim() || undefined,
-        socialTwitter: formData.socialTwitter?.trim() || undefined,
-        socialLinkedin: formData.socialLinkedin?.trim() || undefined,
-        socialYoutube: formData.socialYoutube?.trim() || undefined,
+        socialFacebook: optionalUrlField(formData.socialFacebook),
+        socialTwitter: optionalUrlField(formData.socialTwitter),
+        socialLinkedin: optionalUrlField(formData.socialLinkedin),
+        socialYoutube: optionalUrlField(formData.socialYoutube),
         showOnAuthHeader: formData.showOnAuthHeader ?? true,
         showOnAuthFooter: formData.showOnAuthFooter ?? true,
       };
@@ -169,7 +221,14 @@ export default function SatelliteDomainsPage() {
 
     try {
       setLoading(true);
-      await updateSatelliteDomainServer(selectedDomain.id!, formData);
+      await updateSatelliteDomainServer(selectedDomain.id!, {
+        ...formData,
+        logoUrl: optionalUrlField(formData.logoUrl),
+        socialFacebook: optionalUrlField(formData.socialFacebook),
+        socialTwitter: optionalUrlField(formData.socialTwitter),
+        socialLinkedin: optionalUrlField(formData.socialLinkedin),
+        socialYoutube: optionalUrlField(formData.socialYoutube),
+      });
       setIsEditModalOpen(false);
       setSelectedDomain(null);
       resetForm();
@@ -218,7 +277,14 @@ export default function SatelliteDomainsPage() {
 
   const openEditModal = (domain: SatelliteDomainDTO) => {
     setSelectedDomain(domain);
-    setFormData({ ...domain });
+    setFormData({
+      ...domain,
+      logoUrl: displayOptionalUrl(domain.logoUrl),
+      socialFacebook: displayOptionalUrl(domain.socialFacebook),
+      socialTwitter: displayOptionalUrl(domain.socialTwitter),
+      socialLinkedin: displayOptionalUrl(domain.socialLinkedin),
+      socialYoutube: displayOptionalUrl(domain.socialYoutube),
+    });
     setIsEditModalOpen(true);
   };
 
@@ -468,6 +534,8 @@ export default function SatelliteDomainsPage() {
           onSubmit={handleCreate}
           loading={loading}
           submitText="Create Domain"
+          tenantSettingsLogoUrl={tenantSettingsLogoUrl}
+          tenantSettingsLogoLoading={tenantSettingsLogoLoading}
         />
       </Modal>
 
@@ -488,6 +556,8 @@ export default function SatelliteDomainsPage() {
           onSubmit={handleEdit}
           loading={loading}
           submitText="Update Domain"
+          tenantSettingsLogoUrl={tenantSettingsLogoUrl}
+          tenantSettingsLogoLoading={tenantSettingsLogoLoading}
         />
       </Modal>
 
@@ -516,9 +586,34 @@ interface SatelliteDomainFormProps {
   onSubmit: () => void;
   loading: boolean;
   submitText: string;
+  /** Resolved from Tenant Management → settings for this Tenant ID */
+  tenantSettingsLogoUrl?: string | null;
+  tenantSettingsLogoLoading?: boolean;
 }
 
-function SatelliteDomainForm({ formData, setFormData, onSubmit, loading, submitText }: SatelliteDomainFormProps) {
+function SatelliteDomainForm({
+  formData,
+  setFormData,
+  onSubmit,
+  loading,
+  submitText,
+  tenantSettingsLogoUrl = null,
+  tenantSettingsLogoLoading = false,
+}: SatelliteDomainFormProps) {
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+  const copyText = async (text: string, successMsg: string) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyFeedback(successMsg);
+      setTimeout(() => setCopyFeedback(null), 2500);
+    } catch {
+      setCopyFeedback('Could not copy to clipboard');
+      setTimeout(() => setCopyFeedback(null), 2500);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
@@ -657,6 +752,40 @@ function SatelliteDomainForm({ formData, setFormData, onSubmit, loading, submitT
       {/* ── Logo ── */}
       <fieldset className="border border-gray-200 rounded-lg p-4">
         <legend className="text-sm font-semibold text-gray-700 px-2">Logo</legend>
+        <div
+          className="mb-3 rounded-lg border border-blue-100 bg-blue-50/90 px-3 py-2.5 text-xs text-gray-700"
+          role="note"
+        >
+          <div className="flex gap-2">
+            <svg
+              className="h-5 w-5 shrink-0 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div className="space-y-1">
+              <p className="font-semibold text-gray-800">Logo URL and tenant settings</p>
+              <p>
+                You can copy the same logo URL from{' '}
+                <span className="font-medium">Admin → Tenant Management → settings → Customization</span> for this
+                satellite&apos;s Tenant ID, then paste it here or use <strong>Use for satellite</strong> when Tenant ID
+                is filled in below.
+              </p>
+              <p className="text-gray-600">
+                If no URL appears in tenant settings, upload a logo on that Customization tab first; the URL will
+                appear after upload.
+              </p>
+            </div>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Logo Type</label>
@@ -673,14 +802,74 @@ function SatelliteDomainForm({ formData, setFormData, onSubmit, loading, submitT
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
             <input
-              type="url"
+              type="text"
               name="logoUrl"
+              inputMode="url"
+              autoComplete="off"
               value={formData.logoUrl || ''}
               onChange={handleChange}
-              placeholder="https://..."
+              placeholder="https://… (optional — see tip above)"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+          {formData.tenantId?.trim() ? (
+            <div className="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50/80 p-3 space-y-2">
+              <p className="text-sm font-medium text-gray-800">Tenant settings logo (same Tenant ID)</p>
+              <p className="text-xs text-gray-600">
+                Pulled from Tenant Management → settings for <span className="font-mono">{formData.tenantId.trim()}</span>.
+                Copy or apply to the Logo URL field above to persist on this satellite domain.
+              </p>
+              {tenantSettingsLogoLoading ? (
+                <p className="text-sm text-gray-500">Loading tenant settings…</p>
+              ) : tenantSettingsLogoUrl ? (
+                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                  <input
+                    type="text"
+                    readOnly
+                    value={tenantSettingsLogoUrl}
+                    className="flex-1 min-w-0 text-xs font-mono border border-gray-300 rounded-lg px-2 py-2 bg-white"
+                    title={tenantSettingsLogoUrl}
+                  />
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => copyText(tenantSettingsLogoUrl, 'Logo URL copied')}
+                      className="flex-shrink-0 h-10 px-3 rounded-lg bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105"
+                      title="Copy logo URL"
+                      aria-label="Copy logo URL from tenant settings"
+                    >
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-sm font-semibold text-blue-700">Copy</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, logoUrl: tenantSettingsLogoUrl, logoType: 'image' }));
+                        setCopyFeedback('Logo URL applied — save to persist');
+                        setTimeout(() => setCopyFeedback(null), 2500);
+                      }}
+                      className="flex-shrink-0 h-10 px-3 rounded-lg bg-green-100 hover:bg-green-200 flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105"
+                      title="Fill Logo URL field with this URL"
+                      aria-label="Use tenant settings logo URL for satellite"
+                    >
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-sm font-semibold text-green-700">Use for satellite</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                  No logo URL in tenant settings for this tenant yet. Upload a logo under Tenant Management →
+                  Customization, then return here.
+                </p>
+              )}
+              {copyFeedback && <p className="text-xs text-green-700 font-medium">{copyFeedback}</p>}
+            </div>
+          ) : null}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Logo Primary Color</label>
             <div className="flex gap-2">
@@ -837,52 +1026,66 @@ function SatelliteDomainForm({ formData, setFormData, onSubmit, loading, submitT
         </div>
       </fieldset>
 
-      {/* ── Social Media ── */}
-      <fieldset className="border border-gray-200 rounded-lg p-4">
-        <legend className="text-sm font-semibold text-gray-700 px-2">Social Media Links</legend>
+      {/* ── Social Media (optional) ── */}
+      <fieldset className="border border-dashed border-gray-200 rounded-lg p-4 bg-gray-50/70">
+        <legend className="text-sm font-semibold text-gray-600 px-2">
+          Social media links{' '}
+          <span className="font-normal text-gray-400">· optional</span>
+        </legend>
+        <p className="text-xs text-gray-500 mt-1 mb-4 max-w-2xl">
+          Skip this section if you don’t need social icons on the satellite site. You can add or edit these anytime.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Facebook</label>
             <input
-              type="url"
+              type="text"
               name="socialFacebook"
+              inputMode="url"
+              autoComplete="off"
               value={formData.socialFacebook || ''}
               onChange={handleChange}
-              placeholder="https://facebook.com/..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="https://facebook.com/… (leave blank if none)"
+              className="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400/60 focus:border-blue-300"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Twitter / X</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Twitter / X</label>
             <input
-              type="url"
+              type="text"
               name="socialTwitter"
+              inputMode="url"
+              autoComplete="off"
               value={formData.socialTwitter || ''}
               onChange={handleChange}
-              placeholder="https://twitter.com/..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="https://twitter.com/… (leave blank if none)"
+              className="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400/60 focus:border-blue-300"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">LinkedIn</label>
             <input
-              type="url"
+              type="text"
               name="socialLinkedin"
+              inputMode="url"
+              autoComplete="off"
               value={formData.socialLinkedin || ''}
               onChange={handleChange}
-              placeholder="https://linkedin.com/company/..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="https://linkedin.com/company/… (leave blank if none)"
+              className="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400/60 focus:border-blue-300"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">YouTube</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">YouTube</label>
             <input
-              type="url"
+              type="text"
               name="socialYoutube"
+              inputMode="url"
+              autoComplete="off"
               value={formData.socialYoutube || ''}
               onChange={handleChange}
-              placeholder="https://youtube.com/..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="https://youtube.com/… (leave blank if none)"
+              className="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400/60 focus:border-blue-300"
             />
           </div>
         </div>

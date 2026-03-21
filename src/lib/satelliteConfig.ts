@@ -2,10 +2,8 @@
  * Satellite Domain Configuration Management
  *
  * This module provides scalable configuration management for satellite domains.
- * It supports multiple sources with fallback priority:
- * 1. JSON configuration file (recommended for 10+ domains)
- * 2. Environment variable (fallback for simple setups)
- * 3. Database (for enterprise scale - implemented separately)
+ * Sync helpers read JSON / env only. Runtime merged list (DB + cache + JSON fallback)
+ * lives in `satelliteConfigRuntime.ts` (used by root layout and `/api/public/satellite-domains`).
  */
 
 import satellitesConfig from '../../config/satellites.json';
@@ -124,11 +122,10 @@ function getSatellitesFromEnv(): SatelliteConfig[] {
 }
 
 /**
- * Get all enabled satellite configurations
- * Priority: JSON file > Environment variable
+ * Static-only satellite list: JSON file, then NEXT_PUBLIC_SATELLITE_DOMAINS.
+ * Prefer `getMergedSatelliteConfigs()` in `satelliteConfigRuntime.ts` for runtime (DB + cache + this fallback).
  */
-export function getSatelliteConfigs(): SatelliteConfig[] {
-  // Try JSON file first
+export function getSatelliteConfigsSync(): SatelliteConfig[] {
   const jsonSatellites = getSatellitesFromJson();
 
   if (jsonSatellites.length > 0) {
@@ -138,7 +135,6 @@ export function getSatelliteConfigs(): SatelliteConfig[] {
     return jsonSatellites;
   }
 
-  // Fallback to environment variable
   const envSatellites = getSatellitesFromEnv();
 
   if (envSatellites.length > 0) {
@@ -153,6 +149,13 @@ export function getSatelliteConfigs(): SatelliteConfig[] {
 }
 
 /**
+ * @deprecated Prefer async getMergedSatelliteConfigs when possible. Sync JSON/env only.
+ */
+export function getSatelliteConfigs(): SatelliteConfig[] {
+  return getSatelliteConfigsSync();
+}
+
+/**
  * Get satellite configuration by hostname
  */
 /** Normalize host for matching (case-insensitive; www vs bare). */
@@ -160,8 +163,12 @@ function normalizeHostnameForMatch(hostname: string): string {
   return hostname.toLowerCase().replace(/^www\./, '');
 }
 
-export function getSatelliteByHostname(hostname: string): SatelliteConfig | null {
-  const satellites = getSatelliteConfigs();
+function resolveSatelliteList(configs?: SatelliteConfig[]): SatelliteConfig[] {
+  return configs ?? getSatelliteConfigsSync();
+}
+
+export function getSatelliteByHostname(hostname: string, configs?: SatelliteConfig[]): SatelliteConfig | null {
+  const satellites = resolveSatelliteList(configs);
   const key = normalizeHostnameForMatch(hostname);
   return satellites.find(sat => normalizeHostnameForMatch(sat.hostname) === key) || null;
 }
@@ -169,8 +176,8 @@ export function getSatelliteByHostname(hostname: string): SatelliteConfig | null
 /**
  * Get satellite configuration by ID
  */
-export function getSatelliteById(id: string): SatelliteConfig | null {
-  const satellites = getSatelliteConfigs();
+export function getSatelliteById(id: string, configs?: SatelliteConfig[]): SatelliteConfig | null {
+  const satellites = resolveSatelliteList(configs);
   return satellites.find(sat => sat.id === id) || null;
 }
 
@@ -178,16 +185,16 @@ export function getSatelliteById(id: string): SatelliteConfig | null {
  * Get array of satellite domain URLs (with protocol)
  * Compatible with existing getSatelliteDomains() function
  */
-export function getSatelliteDomains(): string[] {
-  return getSatelliteConfigs().map(sat => sat.domain);
+export function getSatelliteDomains(configs?: SatelliteConfig[]): string[] {
+  return resolveSatelliteList(configs).map(sat => sat.domain);
 }
 
 /**
  * Get array of satellite hostnames (without protocol)
  * Compatible with existing getSatelliteHostnames() function
  */
-export function getSatelliteHostnames(): string[] {
-  return getSatelliteConfigs().map(sat => sat.hostname);
+export function getSatelliteHostnames(configs?: SatelliteConfig[]): string[] {
+  return resolveSatelliteList(configs).map(sat => sat.hostname);
 }
 
 /**
@@ -195,7 +202,7 @@ export function getSatelliteHostnames(): string[] {
  * Returns the SatelliteConfig if the URL is from a known satellite domain
  * Returns null if not a satellite domain
  */
-export function extractSatelliteConfig(redirectUrl: string): SatelliteConfig | null {
+export function extractSatelliteConfig(redirectUrl: string, configs?: SatelliteConfig[]): SatelliteConfig | null {
   if (!redirectUrl) return null;
 
   try {
@@ -205,7 +212,7 @@ export function extractSatelliteConfig(redirectUrl: string): SatelliteConfig | n
     }
 
     const url = new URL(redirectUrl);
-    return getSatelliteByHostname(url.hostname);
+    return getSatelliteByHostname(url.hostname, configs);
   } catch (error) {
     console.error('[SatelliteConfig] Error parsing redirect URL:', error);
     return null;
@@ -215,8 +222,8 @@ export function extractSatelliteConfig(redirectUrl: string): SatelliteConfig | n
 /**
  * Check if a given URL is from a satellite domain
  */
-export function isSatelliteDomain(url: string): boolean {
-  return extractSatelliteConfig(url) !== null;
+export function isSatelliteDomain(url: string, configs?: SatelliteConfig[]): boolean {
+  return extractSatelliteConfig(url, configs) !== null;
 }
 
 /**
@@ -224,9 +231,9 @@ export function isSatelliteDomain(url: string): boolean {
  * Returns both www and non-www variants plus localhost for dev.
  * Used by layout.tsx to dynamically allow redirects from all satellites.
  */
-export function getAllowedRedirectOrigins(): string[] {
+export function getAllowedRedirectOrigins(configs?: SatelliteConfig[]): string[] {
   const origins: string[] = [];
-  for (const sat of getSatelliteConfigs()) {
+  for (const sat of resolveSatelliteList(configs)) {
     // Add the configured domain URL (e.g. "https://www.mosc-temp.com")
     origins.push(sat.domain);
     // Also add the non-www or www variant
@@ -245,9 +252,9 @@ export function getAllowedRedirectOrigins(): string[] {
  * Matches against the bare domain (e.g. "mosc-temp.com" matches "www.mosc-temp.com").
  * Used by middleware and signout-redirect to validate redirect targets.
  */
-export function isKnownSatelliteHost(hostname: string): boolean {
+export function isKnownSatelliteHost(hostname: string, configs?: SatelliteConfig[]): boolean {
   const bare = hostname.replace(/^www\./, '');
-  return getSatelliteConfigs().some(sat => {
+  return resolveSatelliteList(configs).some(sat => {
     const satBare = sat.hostname.replace(/^www\./, '');
     return bare === satBare || hostname === sat.hostname;
   });
@@ -258,15 +265,15 @@ export function isKnownSatelliteHost(hostname: string): boolean {
  * Useful for simple string-includes checks in client components.
  * e.g. ["mosc-temp.com", "mcefee-temp.com", "md-strikers.com"]
  */
-export function getSatelliteBareDomains(): string[] {
-  return getSatelliteConfigs().map(sat => sat.hostname.replace(/^www\./, ''));
+export function getSatelliteBareDomains(configs?: SatelliteConfig[]): string[] {
+  return resolveSatelliteList(configs).map(sat => sat.hostname.replace(/^www\./, ''));
 }
 
 /**
  * Get statistics about satellite configuration
  */
-export function getSatelliteStats() {
-  const all = getSatelliteConfigs();
+export function getSatelliteStats(configs?: SatelliteConfig[]) {
+  const all = resolveSatelliteList(configs);
   return {
     total: all.length,
     enabled: all.filter(s => s.enabled).length,

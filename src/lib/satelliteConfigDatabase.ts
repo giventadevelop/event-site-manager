@@ -4,10 +4,8 @@
  * For enterprise scale (100+ satellites) - stores configuration in database
  * Allows runtime updates without redeployment
  *
- * Setup Instructions:
- * 1. Create satellites table in your database
- * 2. Configure database connection
- * 3. Import this module instead of satelliteConfig.ts
+ * Runtime DB-backed config is implemented in `satelliteConfigRuntime.ts` (merged with JSON fallback).
+ * This file remains a placeholder for optional direct Prisma usage.
  */
 
 import { SatelliteConfig } from './satelliteConfig';

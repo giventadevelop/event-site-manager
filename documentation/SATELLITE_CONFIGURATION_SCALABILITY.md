@@ -1,5 +1,7 @@
 # Satellite Domain Configuration - Scalability Guide
 
+**Runtime implementation (database + Next.js cache + public API):** see [SATELLITE_CONFIG_RUNTIME_ARCHITECTURE.html](satellite_configuration/SATELLITE_CONFIG_RUNTIME_ARCHITECTURE.html) for the full architecture, caching (`unstable_cache` / `revalidateTag`), and file map.
+
 ## 📊 Configuration Approaches Comparison
 
 ### Summary Table

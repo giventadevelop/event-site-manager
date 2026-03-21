@@ -39,6 +39,7 @@ export default function TenantSettingsForm({
   const [logoUploadMessage, setLogoUploadMessage] = useState<string>('');
   const [headerImageUploadStatus, setHeaderImageUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [headerImageUploadMessage, setHeaderImageUploadMessage] = useState<string>('');
+  const [logoUrlCopyFeedback, setLogoUrlCopyFeedback] = useState<string | null>(null);
   const footerHtmlFileInputRef = useRef<HTMLInputElement>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const headerImageFileInputRef = useRef<HTMLInputElement>(null);
@@ -104,6 +105,9 @@ export default function TenantSettingsForm({
   const emailFooterHtmlUrl = watch('emailFooterHtmlUrl');
   const emailHeaderImageUrl = watch('emailHeaderImageUrl');
   const logoImageUrl = watch('logoImageUrl');
+  /** Row’s tenant — must match upload proxy X-Tenant-ID when editing non-default tenant in super-admin. */
+  const tenantIdForUpload =
+    watch('tenantId')?.trim() || initialData?.tenantId?.trim() || undefined;
 
   // Handle form submission
   const onFormSubmit = async (data: TenantSettingsFormDTO) => {
@@ -123,7 +127,7 @@ export default function TenantSettingsForm({
     setFooterHtmlUploadMessage('Uploading email footer HTML file...');
 
     try {
-      const result = await uploadEmailFooterHtmlClient(file);
+      const result = await uploadEmailFooterHtmlClient(file, tenantIdForUpload);
 
       setValue('emailFooterHtmlUrl', result.url);
 
@@ -162,7 +166,7 @@ export default function TenantSettingsForm({
     setHeaderImageUploadMessage('Uploading email header image...');
 
     try {
-      const result = await uploadEmailHeaderImageClient(file);
+      const result = await uploadEmailHeaderImageClient(file, tenantIdForUpload);
 
       setValue('emailHeaderImageUrl', result.url);
 
@@ -201,7 +205,7 @@ export default function TenantSettingsForm({
     setLogoUploadMessage('Uploading logo image...');
 
     try {
-      const result = await uploadTenantLogoClient(file);
+      const result = await uploadTenantLogoClient(file, tenantIdForUpload);
 
       setValue('logoImageUrl', result.url);
 
@@ -1483,7 +1487,47 @@ export default function TenantSettingsForm({
 
             {/* Tenant Logo Upload */}
             <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-md font-medium text-gray-900 mb-4">Tenant Logo</h4>
+              <h4 className="text-md font-medium text-gray-900 mb-2">Tenant Logo</h4>
+              <p className="text-sm text-gray-600 mb-3">
+                Copy this URL for satellite domain branding or other apps. It updates when you upload or remove the logo.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-stretch mb-4">
+                <input
+                  type="text"
+                  readOnly
+                  value={logoImageUrl || ''}
+                  placeholder="No logo URL yet — upload an image below"
+                  className="flex-1 min-w-0 text-xs sm:text-sm font-mono border border-gray-300 rounded-lg px-3 py-2.5 bg-gray-50 text-gray-800"
+                  title={logoImageUrl || undefined}
+                  aria-label="Current tenant logo URL"
+                />
+                <button
+                  type="button"
+                  disabled={!logoImageUrl?.trim()}
+                  onClick={async () => {
+                    if (!logoImageUrl?.trim()) return;
+                    try {
+                      await navigator.clipboard.writeText(logoImageUrl.trim());
+                      setLogoUrlCopyFeedback('Copied to clipboard');
+                      setTimeout(() => setLogoUrlCopyFeedback(null), 2500);
+                    } catch {
+                      setLogoUrlCopyFeedback('Could not copy');
+                      setTimeout(() => setLogoUrlCopyFeedback(null), 2500);
+                    }
+                  }}
+                  className="flex-shrink-0 h-11 sm:h-auto sm:min-w-[7rem] px-4 rounded-xl bg-blue-100 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105"
+                  title="Copy logo URL"
+                  aria-label="Copy logo URL"
+                >
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <span className="font-semibold text-blue-700">Copy URL</span>
+                </button>
+              </div>
+              {logoUrlCopyFeedback && (
+                <p className="text-xs text-green-700 font-medium mb-3">{logoUrlCopyFeedback}</p>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Logo Image

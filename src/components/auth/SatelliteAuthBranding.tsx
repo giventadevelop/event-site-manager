@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { extractSatelliteConfig } from '@/lib/satelliteConfig';
+import { extractSatelliteConfig, type SatelliteConfig } from '@/lib/satelliteConfig';
 
 type Props = {
   /** `redirect_url` query when signing in on primary to return to a satellite (e.g. https://www.mosc-temp.com). */
@@ -11,14 +11,35 @@ type Props = {
 };
 
 /**
- * Slim header above Clerk on auth pages: shows satellite branding from `config/satellites.json`
- * when `redirect_url` matches a known satellite. Not a separate deploy — same app, config-driven.
+ * Slim header above Clerk on auth pages: satellite branding from API (cached) with JSON fallback
+ * when `redirect_url` matches a known satellite host.
  */
 export default function SatelliteAuthBranding({ redirectUrl, className = '' }: Props) {
+  const [runtimeConfigs, setRuntimeConfigs] = useState<SatelliteConfig[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/public/satellite-domains', { cache: 'no-store' });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data?.satellites) && data.satellites.length > 0) {
+          setRuntimeConfigs(data.satellites as SatelliteConfig[]);
+        }
+      } catch {
+        /* keep null → extractSatelliteConfig falls back to sync JSON */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const satellite = useMemo(() => {
     if (!redirectUrl || !redirectUrl.startsWith('http')) return null;
-    return extractSatelliteConfig(redirectUrl);
-  }, [redirectUrl]);
+    return extractSatelliteConfig(redirectUrl, runtimeConfigs ?? undefined);
+  }, [redirectUrl, runtimeConfigs]);
 
   if (!satellite?.branding || satellite.branding.showOnAuth?.header === false) {
     return null;
