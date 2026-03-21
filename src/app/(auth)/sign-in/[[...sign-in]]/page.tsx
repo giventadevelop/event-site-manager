@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { SignIn } from '@clerk/nextjs';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
+import SatelliteAuthBranding from '@/components/auth/SatelliteAuthBranding';
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
@@ -76,15 +77,18 @@ export default function SignInPage() {
   // Show Clerk component for localhost development
   if (isLocalhost) {
     return (
-      <main className="flex flex-col items-center justify-center flex-1 py-2">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-center text-gray-900">Sign In</h1>
-          <p className="text-sm text-gray-500 text-center mt-2">(Development Mode)</p>
+      <main className="flex min-h-screen w-full flex-1 flex-col">
+        <SatelliteAuthBranding redirectUrl={redirectUrlFromQuery} />
+        <div className="flex flex-1 flex-col items-center justify-center py-2">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-center text-gray-900">Sign In</h1>
+            <p className="text-sm text-gray-500 text-center mt-2">(Development Mode)</p>
+          </div>
+          <SignIn
+            routing="path"
+            path="/sign-in"
+          />
         </div>
-        <SignIn
-          routing="path"
-          path="/sign-in"
-        />
       </main>
     );
   }
@@ -115,19 +119,22 @@ export default function SignInPage() {
     redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http') ? redirectUrlFromQuery : '/home';
 
   return (
-    <main className="flex flex-col items-center justify-center flex-1 py-2">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-center text-gray-900">Sign In</h1>
-        {redirectUrlFromQuery && (
-          <p className="text-sm text-gray-500 text-center mt-2">You will be returned to the site after signing in.</p>
-        )}
+    <main className="flex min-h-screen w-full flex-1 flex-col">
+      <SatelliteAuthBranding redirectUrl={redirectUrlFromQuery} />
+      <div className="flex flex-1 flex-col items-center justify-center py-2">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-center text-gray-900">Sign In</h1>
+          {redirectUrlFromQuery && (
+            <p className="text-sm text-gray-500 text-center mt-2">You will be returned to the site after signing in.</p>
+          )}
+        </div>
+        <SignIn
+          routing="path"
+          path="/sign-in"
+          forceRedirectUrl={afterSignInRedirect}
+          signUpUrl={process.env.NEXT_PUBLIC_PRIMARY_DOMAIN ? `https://${process.env.NEXT_PUBLIC_PRIMARY_DOMAIN}/sign-up` : '/sign-up'}
+        />
       </div>
-      <SignIn
-        routing="path"
-        path="/sign-in"
-        forceRedirectUrl={afterSignInRedirect}
-        signUpUrl={process.env.NEXT_PUBLIC_PRIMARY_DOMAIN ? `https://${process.env.NEXT_PUBLIC_PRIMARY_DOMAIN}/sign-up` : '/sign-up'}
-      />
     </main>
   );
 }

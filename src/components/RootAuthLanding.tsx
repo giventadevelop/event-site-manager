@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { SignIn, useAuth, useUser } from '@clerk/nextjs';
 import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
+import SatelliteAuthBranding from '@/components/auth/SatelliteAuthBranding';
 
 /**
  * Minimal primary-domain landing at `/` (no main Header/Footer — see ConditionalLayout).
@@ -100,22 +101,25 @@ export default function RootAuthLanding() {
     redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http') ? redirectUrlFromQuery : '/';
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 py-10">
-      {redirectUrlFromQuery ? (
-        <p className="text-sm text-gray-500 text-center mb-6 max-w-md">
-          You will be returned to your site after signing in.
-        </p>
-      ) : null}
-      <div className="w-full max-w-md">
-        <SignIn
-          routing="hash"
-          forceRedirectUrl={afterSignInRedirect}
-          signUpUrl={
-            process.env.NEXT_PUBLIC_PRIMARY_DOMAIN
-              ? `https://${process.env.NEXT_PUBLIC_PRIMARY_DOMAIN.replace(/^https?:\/\//, '').replace(/\/$/, '')}/sign-up`
-              : '/sign-up'
-          }
-        />
+    <main className="min-h-screen flex w-full flex-col bg-gray-50">
+      <SatelliteAuthBranding redirectUrl={redirectUrlFromQuery} />
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
+        {redirectUrlFromQuery ? (
+          <p className="text-sm text-gray-500 text-center mb-6 max-w-md">
+            You will be returned to your site after signing in.
+          </p>
+        ) : null}
+        <div className="w-full max-w-md">
+          <SignIn
+            routing="hash"
+            forceRedirectUrl={afterSignInRedirect}
+            signUpUrl={
+              process.env.NEXT_PUBLIC_PRIMARY_DOMAIN
+                ? `https://${process.env.NEXT_PUBLIC_PRIMARY_DOMAIN.replace(/^https?:\/\//, '').replace(/\/$/, '')}/sign-up`
+                : '/sign-up'
+            }
+          />
+        </div>
       </div>
     </main>
   );
