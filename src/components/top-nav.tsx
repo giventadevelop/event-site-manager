@@ -15,7 +15,7 @@ export function TopNav({ children, className, ...props }: TopNavProps) {
       {...props}
     >
       <Link
-        href="/"
+        href="/home"
         className="flex items-center gap-2 font-semibold hover:opacity-80"
       >
         <span className="text-xl">📋</span>

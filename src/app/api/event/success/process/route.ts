@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processStripeSessionServer, fetchTransactionQrCode } from '@/app/event/success/ApiServerActions';
 import { fetchEventDetailsByIdServer } from '@/app/admin/events/[id]/media/ApiServerActions';
-import Stripe from 'stripe';
+import { getServerStripe } from '@/lib/stripe/serverStripe';
 import { getTenantId, getPaymentMethodDomainId, getAppUrl } from '@/lib/env';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-03-31.basil',
-});
 
 const APP_URL = getAppUrl();
 
@@ -54,7 +50,7 @@ async function getSessionIdFromPaymentIntent(paymentIntentId: string): Promise<s
     console.log('[Payment Intent] Looking up session for payment intent:', paymentIntentId);
 
     // Get the payment intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await getServerStripe().paymentIntents.retrieve(paymentIntentId);
 
     // The session ID should be in the metadata or we need to search for it
     if (paymentIntent.metadata?.session_id) {
@@ -64,7 +60,7 @@ async function getSessionIdFromPaymentIntent(paymentIntentId: string): Promise<s
 
     // If not in metadata, we need to search checkout sessions
     // This is more expensive but necessary for mobile flows
-    const sessions = await stripe.checkout.sessions.list({
+    const sessions = await getServerStripe().checkout.sessions.list({
       payment_intent: paymentIntentId,
       limit: 1
     });
@@ -247,7 +243,7 @@ export async function POST(req: NextRequest) {
 
       try {
         // Retrieve Payment Intent from Stripe
-        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+        const paymentIntent = await getServerStripe().paymentIntents.retrieve(paymentIntentId, {
           expand: ['charges.data.balance_transaction']
         });
 
@@ -360,7 +356,7 @@ export async function POST(req: NextRequest) {
             const charge = paymentIntent.charges.data[0];
             if (charge.balance_transaction) {
               const balanceTx = typeof charge.balance_transaction === 'string'
-                ? await stripe.balanceTransactions.retrieve(charge.balance_transaction)
+                ? await getServerStripe().balanceTransactions.retrieve(charge.balance_transaction)
                 : charge.balance_transaction;
               if (balanceTx && typeof balanceTx.fee === 'number') {
                 stripeFeeAmount = balanceTx.fee / 100;
@@ -441,7 +437,7 @@ export async function POST(req: NextRequest) {
       console.log('[API POST CLIENT-CREATE] No result from session processing, attempting direct session creation:', session_id);
       try {
         // Retrieve session from Stripe
-        const session = await stripe.checkout.sessions.retrieve(session_id, {
+        const session = await getServerStripe().checkout.sessions.retrieve(session_id, {
           expand: ['line_items.data.price.product', 'customer']
         });
 
@@ -627,7 +623,7 @@ export async function GET(req: NextRequest) {
         console.log('[API GET] [DESKTOP FLOW] No transaction found - attempting to create from Payment Intent:', pi);
         try {
           // Retrieve Payment Intent from Stripe to validate payment succeeded
-          const paymentIntent = await stripe.paymentIntents.retrieve(pi, {
+          const paymentIntent = await getServerStripe().paymentIntents.retrieve(pi, {
             expand: ['charges.data.balance_transaction']
           });
 

@@ -185,9 +185,14 @@ export function getAuthJwtSecret(): string {
 /**
  * Get Backend API Base URL for OAuth and API calls
  * Returns the backend server URL (e.g., "http://localhost:8080" or "https://api.yourdomain.com")
+ * Amplify may expose this as AMPLIFY_NEXT_PUBLIC_API_BASE_URL at runtime.
  */
 export function getBackendApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+  return (
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.AMPLIFY_NEXT_PUBLIC_API_BASE_URL ||
+    'http://localhost:8080'
+  );
 }
 
 /**

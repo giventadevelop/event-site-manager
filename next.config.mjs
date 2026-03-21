@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -20,21 +17,11 @@ const nextConfig = {
     unoptimized: true,
   },
 
-  // Configure environment variables
-  serverRuntimeConfig: {
-    // Will only be available on the server side
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || process.env.AMPLIFY_STRIPE_SECRET_KEY,
-    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || process.env.AMPLIFY_STRIPE_WEBHOOK_SECRET,
-  },
-
-  publicRuntimeConfig: {
-    // Will be available on both server and client
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.AMPLIFY_NEXT_PUBLIC_APP_URL,
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || process.env.AMPLIFY_NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-  },
-
   // Enable SWC minification for improved performance
   // swcMinify: true,
+
+  // Next 16: `next build` defaults to Turbopack; empty config satisfies builds when a `webpack()` hook exists.
+  turbopack: {},
 
   // Customize webpack config if needed
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
@@ -150,7 +137,8 @@ const nextConfig = {
     AMPLIFY_API_JWT_PASS: process.env.AMPLIFY_API_JWT_PASS,
     NEXT_PUBLIC_API_JWT_USER: process.env.NEXT_PUBLIC_API_JWT_USER,
     NEXT_PUBLIC_API_JWT_PASS: process.env.NEXT_PUBLIC_API_JWT_PASS,
-    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    NEXT_PUBLIC_API_BASE_URL:
+      process.env.NEXT_PUBLIC_API_BASE_URL || process.env.AMPLIFY_NEXT_PUBLIC_API_BASE_URL,
     // Tenant ID and Payment Method Domain ID (prioritize AMPLIFY_ prefix for AWS Amplify)
     NEXT_PUBLIC_TENANT_ID: process.env.AMPLIFY_NEXT_PUBLIC_TENANT_ID || process.env.NEXT_PUBLIC_TENANT_ID,
     AMPLIFY_NEXT_PUBLIC_TENANT_ID: process.env.AMPLIFY_NEXT_PUBLIC_TENANT_ID,

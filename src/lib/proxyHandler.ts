@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
 import { withTenantId } from '@/lib/withTenantId';
 import { getRawBody } from '@/lib/getRawBody';
-import { getDefaultPageSize } from '@/lib/env';
+import { getBackendApiUrl, getDefaultPageSize } from '@/lib/env';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('PROXY-HANDLER');
@@ -52,12 +52,9 @@ export function createProxyHandler({ injectTenantId = false, allowedMethods = ['
     console.log('[PROXY-HANDLER-START] ============================================');
 
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+      // Use shared helper so local dev works without .env (defaults to http://localhost:8080)
+      const API_BASE_URL = getBackendApiUrl();
       console.log('[ProxyHandler] API_BASE_URL:', API_BASE_URL);
-      if (!API_BASE_URL) {
-        res.status(500).json({ error: 'API base URL not configured' });
-        return;
-      }
       const { method, query, body } = req;
       console.log('[ProxyHandler] Method:', method, 'Allowed:', allowedMethods);
       // Debug: Log incoming query and backendPath before replacement

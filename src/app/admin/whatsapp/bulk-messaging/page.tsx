@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { FaArrowLeft, FaWhatsapp, FaMessage, FaChartBar, FaCog } from 'react-icons/fa';
+import { FaArrowLeft, FaWhatsapp, FaComment, FaChartBar, FaCog } from 'react-icons/fa';
 import BulkMessagingFlow from './BulkMessagingFlow';
 // import { WhatsAppErrorBoundary } from '@/components/whatsapp/WhatsAppErrorBoundary';
 
@@ -65,7 +65,7 @@ export default async function BulkMessagingPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <FaMessage className="text-green-500" />
+              <FaComment className="text-green-500" />
               WhatsApp Bulk Messaging
             </h1>
             <p className="mt-2 text-sm text-gray-600">
@@ -97,7 +97,7 @@ export default async function BulkMessagingPage() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <FaMessage className="h-6 w-6 text-green-400" />
+                <FaComment className="h-6 w-6 text-green-400" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>

@@ -655,7 +655,7 @@ const HeroSection: React.FC = () => {
       {/* Two Cards Section */}
       <div className="hero-cards-section">
         {/* Unite India Card - Left */}
-        <Link href="/#about-us" className="hero-card hero-card-about group">
+        <Link href="/home#about-us" className="hero-card hero-card-about group">
           {/* Unite India Background Image */}
           <div
             className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-transform duration-500 group-hover:scale-105"

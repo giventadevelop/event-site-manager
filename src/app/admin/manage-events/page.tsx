@@ -2,10 +2,8 @@
 import { EventDetailsDTO, EventTypeDetailsDTO, UserProfileDTO, EventCalendarEntryDTO } from '@/types';
 import React, { useState, useEffect } from 'react';
 import { EventList } from '@/components/EventList';
-import { useAuth } from "@clerk/nextjs";
 // Icons removed - using inline SVGs instead
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import AdminNavigation from '@/components/AdminNavigation';
 import Image from 'next/image';
 import DeleteConfirmationDialog, { type DeleteStatus } from '@/components/DeleteConfirmationDialog';
@@ -24,8 +22,6 @@ import {
 } from '../ApiServerActions';
 
 export default function ManageEventsPage() {
-  const { userId } = useAuth();
-  const router = useRouter();
   const tenantId = useAdminTenantId();
   const [events, setEvents] = useState<EventDetailsDTO[]>([]);
   const [eventTypes, setEventTypes] = useState<EventTypeDetailsDTO[]>([]);
@@ -152,16 +148,15 @@ export default function ManageEventsPage() {
   }
 
   useEffect(() => {
-    if (userId) {
-      // Skip reload if we're currently auto-switching (prevents double-load)
-      if (isAutoSwitching) {
-        setIsAutoSwitching(false); // Reset flag after skipping
-        return;
-      }
-      // On initial load (first render), check both future and past counts
-      const isInitialLoad = !hasCheckedInitialLoad && page === 0 && !searchTitle && !searchId && !searchCaption && !searchStartDate && !searchEndDate;
-      loadAll(page, isInitialLoad);
+    // Layout already verifies auth; don't gate on userId (avoids stuck loading when useAuth lags).
+    // Skip reload if we're currently auto-switching (prevents double-load)
+    if (isAutoSwitching) {
+      setIsAutoSwitching(false); // Reset flag after skipping
+      return;
     }
+    // On initial load (first render), check both future and past counts
+    const isInitialLoad = !hasCheckedInitialLoad && page === 0 && !searchTitle && !searchId && !searchCaption && !searchStartDate && !searchEndDate;
+    loadAll(page, isInitialLoad);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, searchTitle, searchId, searchCaption, searchField, searchStartDate, searchEndDate, searchAdmissionType, sort, showPastEvents, tenantId]);
 
@@ -386,28 +381,7 @@ export default function ManageEventsPage() {
     setPage((p) => p + 1);
   }
 
-  // Render page content even if userId is not yet available (client-side auth loading)
-  // This prevents the page from hanging during Playwright tests
-  if (!userId) {
-    return (
-      <div className="max-w-5xl mx-auto px-8 py-8" style={{ paddingTop: '180px' }}>
-        <div className="flex items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Events</h1>
-            <p className="text-gray-600">
-              Create, edit, and manage all events in the system.
-            </p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-          <div className="text-center py-8">
-            <p className="text-gray-600">Loading events...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // Layout already verifies auth; no need to block on userId (avoids stuck "Loading events..." when useAuth lags).
   return (
     <div className="max-w-5xl mx-auto px-8 py-8" style={{ paddingTop: '180px' }}>
       {/* Header with back button */}

@@ -11,12 +11,12 @@ import Image from 'next/image';
 const navItems = [
   {
     name: 'Home',
-    href: '/',
+    href: '/home',
     active: false
   },
   {
     name: 'About',
-    href: '/#about-us',
+    href: '/home#about-us',
     active: false,
     dropdown: [] // Will be populated dynamically based on tenant settings
   },
@@ -49,7 +49,7 @@ const navItems = [
   },
   {
     name: 'Contact',
-    href: '/#contact',
+    href: '/home#contact',
     active: false
   }
 ];
@@ -712,7 +712,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
       waitForElementAndScroll();
     };
 
-    if ((window.location.pathname === '/' || window.location.pathname === '/charity-theme') && window.location.hash) {
+    if ((window.location.pathname === '/home' || window.location.pathname === '/charity-theme') && window.location.hash) {
       requestAnimationFrame(() => scrollToHashWithOffset('auto'));
       const timeout = setTimeout(() => scrollToHashWithOffset('auto'), 300);
       return () => clearTimeout(timeout);
@@ -729,7 +729,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
   // Build About dropdown dynamically based on tenant settings
   // Only show Team when settings are loaded AND showTeamSection is explicitly true
   const aboutDropdown = [
-    { name: 'About Us', href: '/#about-us' }
+    { name: 'About Us', href: '/home#about-us' }
   ];
   // Only add Team if:
   // 1. Settings are loaded (not loading)
@@ -756,7 +756,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
   // Update active state based on current route
   const updatedNavItems = navItemsWithDropdown.map(item => ({
     ...item,
-    active: item.href === pathname || (item.href === '/' && (pathname === '/charity-theme' || pathname === '/'))
+    active: item.href === pathname || (item.href === '/home' && (pathname === '/charity-theme' || pathname === '/home'))
   }));
 
   return (
@@ -766,7 +766,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
           <div className="flex items-center justify-between h-[4.5rem]">
             {/* Left side - Unite India Text Logo with Editorial Typography */}
             <div className="flex items-center h-full">
-              <Link href="/" className="group flex items-center gap-3 h-full">
+              <Link href="/home" className="group flex items-center gap-3 h-full">
                 {/* Unite India logo icon - full header height, 102px wide */}
                 <div className="flex items-center justify-center h-full w-[102px] min-w-[102px] rounded-xl flex-shrink-0 overflow-hidden transition-all duration-300 group-hover:scale-105">
                   <Image
@@ -794,7 +794,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
                     const hasDropdown = item.dropdown && Array.isArray(item.dropdown) && item.dropdown.length > 0;
                     const isAboutActive = hasDropdown && item.name === 'About' && item.dropdown.some(
                       (subItem: any) => subItem.href === pathname ||
-                        (subItem.href === '/#about-us' && typeof window !== 'undefined' && window.location.hash === '#about-us') ||
+                        (subItem.href === '/home#about-us' && typeof window !== 'undefined' && window.location.hash === '#about-us') ||
                         (subItem.href === '/team' && pathname === '/team') ||
                         (subItem.href === '/sponsors' && pathname === '/sponsors')
                     );
@@ -842,7 +842,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
 
                                   const isSubItemActive = subItem.href === pathname ||
                                     (subItem.href === '/membership' && pathname?.startsWith('/membership')) ||
-                                    (subItem.href === '/#about-us' && typeof window !== 'undefined' && window.location.hash === '#about-us') ||
+                                    (subItem.href === '/home#about-us' && typeof window !== 'undefined' && window.location.hash === '#about-us') ||
                                     (subItem.href === '/team' && pathname === '/team');
 
                                   return (
@@ -1046,7 +1046,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
         <div className="flex flex-col h-full">
           {/* Mobile Menu Header */}
           <div className="flex items-center justify-between p-5 border-b border-[var(--header-border)]">
-            <Link href="/" className="flex items-center gap-2.5" onClick={closeMobileMenu}>
+            <Link href="/home" className="flex items-center gap-2.5" onClick={closeMobileMenu}>
               <div className="flex items-center justify-center w-[86px] min-w-[86px] h-14 rounded-lg flex-shrink-0 overflow-hidden">
                 <Image
                   src="/images/logos/Malayalees_US/Malayalees_US_Header_Branding.png"
@@ -1115,7 +1115,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
                             const isSubItemActive = subItem.href === pathname ||
                               (subItem.href === '/membership' && pathname?.startsWith('/membership')) ||
                               (subItem.href === '/mosc' && pathname?.startsWith('/mosc')) ||
-                              (subItem.href === '/#about-us' && typeof window !== 'undefined' && window.location.hash === '#about-us') ||
+                              (subItem.href === '/home#about-us' && typeof window !== 'undefined' && window.location.hash === '#about-us') ||
                               (subItem.href === '/team' && pathname === '/team') ||
                               (subItem.href === '/sponsors' && pathname === '/sponsors');
 

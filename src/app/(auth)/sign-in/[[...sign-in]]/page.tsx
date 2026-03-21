@@ -111,7 +111,8 @@ export default function SignInPage() {
     );
   }
 
-  const afterSignInRedirect = redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http') ? redirectUrlFromQuery : '/';
+  const afterSignInRedirect =
+    redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http') ? redirectUrlFromQuery : '/home';
 
   return (
     <main className="flex flex-col items-center justify-center flex-1 py-2">

@@ -1,9 +1,7 @@
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl, effectiveTenantId, appendTenantIfPresent, getDefaultPageSize } from '@/lib/env';
+import { getAppUrl, effectiveTenantId, appendTenantIfPresent, getDefaultPageSize, getBackendApiUrl } from '@/lib/env';
 import type { EventDetailsDTO, EventTypeDetailsDTO, UserProfileDTO, EventCalendarEntryDTO } from '@/types';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function fetchEventsServer(pageNum = 0, pageSize = 5, tenantId?: string): Promise<EventDetailsDTO[]> {
   const params = new URLSearchParams();
@@ -11,7 +9,7 @@ export async function fetchEventsServer(pageNum = 0, pageSize = 5, tenantId?: st
   params.set('size', String(pageSize ?? getDefaultPageSize()));
   params.set('sort', 'startDate,asc');
   appendTenantIfPresent(params, effectiveTenantId(tenantId));
-  const url = `${API_BASE_URL}/api/event-details?${params.toString()}`;
+  const url = `${getBackendApiUrl()}/api/event-details?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch events');
   return await res.json();
@@ -20,7 +18,7 @@ export async function fetchEventsServer(pageNum = 0, pageSize = 5, tenantId?: st
 export async function fetchEventTypesServer(tenantId?: string): Promise<EventTypeDetailsDTO[]> {
   const params = new URLSearchParams();
   appendTenantIfPresent(params, effectiveTenantId(tenantId));
-  const url = `${API_BASE_URL}/api/event-type-details?${params.toString()}`;
+  const url = `${getBackendApiUrl()}/api/event-type-details?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch event types');
   return await res.json();
@@ -30,7 +28,7 @@ export async function fetchCalendarEventsServer(tenantId?: string): Promise<Even
   const params = new URLSearchParams();
   params.set('size', '1000');
   appendTenantIfPresent(params, effectiveTenantId(tenantId));
-  const url = `${API_BASE_URL}/api/event-calendar-entries?${params.toString()}`;
+  const url = `${getBackendApiUrl()}/api/event-calendar-entries?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch calendar events');
   const data = await res.json();
@@ -38,7 +36,7 @@ export async function fetchCalendarEventsServer(tenantId?: string): Promise<Even
 }
 
 export async function createEventServer(event: any, tenantId?: string): Promise<any> {
-  const url = `${API_BASE_URL}/api/event-details`;
+  const url = `${getBackendApiUrl()}/api/event-details`;
   const tid = effectiveTenantId(tenantId);
   const payload = tid != null ? { ...event, tenantId: tid } : event;
   const res = await fetchWithJwtRetry(url, {
@@ -52,7 +50,7 @@ export async function createEventServer(event: any, tenantId?: string): Promise<
 
 export async function updateEventServer(event: any, tenantId?: string): Promise<any> {
   if (!event.id) throw new Error('Event ID required for update');
-  const url = `${API_BASE_URL}/api/event-details/${event.id}`;
+  const url = `${getBackendApiUrl()}/api/event-details/${event.id}`;
   const tid = effectiveTenantId(tenantId);
   const payload = tid != null ? { ...event, tenantId: tid } : event;
   const res = await fetchWithJwtRetry(url, {
@@ -66,7 +64,7 @@ export async function updateEventServer(event: any, tenantId?: string): Promise<
 
 export async function cancelEventServer(event: EventDetailsDTO, tenantId?: string): Promise<EventDetailsDTO> {
   if (!event.id) throw new Error('Event ID required for cancel');
-  const url = `${API_BASE_URL}/api/event-details/${event.id}`;
+  const url = `${getBackendApiUrl()}/api/event-details/${event.id}`;
   const tid = effectiveTenantId(tenantId);
   const payload = tid != null ? { ...event, isActive: false, tenantId: tid } : { ...event, isActive: false };
   const res = await fetchWithJwtRetry(url, {
@@ -108,7 +106,7 @@ export async function createCalendarEventServer(event: EventDetailsDTO, userProf
     event,
     createdBy: userProfile,
   };
-  const url = `${API_BASE_URL}/api/event-calendar-entries`;
+  const url = `${getBackendApiUrl()}/api/event-calendar-entries`;
   const res = await fetchWithJwtRetry(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -125,7 +123,7 @@ export async function findCalendarEventByEventIdServer(eventId: number, tenantId
   const params = new URLSearchParams();
   params.set('size', '1000');
   appendTenantIfPresent(params, effectiveTenantId(tenantId));
-  const url = `${API_BASE_URL}/api/event-calendar-entries?${params.toString()}`;
+  const url = `${getBackendApiUrl()}/api/event-calendar-entries?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return null;
   const data = await res.json();
@@ -151,7 +149,7 @@ export async function updateCalendarEventForEventServer(event: EventDetailsDTO, 
     event,
     createdBy: userProfile,
   };
-  const url = `${API_BASE_URL}/api/event-calendar-entries/${calendarEvent.id}`;
+  const url = `${getBackendApiUrl()}/api/event-calendar-entries/${calendarEvent.id}`;
   const res = await fetchWithJwtRetry(url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -168,7 +166,7 @@ export async function deleteCalendarEventForEventServer(event: EventDetailsDTO, 
   if (!event.id) return;
   const calendarEvent = await findCalendarEventByEventIdServer(event.id, tenantId);
   if (!calendarEvent || !calendarEvent.id) return;
-  const url = `${API_BASE_URL}/api/event-calendar-entries/${calendarEvent.id}`;
+  const url = `${getBackendApiUrl()}/api/event-calendar-entries/${calendarEvent.id}`;
   const res = await fetchWithJwtRetry(url, { method: 'DELETE' });
   if (!res.ok) {
     const err = await res.text();
@@ -202,7 +200,7 @@ export async function fetchEventsFilteredServer(params: {
   if (params.endDate) queryParams.append('endDate.lessThanOrEqual', params.endDate);
   if (params.admissionType) queryParams.append('admissionType.equals', params.admissionType);
 
-  const url = `${API_BASE_URL}/api/event-details?${queryParams.toString()}`;
+  const url = `${getBackendApiUrl()}/api/event-details?${queryParams.toString()}`;
 
   const res = await fetchWithJwtRetry(url, {});
 
@@ -222,7 +220,7 @@ export async function fetchEventDetailsServer(eventId: number, tenantId?: string
   const params = new URLSearchParams();
   appendTenantIfPresent(params, effectiveTenantId(tenantId));
   const qs = params.toString();
-  const url = `${API_BASE_URL}/api/event-details/${eventId}${qs ? `?${qs}` : ''}`;
+  const url = `${getBackendApiUrl()}/api/event-details/${eventId}${qs ? `?${qs}` : ''}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) {
     console.error(`Failed to fetch event details for eventId ${eventId}:`, res.status, await res.text());
@@ -238,7 +236,7 @@ export async function fetchUserProfileServer(userId: string, tenantId?: string):
     const params = new URLSearchParams();
     appendTenantIfPresent(params, effectiveTenantId(tenantId));
     const qs = params.toString();
-    const url = `${API_BASE_URL}/api/user-profiles/by-user/${userId}${qs ? `?${qs}` : ''}`;
+    const url = `${getBackendApiUrl()}/api/user-profiles/by-user/${userId}${qs ? `?${qs}` : ''}`;
     try {
         const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
         if (!res.ok) {
@@ -259,7 +257,7 @@ export async function fetchUserProfileByEmailServer(email: string, tenantId?: st
     const params = new URLSearchParams();
     params.set('email.equals', email);
     appendTenantIfPresent(params, effectiveTenantId(tenantId));
-    const url = `${API_BASE_URL}/api/user-profiles?${params.toString()}`;
+    const url = `${getBackendApiUrl()}/api/user-profiles?${params.toString()}`;
     try {
         const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
         if (!res.ok) {
@@ -284,7 +282,7 @@ export async function fetchChildEventsBySeriesIdServer(recurrenceSeriesId: numbe
   params.set('recurrenceSeriesId.equals', String(recurrenceSeriesId));
   params.set('size', '1000');
   appendTenantIfPresent(params, effectiveTenantId(tenantId));
-  const url = `${API_BASE_URL}/api/event-details?${params.toString()}`;
+  const url = `${getBackendApiUrl()}/api/event-details?${params.toString()}`;
   try {
     const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
     if (!res.ok) {
@@ -324,7 +322,7 @@ export async function softDeleteEventWithChildrenServer(event: EventDetailsDTO, 
         throw new Error(`Event ${event.id} not found`);
       }
 
-      const url = `${API_BASE_URL}/api/event-details/${event.id}`;
+      const url = `${getBackendApiUrl()}/api/event-details/${event.id}`;
       console.log(`[softDeleteEventWithChildrenServer] Calling PUT ${url} to deactivate parent event ${event.id}`);
 
       // Explicitly set isRecurring to false to prevent backend from trying to generate recurring events
@@ -381,7 +379,7 @@ export async function softDeleteEventWithChildrenServer(event: EventDetailsDTO, 
         throw new Error(`Event ${event.id} not found`);
       }
 
-      const url = `${API_BASE_URL}/api/event-details/${event.id}`;
+      const url = `${getBackendApiUrl()}/api/event-details/${event.id}`;
       console.log(`[softDeleteEventWithChildrenServer] Calling PUT ${url} with isActive=false`);
 
       // Explicitly set isRecurring to false to prevent backend from trying to generate recurring events
@@ -443,7 +441,7 @@ export async function activateEventWithChildrenServer(event: EventDetailsDTO, te
         throw new Error(`Event ${event.id} not found`);
       }
 
-      const url = `${API_BASE_URL}/api/event-details/${event.id}`;
+      const url = `${getBackendApiUrl()}/api/event-details/${event.id}`;
       console.log(`[activateEventWithChildrenServer] Calling PUT ${url} to activate parent event ${event.id}`);
 
       const updatePayload = {
@@ -471,7 +469,7 @@ export async function activateEventWithChildrenServer(event: EventDetailsDTO, te
   } else {
     // Child event: activate only this child
     try {
-      const url = `${API_BASE_URL}/api/event-details/${event.id}`;
+      const url = `${getBackendApiUrl()}/api/event-details/${event.id}`;
       await fetchWithJwtRetry(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -521,7 +519,7 @@ export async function hardDeleteEventWithChildrenServer(event: EventDetailsDTO, 
         }
 
         // Then delete the event
-        const url = `${API_BASE_URL}/api/event-details/${e.id}`;
+        const url = `${getBackendApiUrl()}/api/event-details/${e.id}`;
         const res = await fetchWithJwtRetry(url, { method: 'DELETE' });
         if (!res.ok) {
           const err = await res.text();
@@ -545,7 +543,7 @@ export async function hardDeleteEventWithChildrenServer(event: EventDetailsDTO, 
       }
 
       // Then delete the event
-      const url = `${API_BASE_URL}/api/event-details/${event.id}`;
+      const url = `${getBackendApiUrl()}/api/event-details/${event.id}`;
       const res = await fetchWithJwtRetry(url, { method: 'DELETE' });
       if (!res.ok) {
         const err = await res.text();
