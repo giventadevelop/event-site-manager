@@ -83,6 +83,10 @@ const adminSubmenuItems = [
   { name: 'Satellite Domains', href: '/admin/satellite-domains' }
 ];
 
+/** Prefer deployed branding PNG; repo often omits it — fallback avoids broken header image. */
+const HEADER_LOGO_PREFERRED = '/images/logos/Malayalees_US/Malayalees_US_Header_Branding.png';
+const HEADER_LOGO_FALLBACK = '/images/logo.svg';
+
 type HeaderProps = {
   hideMenuItems?: boolean;
   variant?: 'charity' | 'default';
@@ -417,6 +421,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [openMobileDropdowns, setOpenMobileDropdowns] = useState<Record<string, boolean>>({});
+  const [headerLogoSrc, setHeaderLogoSrc] = useState(HEADER_LOGO_PREFERRED);
 
   // CRITICAL: When returning from primary domain sign-out, call Clerk signOut()
   // on the satellite to clear its own session cookie. Just clearing localStorage
@@ -770,11 +775,17 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
                 {/* Unite India logo icon - full header height, 102px wide */}
                 <div className="flex items-center justify-center h-full w-[102px] min-w-[102px] rounded-xl flex-shrink-0 overflow-hidden transition-all duration-300 group-hover:scale-105">
                   <Image
-                    src="/images/logos/Malayalees_US/Malayalees_US_Header_Branding.png"
-                    alt="Unite India"
+                    src={headerLogoSrc}
+                    alt="Site logo"
                     width={102}
                     height={72}
                     className="w-full h-full object-contain"
+                    unoptimized={headerLogoSrc.endsWith('.svg')}
+                    onError={() => {
+                      setHeaderLogoSrc((prev) =>
+                        prev === HEADER_LOGO_FALLBACK ? prev : HEADER_LOGO_FALLBACK
+                      );
+                    }}
                   />
                 </div>
                 <div className="text-left">
@@ -1049,11 +1060,17 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
             <Link href="/home" className="flex items-center gap-2.5" onClick={closeMobileMenu}>
               <div className="flex items-center justify-center w-[86px] min-w-[86px] h-14 rounded-lg flex-shrink-0 overflow-hidden">
                 <Image
-                  src="/images/logos/Malayalees_US/Malayalees_US_Header_Branding.png"
-                  alt="Unite India"
+                  src={headerLogoSrc}
+                  alt="Site logo"
                   width={86}
                   height={56}
                   className="w-full h-full object-contain"
+                  unoptimized={headerLogoSrc.endsWith('.svg')}
+                  onError={() => {
+                    setHeaderLogoSrc((prev) =>
+                      prev === HEADER_LOGO_FALLBACK ? prev : HEADER_LOGO_FALLBACK
+                    );
+                  }}
                 />
               </div>
               <div className="text-left">

@@ -1,14 +1,9 @@
 import { ReactNode } from 'react';
 
 /**
- * Auth Layout
- *
- * This layout wraps all authentication pages (sign-in, sign-up, etc.)
- * It intentionally does NOT render the primary domain's Header/Footer
- * to allow satellite-specific branding to be shown instead.
- *
- * The individual auth pages handle rendering satellite headers/footers
- * based on the redirect_url parameter.
+ * Auth Layout — wraps sign-in, sign-up, etc.
+ * Main site Header/Footer are excluded in ConditionalLayout for these routes
+ * (see `isAuthRoute` in ConditionalLayout.tsx), so auth pages are not under the marketing nav.
  */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (

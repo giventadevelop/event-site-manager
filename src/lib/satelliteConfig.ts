@@ -155,9 +155,15 @@ export function getSatelliteConfigs(): SatelliteConfig[] {
 /**
  * Get satellite configuration by hostname
  */
+/** Normalize host for matching (case-insensitive; www vs bare). */
+function normalizeHostnameForMatch(hostname: string): string {
+  return hostname.toLowerCase().replace(/^www\./, '');
+}
+
 export function getSatelliteByHostname(hostname: string): SatelliteConfig | null {
   const satellites = getSatelliteConfigs();
-  return satellites.find(sat => sat.hostname === hostname) || null;
+  const key = normalizeHostnameForMatch(hostname);
+  return satellites.find(sat => normalizeHostnameForMatch(sat.hostname) === key) || null;
 }
 
 /**

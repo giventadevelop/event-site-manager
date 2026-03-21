@@ -3,14 +3,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { SignUp } from '@clerk/nextjs';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
+import SatelliteAuthBranding from '@/components/auth/SatelliteAuthBranding';
 
 export default function SignUpPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const redirectUrlFromQuery = searchParams?.get('redirect_url') ?? null;
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [isLocalhost, setIsLocalhost] = useState(false);
   const [isPrimaryDomain, setIsPrimaryDomain] = useState(false);
@@ -163,18 +166,22 @@ export default function SignUpPage() {
 
   // Show Clerk component for localhost development or primary domain
   if (isLocalhost || isPrimaryDomain) {
+    const brandingRedirect = redirectUrl ?? redirectUrlFromQuery;
     return (
-      <main className="flex flex-col items-center justify-center flex-1 py-2">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-center text-gray-900">Create Account</h1>
-          {isLocalhost && <p className="text-sm text-gray-500 text-center mt-2">(Development Mode)</p>}
+      <main className="flex min-h-screen w-full flex-1 flex-col">
+        <SatelliteAuthBranding redirectUrl={brandingRedirect} />
+        <div className="flex flex-1 flex-col items-center justify-center py-2">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-center text-gray-900">Create Account</h1>
+            {isLocalhost && <p className="text-sm text-gray-500 text-center mt-2">(Development Mode)</p>}
+          </div>
+          <SignUp
+            afterSignUp={handleAfterSignUp}
+            fallbackRedirectUrl="/profile"
+            routing="path"
+            path="/sign-up"
+          />
         </div>
-        <SignUp
-          afterSignUp={handleAfterSignUp}
-          fallbackRedirectUrl="/profile"
-          routing="path"
-          path="/sign-up"
-        />
       </main>
     );
   }

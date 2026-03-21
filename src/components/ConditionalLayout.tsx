@@ -22,6 +22,13 @@ export default function ConditionalLayout({ children, header, footer }: Conditio
   // Satellite sign-in still targets `/sign-in` on the primary domain; see RootAuthLanding.
   const isRootAuthOnly = pathname === "/";
 
+  // Clerk auth routes: same app on primary + satellites — hide marketing header/footer so
+  // sign-in isn’t cramped under MALAYALEES.US nav + broken logo; user goes to /home after auth.
+  const isAuthRoute =
+    (pathname?.startsWith("/sign-in") ?? false) ||
+    (pathname?.startsWith("/sign-up") ?? false) ||
+    (pathname?.startsWith("/sso-callback") ?? false);
+
   // For MOSC routes, just render children without main app header/footer
   if (isMOSCRoute) {
     return <>{children}</>;
@@ -32,7 +39,7 @@ export default function ConditionalLayout({ children, header, footer }: Conditio
     return <>{children}</>;
   }
 
-  if (isRootAuthOnly) {
+  if (isRootAuthOnly || isAuthRoute) {
     return <>{children}</>;
   }
 
