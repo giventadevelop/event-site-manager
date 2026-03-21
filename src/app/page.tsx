@@ -3,8 +3,8 @@
 import RootAuthLanding from '@/components/RootAuthLanding';
 
 /**
- * Primary domain root: minimal Clerk sign-in only (full marketing site lives at `/home`).
- * Satellite auth still uses `/sign-in` on the primary host; see RootAuthLanding and clerk_auth rule.
+ * Primary domain root: Clerk sign-in (signed-in users stay here unless they open `/home` manually).
+ * Full marketing site lives at `/home`. Satellite auth: see RootAuthLanding and clerk_auth rule.
  */
 export default function RootPage() {
   return <RootAuthLanding />;
