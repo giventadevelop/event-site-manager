@@ -1,5 +1,0 @@
-src/lib/generated/**/*
-node_modules
-.next
-build
-dist

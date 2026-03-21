@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts';
-import { getErrorMessage, logAuthError } from '@/lib/auth';
+import { getErrorMessage, logAuthError } from '@/lib/auth/errorHandling';
 import { addTenantToPayload, filterByTenant } from '@/lib/multiTenant';
 import { ProtectedRoute, UserProfileCard } from '@/components/auth';
 

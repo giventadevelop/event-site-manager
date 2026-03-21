@@ -3,10 +3,10 @@
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import type { EventTicketTransactionDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-if (!API_BASE_URL) {
-  throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured');
+function requireApiBaseUrl(): string {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!base) throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured');
+  return base;
 }
 
 export interface CheckInHistoryOptions {
@@ -60,7 +60,7 @@ export async function fetchCheckInHistoryServer(
     params.append('sort', 'checkInTime,desc');
   }
 
-  const url = `${API_BASE_URL}/api/event-ticket-transactions?${params.toString()}`;
+  const url = `${requireApiBaseUrl()}/api/event-ticket-transactions?${params.toString()}`;
   const response = await fetchWithJwtRetry(url, { cache: 'no-store' });
 
   if (!response.ok) {
@@ -98,7 +98,7 @@ export async function fetchCheckInAnalyticsServer(
     'size': '1000', // Get all for analytics
   });
 
-  const allUrl = `${API_BASE_URL}/api/event-ticket-transactions?${allParams.toString()}`;
+  const allUrl = `${requireApiBaseUrl()}/api/event-ticket-transactions?${allParams.toString()}`;
   const allResponse = await fetchWithJwtRetry(allUrl, { cache: 'no-store' });
 
   if (!allResponse.ok) {
@@ -115,7 +115,7 @@ export async function fetchCheckInAnalyticsServer(
     'size': '1000',
   });
 
-  const checkedInUrl = `${API_BASE_URL}/api/event-ticket-transactions?${checkedInParams.toString()}`;
+  const checkedInUrl = `${requireApiBaseUrl()}/api/event-ticket-transactions?${checkedInParams.toString()}`;
   const checkedInResponse = await fetchWithJwtRetry(checkedInUrl, { cache: 'no-store' });
 
   if (!checkedInResponse.ok) {

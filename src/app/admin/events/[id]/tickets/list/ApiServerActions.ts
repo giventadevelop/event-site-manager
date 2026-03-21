@@ -4,10 +4,10 @@ import { getTenantId, getAppUrl } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import type { EventTicketTransactionDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-if (!API_BASE_URL) {
-  throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured');
+function requireApiBaseUrl(): string {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!base) throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured');
+  return base;
 }
 
 export async function refundTicketTransactionServer(ticket: EventTicketTransactionDTO, reason: string) {
@@ -149,7 +149,7 @@ export async function triggerStripeTicketBatchRefundServer(
     }
 
     // Call backend batch job API endpoint (NOT a proxy endpoint - direct backend call)
-    const url = `${API_BASE_URL}/api/cron/stripe-ticket-batch-refund`;
+    const url = `${requireApiBaseUrl()}/api/cron/stripe-ticket-batch-refund`;
     const response = await fetchWithJwtRetry(url, {
       method: 'POST',
       headers: {

@@ -114,7 +114,7 @@ export function SignUpForm() {
       sessionStorage.removeItem('redirect_after_login');
 
       // Determine redirect URL
-      let redirectUrl = '/'; // Default to home page
+      let redirectUrl = '/home'; // Default to marketing home
 
       if (queryRedirect && queryRedirect !== '/sign-in' && queryRedirect !== '/sign-up') {
         redirectUrl = queryRedirect;

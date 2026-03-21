@@ -1,7 +1,6 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { initStripeConfig, getStripeEnvVar } from '@/lib/stripe/init';
-import getConfig from 'next/config';
 import Stripe from 'stripe';
 import type { UserProfileDTO, UserSubscriptionDTO, EventTicketTransactionDTO } from '@/types';
 import { NextRequest } from 'next/server';
@@ -303,8 +302,6 @@ async function handleChargeFeeUpdate(charge: Stripe.Charge) {
 // App Router doesn't parse body by default for POST requests
 
 export async function POST(req: NextRequest) {
-  const { serverRuntimeConfig } = getConfig() || { serverRuntimeConfig: {} };
-
   // Skip processing during build phase
   if (process.env.NEXT_PHASE === 'build') {
     console.log('[STRIPE-WEBHOOK] Skipping during build phase');

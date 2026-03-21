@@ -1,9 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
-});
+import { getServerStripe } from '@/lib/stripe/serverStripe';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -21,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`[VERIFY-PI] Verifying payment intent: ${paymentIntentId}`);
 
     // Retrieve the payment intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await getServerStripe().paymentIntents.retrieve(paymentIntentId);
 
     console.log(`[VERIFY-PI] Payment intent ${paymentIntentId} status: ${paymentIntent.status}`);
 

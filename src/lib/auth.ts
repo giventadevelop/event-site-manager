@@ -8,9 +8,6 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getAuth } from "@clerk/nextjs/server";
 
-// Force Node.js runtime
-export const runtime = 'nodejs';
-
 export async function authenticatedRequest(
   req: NextRequest,
   handler: (userId: string) => Promise<NextResponse>

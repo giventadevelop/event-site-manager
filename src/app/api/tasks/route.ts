@@ -7,9 +7,12 @@ import { getAppUrl } from '@/lib/env';
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-const API_BASE_URL = getAppUrl();
-if (!API_BASE_URL) {
-  throw new Error('API base URL not configured');
+function apiBaseUrl(): string {
+  const base = getAppUrl();
+  if (!base) {
+    throw new Error('API base URL not configured');
+  }
+  return base;
 }
 
 // Validation schema for task creation and update
@@ -236,7 +239,7 @@ export async function GET(request: NextRequest, context?: { params?: { id?: stri
     const userId = getUserId();
     // If context and params.id is present, fetch a single task
     if (context && context.params && context.params.id) {
-      const response = await fetch(`${API_BASE_URL}/api/proxy/user-tasks/${context.params.id}`, {
+      const response = await fetch(`${apiBaseUrl()}/api/proxy/user-tasks/${context.params.id}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
@@ -245,7 +248,7 @@ export async function GET(request: NextRequest, context?: { params?: { id?: stri
       return NextResponse.json(data, { status: response.status });
     }
     // Otherwise, fetch all tasks (existing logic)
-    const url = new URL(`${API_BASE_URL}/api/proxy/user-tasks`);
+    const url = new URL(`${apiBaseUrl()}/api/proxy/user-tasks`);
     for (const [key, value] of new URL(request.url).searchParams.entries()) {
       url.searchParams.append(key, value);
     }
@@ -290,7 +293,7 @@ export async function POST(request: NextRequest) {
       createdAt: now,
       updatedAt: now,
     };
-    const response = await fetch(`${API_BASE_URL}/api/proxy/user-tasks`, {
+    const response = await fetch(`${apiBaseUrl()}/api/proxy/user-tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -318,7 +321,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Task id is required' }, { status: 400 });
     }
     // Fetch the existing task to get all required fields
-    const existingRes = await fetch(`${API_BASE_URL}/api/proxy/user-tasks/${id}`, {
+    const existingRes = await fetch(`${apiBaseUrl()}/api/proxy/user-tasks/${id}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
@@ -360,7 +363,7 @@ export async function PUT(request: NextRequest) {
     };
     // Validate the merged payload
     const validatedUpdate = updateTaskSchema.parse(merged);
-    const response = await fetch(`${API_BASE_URL}/api/proxy/user-tasks/${id}`, {
+    const response = await fetch(`${apiBaseUrl()}/api/proxy/user-tasks/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(merged),
@@ -391,7 +394,7 @@ export async function DELETE(request: NextRequest) {
     }
     // Ensure id is a string for the URL
     const idStr = String(id);
-    const response = await fetch(`${API_BASE_URL}/api/proxy/user-tasks/${idStr}`, {
+    const response = await fetch(`${apiBaseUrl()}/api/proxy/user-tasks/${idStr}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: Number(userId) }),

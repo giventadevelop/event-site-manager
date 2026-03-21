@@ -4,12 +4,6 @@ import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getAppUrl } from '@/lib/env';
 import type { ManualPaymentRequestDTO, EventTicketTransactionDTO, EventDetailsDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-if (!API_BASE_URL) {
-  throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured');
-}
-
 /**
  * Fetch manual payment request with related ticket transaction and items
  */

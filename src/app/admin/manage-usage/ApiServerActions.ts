@@ -1,29 +1,15 @@
 // This file was renamed from actions.ts to ApiServerActions.ts as a standard for server-side API calls in this module.
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { effectiveTenantId, appendTenantIfPresent, getDefaultPageSize } from '@/lib/env';
+import { effectiveTenantId, appendTenantIfPresent, getDefaultPageSize, getBackendApiUrl } from '@/lib/env';
 import { UserProfileDTO } from '@/types';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-async function fetchWithJwt(url: string, options: any = {}) {
-  const { getCachedApiJwt, generateApiJwt } = await import('@/lib/api/jwt');
-  let token = await getCachedApiJwt();
-  let res = await fetch(url, { ...options, headers: { ...options.headers, Authorization: `Bearer ${token}` } });
-
-  if (res.status === 401) {
-    token = await generateApiJwt();
-    res = await fetch(url, { ...options, headers: { ...options.headers, Authorization: `Bearer ${token}` } });
-  }
-  return res;
-}
 
 export async function fetchAllUsersServer(tenantId?: string): Promise<UserProfileDTO[]> {
   const params = new URLSearchParams();
   params.set('page', '0');
   params.set('size', String(getDefaultPageSize()));
   appendTenantIfPresent(params, effectiveTenantId(tenantId));
-  const url = `${API_BASE_URL}/api/user-profiles?${params.toString()}`;
+  const url = `${getBackendApiUrl()}/api/user-profiles?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return [];
   return res.json();
@@ -36,7 +22,7 @@ export async function fetchAdminProfileServer(userId: string, tenantId?: string)
     params.append('userId.equals', userId);
     params.append('size', '1');
     appendTenantIfPresent(params, effectiveTenantId(tenantId));
-    const url = `${API_BASE_URL}/api/user-profiles?${params.toString()}`;
+    const url = `${getBackendApiUrl()}/api/user-profiles?${params.toString()}`;
 
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
@@ -71,7 +57,7 @@ export async function fetchUsersServer({ search, searchField, status, role, page
   params.append('page', String((page ?? 1) - 1));
   params.append('size', String(pageSize ?? getDefaultPageSize()));
   appendTenantIfPresent(params, effectiveTenantId(tenantId));
-  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles?${params.toString()}`, {
+  const res = await fetchWithJwtRetry(`${getBackendApiUrl()}/api/user-profiles?${params.toString()}`, {
     cache: 'no-store',
   });
   const totalCount = res.headers.get('X-Total-Count');
@@ -80,7 +66,7 @@ export async function fetchUsersServer({ search, searchField, status, role, page
 }
 
 export async function patchUserProfileServer(userId: number, payload: Partial<UserProfileDTO>, tenantId?: string) {
-  const url = `${API_BASE_URL}/api/user-profiles/${userId}`;
+  const url = `${getBackendApiUrl()}/api/user-profiles/${userId}`;
   const tid = effectiveTenantId(tenantId);
   const finalPayload = {
     ...payload,
@@ -107,7 +93,7 @@ export async function patchUserProfileServer(userId: number, payload: Partial<Us
 
 export async function bulkUploadUsersServer(users: any[], tenantId?: string) {
   const tid = effectiveTenantId(tenantId);
-  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles/bulk`, {
+  const res = await fetchWithJwtRetry(`${getBackendApiUrl()}/api/user-profiles/bulk`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

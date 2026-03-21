@@ -70,6 +70,7 @@ export default async function RootLayout({
     /^\/calendar/,
     /^\/focus-groups/,
     /^\/pricing/,
+    /^\/home/,
   ];
 
   // Check if this is a public route

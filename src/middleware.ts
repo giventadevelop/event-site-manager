@@ -67,6 +67,7 @@ const isPublicRoute = createRouteMatcher([
   '/focus-groups(.*)',
   '/pricing(.*)',
   '/member-portal(.*)',
+  '/home(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

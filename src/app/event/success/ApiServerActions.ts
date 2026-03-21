@@ -9,14 +9,9 @@ import {
 } from '@/types';
 import { getTenantId, getPaymentMethodDomainId, getAppUrl, getEmailHostUrlPrefix } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
-import Stripe from 'stripe';
 import { getTenantSettings } from '@/lib/tenantSettingsCache';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-03-31.basil',
-});
+import { getServerStripe } from '@/lib/stripe/serverStripe';
 
 
 // Define ShoppingCartItem locally (not in @/types)
@@ -484,11 +479,11 @@ function omitId<T extends object>(obj: T): Omit<T, 'id'> {
 async function fetchStripeFeeAmount(paymentIntentId: string): Promise<number | null> {
   try {
     // Retrieve the PaymentIntent and expand charges
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['charges'] });
+    const paymentIntent = await getServerStripe().paymentIntents.retrieve(paymentIntentId, { expand: ['charges'] });
     const charges = (paymentIntent as any).charges;
     const charge = (charges && Array.isArray(charges.data)) ? charges.data[0] : undefined;
     if (charge && charge.balance_transaction) {
-      const balanceTx = await stripe.balanceTransactions.retrieve(charge.balance_transaction as string);
+      const balanceTx = await getServerStripe().balanceTransactions.retrieve(charge.balance_transaction as string);
       if (balanceTx && typeof balanceTx.fee === 'number') {
         return balanceTx.fee / 100;
       }
@@ -511,7 +506,7 @@ export async function processStripeSessionServer(
   }
 ): Promise<{ transaction: any, userProfile: any, attendee: any } | null> {
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+    const session = await getServerStripe().checkout.sessions.retrieve(sessionId, {
       expand: ['line_items.data.price.product', 'customer'],
     });
 

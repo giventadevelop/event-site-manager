@@ -1,8 +1,6 @@
 /**
- * Robust logging utility that can't be stripped by Next.js production builds
- *
- * This uses process.stderr.write which is preserved in production,
- * unlike console.log which may be removed by tree-shaking.
+ * Tagged logging. Uses console only so the module is safe for Edge Runtime (e.g. middleware).
+ * Avoid process.stderr — Next.js Edge bundles flag Node-only APIs even behind guards.
  */
 
 type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
@@ -15,36 +13,26 @@ interface LogMessage {
   data?: any;
 }
 
-/**
- * Write log to stderr (can't be stripped by Next.js)
- */
 function writeLog(logMessage: LogMessage): void {
-  const logString = JSON.stringify(logMessage);
+  const line = `[ROBUST-LOG] ${JSON.stringify(logMessage)}`;
+  const human = `[${logMessage.tag}] [${logMessage.level}] ${logMessage.message}`;
+  const extra = logMessage.data;
 
-  // Use process.stderr.write which is ALWAYS preserved in production
-  if (typeof process !== 'undefined' && process.stderr) {
-    process.stderr.write(`[ROBUST-LOG] ${logString}\n`);
-  }
-
-  // Also use console.log as backup (may be stripped in production)
-  console.log(`[${logMessage.tag}] [${logMessage.level}] ${logMessage.message}`, logMessage.data || '');
-
-  // Force flush (ensures logs are written immediately)
-  if (typeof process !== 'undefined' && process.stderr && typeof process.stderr.write === 'function') {
-    try {
-      // @ts-ignore
-      if (process.stderr.isTTY === false) {
-        // In non-TTY mode (like AWS Lambda), force flush
-      }
-    } catch (e) {
-      // Ignore flush errors
-    }
+  switch (logMessage.level) {
+    case 'ERROR':
+      console.error(line, extra ?? '');
+      console.error(human, extra ?? '');
+      break;
+    case 'WARN':
+      console.warn(line, extra ?? '');
+      console.warn(human, extra ?? '');
+      break;
+    default:
+      console.log(line, extra ?? '');
+      console.log(human, extra ?? '');
   }
 }
 
-/**
- * Create a tagged logger for a specific component/module
- */
 export function createLogger(tag: string) {
   return {
     info: (message: string, data?: any) => {
@@ -89,7 +77,4 @@ export function createLogger(tag: string) {
   };
 }
 
-/**
- * Global logger (use createLogger for component-specific logging)
- */
 export const logger = createLogger('GLOBAL');
