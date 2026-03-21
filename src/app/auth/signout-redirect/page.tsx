@@ -10,7 +10,7 @@
  * the satellite as signed out.
  *
  * Satellite domain validation:
- *   1. Fetches allowed domains from /api/public/satellite-domains (backed by config/satellites.json)
+ *   1. Fetches allowed domains from /api/public/satellite-domains (backend satellite_domain + cache, JSON fallback)
  *   2. Falls back to a hardcoded list if the fetch fails
  *   This avoids importing server-side config modules in a client component,
  *   which causes "window is not defined" errors during SSR.

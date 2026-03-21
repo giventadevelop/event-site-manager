@@ -329,15 +329,22 @@ export async function deleteTenantSetting(id: number): Promise<void> {
  * Upload email footer HTML file (client-side function)
  * Note: This must be called from client components, not server actions
  */
+/** When editing another tenant's settings, pass their tenantId so S3/backend use the correct scope. */
+function tenantUploadQuery(tenantIdForUpload?: string) {
+  const t = tenantIdForUpload?.trim();
+  return t ? `?tenantId=${encodeURIComponent(t)}` : '';
+}
+
 export async function uploadEmailFooterHtmlClient(
-  file: File
+  file: File,
+  tenantIdForUpload?: string
 ): Promise<{ url: string }> {
   const baseUrl = getAppUrl();
   const formData = new FormData();
 
   formData.append('file', file);
 
-  const url = `${baseUrl}/api/proxy/tenant-settings/upload/email-footer-html`;
+  const url = `${baseUrl}/api/proxy/tenant-settings/upload/email-footer-html${tenantUploadQuery(tenantIdForUpload)}`;
 
   const response = await fetch(url, {
     method: 'POST',
@@ -361,14 +368,15 @@ export async function uploadEmailFooterHtmlClient(
  * Note: This must be called from client components, not server actions
  */
 export async function uploadTenantLogoClient(
-  file: File
+  file: File,
+  tenantIdForUpload?: string
 ): Promise<{ url: string }> {
   const baseUrl = getAppUrl();
   const formData = new FormData();
 
   formData.append('file', file);
 
-  const url = `${baseUrl}/api/proxy/tenant-settings/upload/tenant-logo`;
+  const url = `${baseUrl}/api/proxy/tenant-settings/upload/tenant-logo${tenantUploadQuery(tenantIdForUpload)}`;
 
   const response = await fetch(url, {
     method: 'POST',
@@ -392,14 +400,15 @@ export async function uploadTenantLogoClient(
  * Note: This must be called from client components, not server actions
  */
 export async function uploadEmailHeaderImageClient(
-  file: File
+  file: File,
+  tenantIdForUpload?: string
 ): Promise<{ url: string }> {
   const baseUrl = getAppUrl();
   const formData = new FormData();
 
   formData.append('file', file);
 
-  const url = `${baseUrl}/api/proxy/tenant-settings/upload/email-header-image`;
+  const url = `${baseUrl}/api/proxy/tenant-settings/upload/email-header-image${tenantUploadQuery(tenantIdForUpload)}`;
 
   const response = await fetch(url, {
     method: 'POST',

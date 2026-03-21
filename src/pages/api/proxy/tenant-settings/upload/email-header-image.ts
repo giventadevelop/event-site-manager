@@ -2,6 +2,15 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
 import { getTenantId } from '@/lib/env';
 
+function resolveTenantIdForUpload(req: NextApiRequest): string {
+  const q = req.query.tenantId;
+  const fromQuery = Array.isArray(q) ? q[0] : q;
+  if (typeof fromQuery === 'string' && fromQuery.trim()) {
+    return fromQuery.trim();
+  }
+  return getTenantId();
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const config = {
@@ -29,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       token = await generateApiJwt();
     }
 
-    const tenantId = getTenantId();
+    const tenantId = resolveTenantIdForUpload(req);
     const url = `${API_BASE_URL}/api/tenant-settings/upload/email-header-image`;
 
     // Use node-fetch for proper multipart form handling

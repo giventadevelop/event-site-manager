@@ -621,10 +621,19 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
       return;
     }
 
-    // Check if we're on a known satellite domain (any domain that isn't the primary).
-    // Do not use NEXT_PUBLIC_CLERK_DOMAIN for this check - it can be set to primary by mistake.
-    // Match against known satellite domains so sign-out works for all satellites, not just mosc-temp.
-    const knownSatellites = ['mosc-temp.com', 'mcefee-temp.com', 'md-strikers.com'];
+    // Known satellite bare domains from public API (DB + cache, fallback JSON); then hardcoded fallback.
+    let knownSatellites: string[] = ['mosc-temp.com', 'mcefee-temp.com', 'md-strikers.com'];
+    try {
+      const res = await fetch('/api/public/satellite-domains', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.domains) && data.domains.length > 0) {
+          knownSatellites = data.domains;
+        }
+      }
+    } catch {
+      /* use hardcoded list */
+    }
     const isSatellite = knownSatellites.some(sat => hostname.includes(sat));
     if (isSatellite) {
       console.log('[Header] Satellite domain detected, redirecting to primary domain sign-out...');

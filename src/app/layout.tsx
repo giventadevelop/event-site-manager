@@ -15,6 +15,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { getAppUrl } from "@/lib/env";
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
 import { getAllowedRedirectOrigins, isKnownSatelliteHost } from "@/lib/satelliteConfig";
+import { getMergedSatelliteConfigs } from "@/lib/satelliteConfigRuntime";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -85,8 +86,8 @@ export default async function RootLayout({
   const satelliteDomain = process.env.NEXT_PUBLIC_CLERK_DOMAIN || 'www.mosc-temp.com';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
 
-  // Detect if this is a satellite domain — uses config/satellites.json as source of truth
-  const isSatellite = isKnownSatelliteHost(hostname);
+  const satelliteConfigs = await getMergedSatelliteConfigs();
+  const isSatellite = isKnownSatelliteHost(hostname, satelliteConfigs);
 
   // Clerk v7 / Core 3: proxyUrl is no longer needed on ClerkProvider.
   // The frontendApiProxy option in clerkMiddleware handles all FAPI proxying automatically
@@ -102,10 +103,10 @@ export default async function RootLayout({
       afterSignOutUrl: '/', // Clerk v7: afterSignOutUrl moved from UserButton to provider
     }
     : {
-      // Primary domain allows redirects from all satellites (loaded from config/satellites.json)
+      // Primary domain allows redirects from all satellites (DB + cache, fallback JSON)
       allowedRedirectOrigins: [
         ...(appUrl ? [appUrl] : []),
-        ...getAllowedRedirectOrigins(),
+        ...getAllowedRedirectOrigins(satelliteConfigs),
       ],
       afterSignOutUrl: '/', // Clerk v7: afterSignOutUrl moved from UserButton to provider
     };
