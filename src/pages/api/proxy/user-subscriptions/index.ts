@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -10,32 +10,6 @@ function buildQueryString(query: Record<string, any>) {
   }
   const qs = params.toString();
   return qs ? `?${qs}` : '';
-}
-
-// Generalized fetch with JWT retry and debug logging
-async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debugLabel = '') {
-  let token = await getCachedApiJwt();
-  let response = await fetch(apiUrl, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  console.log(`[${debugLabel}] First attempt:`, apiUrl, response.status);
-  if (response.status === 401) {
-    console.warn(`[${debugLabel}] JWT expired/invalid, regenerating and retrying...`);
-    token = await generateApiJwt();
-    response = await fetch(apiUrl, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    console.log(`[${debugLabel}] Second attempt:`, apiUrl, response.status);
-  }
-  return response;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

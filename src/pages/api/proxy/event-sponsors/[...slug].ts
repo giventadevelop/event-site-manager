@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { withTenantId } from '@/lib/withTenantId';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -94,30 +94,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('EventSponsorsProxy error:', err);
     res.status(500).json({ error: 'Internal server error', details: String(err) });
   }
-}
-
-async function fetchWithJwtRetry(apiUrl: string, options: any = {}) {
-  let token = await getCachedApiJwt();
-  let response = await fetch(apiUrl, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (response.status === 401) {
-    token = await generateApiJwt();
-    response = await fetch(apiUrl, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  }
-
-  return response;
 }
 
 export const config = {

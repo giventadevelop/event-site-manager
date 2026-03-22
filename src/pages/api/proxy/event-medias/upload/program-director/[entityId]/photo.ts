@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
+import { getTenantIdOptional } from '@/lib/env';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -8,30 +9,6 @@ export const config = {
     bodyParser: false, // Disable body parsing to handle multipart form data
   },
 };
-
-async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debugLabel = '') {
-  let token = await getCachedApiJwt();
-  let response = await fetch(apiUrl, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (response.status === 401) {
-    token = await generateApiJwt();
-    response = await fetch(apiUrl, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  }
-
-  return response;
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -100,6 +77,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
     };
+    const tid = getTenantIdOptional();
+    if (tid) headers['X-Tenant-ID'] = tid;
 
     // Only copy content-type and content-length if they exist
     if (req.headers['content-type']) {

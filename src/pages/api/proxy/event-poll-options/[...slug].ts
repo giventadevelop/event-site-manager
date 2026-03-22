@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getRawBody } from '@/lib/getRawBody';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -86,33 +86,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('[EventPollOptions Proxy ERROR]', err);
     res.status(500).json({ error: 'Internal server error', details: String(err) });
   }
-}
-
-async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debugLabel = '') {
-  console.log('[fetchWithJwtRetry] Called with URL:', apiUrl);
-  let token = await getCachedApiJwt();
-  console.log('[fetchWithJwtRetry] Using JWT:', token);
-  let response = await fetch(apiUrl, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  console.log('[fetchWithJwtRetry] Response status:', response.status);
-  if (response.status === 401) {
-    token = await generateApiJwt();
-    console.log('[fetchWithJwtRetry] Retrying with new JWT:', token);
-    response = await fetch(apiUrl, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    console.log('[fetchWithJwtRetry] Response status (after retry):', response.status);
-  }
-  return response;
 }
 
 export const config = {

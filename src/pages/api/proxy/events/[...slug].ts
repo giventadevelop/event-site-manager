@@ -1,40 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
 import { EventDTO } from '@/types';
 import { getAppUrl } from '@/lib/env';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debugLabel = '') {
-  console.log('[fetchWithJwtRetry] Called with:', { apiUrl, debugLabel });
-  let token = await getCachedApiJwt();
-  console.log('[fetchWithJwtRetry] Using JWT token:', token ? 'present' : 'missing');
-  
-  let response = await fetch(apiUrl, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  
-  console.log('[fetchWithJwtRetry] Response status:', response.status);
-  
-  if (response.status === 401) {
-    console.log('[fetchWithJwtRetry] 401 detected, regenerating token');
-    token = await generateApiJwt();
-    console.log('[fetchWithJwtRetry] New token:', token ? 'present' : 'missing');
-    response = await fetch(apiUrl, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    console.log('[fetchWithJwtRetry] Retry response status:', response.status);
-  }
-  return response;
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!API_BASE_URL) {

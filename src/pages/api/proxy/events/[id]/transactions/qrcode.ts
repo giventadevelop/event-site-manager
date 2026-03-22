@@ -1,30 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getEmailHostUrlPrefix } from '@/lib/env';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debugLabel = '') {
-  let token = await getCachedApiJwt();
-  let response = await fetch(apiUrl, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (response.status === 401) {
-    token = await generateApiJwt();
-    response = await fetch(apiUrl, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  }
-  return response;
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('[QR Code Proxy] Request received:', {
