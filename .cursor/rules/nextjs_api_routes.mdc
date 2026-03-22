@@ -46,57 +46,30 @@ alwaysApply: true
     }
     ```
 
-- **Tenant-agnostic architecture: tenantId only when explicitly passed**
-  - **The proxy does NOT inject `tenantId.equals` or body `tenantId` from env.** `createProxyHandler` defaults to `injectTenantId: false`. Query and body are forwarded as sent by the caller; the proxy never adds tenant from `NEXT_PUBLIC_TENANT_ID` or similar.
-  - **Add `tenantId.equals` (query) or `tenantId` (body) only when the value comes from explicit user input** (e.g. `?tenant=` in the URL, a form field, or `useAdminTenantId()`). Do **not** use `getTenantId()` or env as a default when building URLs for the proxy or for direct backend list/filter calls in admin flows.
-  - **Callers:** Use `effectiveTenantId(tenantId)` and `appendTenantIfPresent(params, effectiveTenantId(tenantId))` so that tenant is only sent when the caller passed a non-empty `tenantId` (e.g. from `useAdminTenantId()` which is `searchParams.get('tenant') ?? undefined`). When the user has not selected a tenant, pass `undefined` and do not add `tenantId.equals` to the request.
-  - Example (tenant-agnostic, no tenant in request):
-    ```typescript
-    // ✅ DO: Omit tenantId when caller did not provide one
-    const params = new URLSearchParams({ 'email.equals': email });
-    appendTenantIfPresent(params, effectiveTenantId(tenantId)); // tenantId from ?tenant= or form only
-    await fetch('/api/proxy/user-profiles?' + params.toString());
-    ```
-  - Example (tenant only when from form/param):
-    ```typescript
-    // ✅ DO: Add tenantId.equals only when caller explicitly provides it (e.g. ?tenant= or useAdminTenantId())
-    const params = new URLSearchParams({ 'email.equals': email });
-    if (tenantId) params.append('tenantId.equals', tenantId); // tenantId from searchParams.get('tenant') etc.
-    await fetch('/api/proxy/user-profiles?' + params.toString());
-    ```
-  - **Do NOT:** Add `tenantId.equals` from `getTenantId()` or env when calling the proxy or when building admin list/filter URLs. That would re-inject tenant and contradict the tenant-agnostic design.
-
-- **Default pagination for list GETs**
-  - For list GETs, the proxy adds `page=0` and `size=20` (or `getDefaultPageSize()`) when the query omits them. Backend list endpoints use 0-based page and this default size unless the API schema specifies otherwise.
-  - See `src/lib/env.ts` (`getDefaultPageSize`) and `src/lib/proxyHandler.ts` for implementation.
-
-- **JWT handling**
-  - Use `fetchWithJwtRetry` for all backend calls, ensuring robust authentication and retry logic
-  - Do not call backend APIs directly with fetch; always use the helper
+- **Do NOT add tenantId.equals in your client/server code when calling the proxy**
+  - The proxy handler will always inject tenantId.equals automatically.
+  - Only add tenantId.equals if you are calling the backend API directly (not via /api/proxy/...).
+  - This prevents duplicate tenantId.equals parameters and backend criteria errors.
   - Example:
     ```typescript
-    import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
-    async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debugLabel = '') {
-      let token = await getCachedApiJwt();
-      let response = await fetch(apiUrl, {
-        ...options,
-        headers: {
-          ...options.headers,
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (response.status === 401) {
-        token = await generateApiJwt();
-        response = await fetch(apiUrl, {
-          ...options,
-          headers: {
-            ...options.headers,
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
-      return response;
-    }
+    // ✅ DO: Only add email.equals or userId.equals
+    const params = new URLSearchParams({ 'email.equals': email });
+    await fetch('/api/proxy/user-profiles?' + params.toString());
+    // ❌ DON'T: Add tenantId.equals when calling the proxy
+    const params = new URLSearchParams({ 'email.equals': email, 'tenantId.equals': tenantId });
+    await fetch('/api/proxy/user-profiles?' + params.toString()); // Will result in duplicate tenantId
+    ```
+
+- **JWT handling**
+  - Use `fetchWithJwtRetry` **from `@/lib/proxyHandler`** for all backend calls (it adds **`Authorization`**, **`X-Tenant-ID`** when `getTenantIdOptional()` is set, and 401 retry; see **X-Tenant-ID for tenant-scoped backend APIs** below). **Do not** define a local `fetchWithJwtRetry` in `src/pages/api/proxy/**` that only adds `Authorization`.
+  - Do not call backend APIs directly with raw `fetch` unless unavoidable; if you must, send **`Authorization`** and **`X-Tenant-ID`** (see **X-Tenant-ID** section).
+  - Example:
+    ```typescript
+    import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+    const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/resource`, {
+      method: 'GET',
+      cache: 'no-store',
+    });
     ```
 
 - **Error handling**
@@ -239,11 +212,11 @@ alwaysApply: true
   - Cross-reference related rules
 
 - **Automated tenantId injection in DTOs**
-  - **Applies when not in all-tenants-admin mode.** When `isAllTenantsAdmin()` is false, always include the `tenantId` field in every DTO sent to the backend. The value must come from the environment variable `NEXT_PUBLIC_TENANT_ID` or `getTenantId()`.
-  - Use a centralized helper to read the tenant ID (see `getTenantId` / `getTenantIdOptional` in `src/lib/env.ts`).
-  - Use the `withTenantId` utility (`src/lib/withTenantId.ts`) to inject the tenantId into any DTO before sending it to the backend. When `isAllTenantsAdmin()` is true, `withTenantId` only sets `tenantId` if `getTenantIdOptional()` returns a value; otherwise the body is left as-is.
+  - Always include the `tenantId` field in every DTO sent to the backend. The value must come from the environment variable `NEXT_PUBLIC_TENANT_ID`.
+  - Use a centralized helper to read the tenant ID (see `getTenantId` in `src/lib/env.ts`).
+  - Use the `withTenantId` utility (`src/lib/withTenantId.ts`) to inject the tenantId into any DTO before sending it to the backend. This ensures consistency and prevents missing tenant IDs.
   - Never hardcode the tenantId or set it manually in multiple places.
-  - Example usage (single-tenant):
+  - Example usage:
     ```typescript
     import { withTenantId } from '@/lib/withTenantId';
     const payload = withTenantId({
@@ -260,24 +233,25 @@ alwaysApply: true
     ```env
     NEXT_PUBLIC_TENANT_ID=your-tenant-id
     ```
-  - When not in all-tenants-admin mode, the helper must throw a clear error if the variable is missing, to prevent silent failures.
+  - The helper must throw a clear error if the variable is missing, to prevent silent failures.
+  - This pattern is required for all multi-tenant API calls and DTOs.
   - See also: `src/lib/env.ts`, `src/lib/withTenantId.ts` for implementation details.
 
 - **TenantId injection in all proxy API routes (cross-cutting enforcement)**
-  - **Applies when not in all-tenants-admin mode.** All proxy API routes (e.g., /api/proxy/event-details, /api/proxy/ticket-types, etc.) must use the shared `createProxyHandler` from `src/lib/proxyHandler.ts`.
-  - When `isAllTenantsAdmin()` is false, this handler automatically injects `tenantId` into query and body for list/create/update requests. When `isAllTenantsAdmin()` is true, the proxy does not inject tenantId; callers may pass it explicitly.
+  - All proxy API routes (e.g., /api/proxy/event-details, /api/proxy/ticket-types, etc.) must use the shared `createProxyHandler` from `src/lib/proxyHandler.ts`.
+  - This handler automatically injects `tenantId` into all DTOs for POST/PUT/PATCH requests using the `withTenantId` utility.
   - Example usage:
     ```typescript
     import { createProxyHandler } from '@/lib/proxyHandler';
     export default createProxyHandler({ backendPath: '/api/event-details' });
     ```
   - **Rationale:**
-    - Guarantees that every create/update request includes the correct tenantId in single-tenant deployments.
-    - In all-tenants-admin mode, requests are tenant-agnostic unless the caller supplies tenantId.
+    - Guarantees that every create/update request includes the correct tenantId, regardless of frontend implementation.
+    - Prevents accidental omission of tenantId in multi-tenant environments.
     - Centralizes error handling, JWT logic, and query string forwarding.
   - **Backend enforcement:**
-    - The backend may validate that tenantId is present when required; in super-admin mode the backend may allow tenant-agnostic (wildcard) requests.
-  - See also: `withTenantId` utility, `isAllTenantsAdmin` in `src/lib/env.ts`.
+    - The backend (Rust API) should also validate that tenantId is present in every DTO and reject requests if missing.
+  - See also: `withTenantId` utility, Rust validation snippet below.
 
 - **Add `[...slug].ts` proxies for single resource operations using shared handler**
   - For every backend resource that supports single-resource operations (e.g., GET/PUT/DELETE by ID), add a `[...slug].ts` file in the corresponding proxy API directory.
@@ -303,15 +277,14 @@ alwaysApply: true
   - When calling backend APIs that use JHipster or Spring Data REST criteria objects, always use the correct filter syntax: `field.operation=value` (e.g., `tenantId.equals=tenant_demo_001`).
   - Do **not** use just `tenantId=...` or `field=...` for filter fields; this will cause type conversion errors in the backend.
   - Common operations: `.equals`, `.contains`, `.in`, etc. (e.g., `userStatus.equals=ACTIVE`, `email.contains=gmail.com`)
-  - **Tenant-agnostic:** `tenantId.equals` is **only** added when the caller explicitly provides a tenant (e.g. `?tenant=` or form input). Use `appendTenantIfPresent(params, effectiveTenantId(tenantId))`; do **not** use `getTenantId()` for list/filter requests in admin flows.
   - Example:
     ```typescript
-    // ✅ DO: Add tenant only when caller provides it (e.g. useAdminTenantId())
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
-    // ✅ DO: Use .equals for exact match when value is from caller
+    // ✅ DO: Use .equals for exact match
+    params.append('tenantId.equals', getTenantId());
+    // ✅ DO: Use .contains for substring match
     params.append('email.contains', 'gmail.com');
-    // ❌ DON'T: Use just tenantId=... or getTenantId() for proxy/admin list calls
-    params.append('tenantId', getTenantId()); // Avoid — use form/param tenant only
+    // ❌ DON'T: Use just tenantId=...
+    params.append('tenantId', getTenantId()); // Will cause backend error
     ```
   - This applies to all criteria-based GET endpoints, especially for multi-tenant filtering and user/resource queries.
   - See also: UserProfileCriteria in backend code for supported filters.
@@ -483,17 +456,18 @@ alwaysApply: true
   - See: https://nextjs.org/docs/messages/sync-dynamic-apis
 
 - **TenantId Query Parameter and Body Injection Refinement**
-  - Add `tenantId.equals` (query) or `tenantId` (body) **only when the value comes from explicit user input** (e.g. `?tenant=` in the URL, a form field, or `useAdminTenantId()`). Do **not** inject from env or `getTenantId()` for list/filter or proxy calls.
-  - Only add `tenantId` to the request body if the DTO defines a `tenantId` field and the caller has provided a tenant value. Do **not** add `tenantId` to the body if the DTO does not have that field.
-  - Rationale: Keeps the app tenant-agnostic; tenant is only sent when the user explicitly chooses one.
+  - Only add `tenantId.equals` as a query parameter for list/filter endpoints **if the REST API schema requires it** (as specified in design/requirements). Do **not** inject to every list/filter request by default.
+  - Only inject `tenantId` into the request body if the DTO defines it (i.e., if the field exists in the request body object). Do **not** add `tenantId` to the body if the DTO does not have a `tenantId` field.
+  - Rationale: Prevents backend errors and ensures compliance with API contracts.
   - Example:
     ```typescript
-    // ✅ DO: Add tenantId.equals only when caller provides it (e.g. useAdminTenantId())
-    appendTenantIfPresent(qs, effectiveTenantId(tenantId));
-    // ✅ DO: Set body tenantId only when caller provided it and DTO has the field
-    if ('tenantId' in dto && tenantId) dto.tenantId = tenantId;
+    // ✅ DO: Add tenantId.equals only if required by the API schema
+    const qs = new URLSearchParams();
+    if (shouldAddTenantIdEquals) qs.append('tenantId.equals', tenantId);
+    // ✅ DO: Inject tenantId into body only if field exists
+    if ('tenantId' in dto) dto.tenantId = tenantId;
     ```
-  - See also: proxy handler (no env injection), `effectiveTenantId` / `appendTenantIfPresent` in `src/lib/env.ts`.
+  - See also: proxy handler implementation for conditional logic.
 
 ---
 **PATCH/PUT/DELETE Proxy Handler Body Parser Rule**
@@ -602,6 +576,7 @@ alwaysApply: true
       }, []);
     }
     ```
+  - **Executive committee priority order:** The list is sorted by `priorityOrder` ascending (`sort=priorityOrder,asc`). **Lower number = higher rank** (0 appears first, 10 later). Show this tip in the admin form (tooltip or info above the Priority Order field).
   - **DON'T:**
     ```typescript
     // ❌ DON'T: Call server actions from client components on public pages
@@ -665,11 +640,26 @@ alwaysApply: true
     const res = await fetch(`${API_BASE_URL}/api/some-endpoint`);
     ```
   - **Exception**: Only use direct `fetch()` for proxy endpoints (e.g., `/api/proxy/...`) that are in the public routes list.
+  - **Exception — raw `fetch` to backend base URL**: Rare (e.g. streaming multipart uploads to the backend with `node-fetch`). If you cannot use `fetchWithJwtRetry`, send **`Authorization: Bearer <token>`** and **`X-Tenant-ID: <getTenantIdOptional() or explicit tenant>`** on every request. `ProfileBootstrapperApiServerActions` uses **`fetchWithJwtRetry`** (not raw fetch). Service JWTs typically have **no** `tenant_id` claim; the backend can return **400** (“Tenant context is required…”) if only query params like `tenantId.equals` are present. See **X-Tenant-ID for tenant-scoped backend APIs** below.
   - **Enforcement**: This rule applies to ALL server actions in the codebase. Any server action found using direct `fetch()` to backend APIs will be flagged for immediate correction.
   - **References:**
     - See `src/lib/proxyHandler.ts` for the `fetchWithJwtRetry` implementation
     - See `src/app/admin/events/[id]/media/ApiServerActions.ts` for correct usage
     - See `src/app/admin/ApiServerActions.ts` for correct usage
+
+- **X-Tenant-ID for tenant-scoped backend APIs (user profile by user ID, etc.)**
+  - **Problem**: Backend endpoints that resolve **user profile by Clerk user ID** (`/api/user-profiles/by-user/...` or criteria that map to `getUserProfileByUserId`) require **tenant context** on the HTTP request: **`X-Tenant-ID`** header (value from `getTenantId()`), or an equivalent tenant query/JWT claim **as implemented by your `TenantContextFilter`**. Sending only `tenantId.equals` in the query string may **not** set thread-local tenant for that code path → **HTTP 400** with a message like *“Tenant context is required to load a user profile by user id”*.
+  - **DO — prefer shared helper**: Use **`fetchWithJwtRetry` from `@/lib/proxyHandler`**. It merges **`Authorization`** and **`X-Tenant-ID`** (from `getTenantIdOptional()` when not already set) on every call (see `src/lib/proxyHandler.ts`). Use this for server actions and any code that calls the backend REST URL directly.
+  - **DO — raw `fetch` when unavoidable**: Build headers with both `Authorization: Bearer <token>` and **`X-Tenant-ID: <getTenantId()>`** (plus `Content-Type` when needed). See streaming upload proxies under `src/pages/api/proxy/event-medias/upload/` for **`getTenantIdOptional()`** + manual header merge.
+  - **DO — Pages Router proxies**: **`src/pages/api/proxy/user-profiles/[...slug].ts`** must forward using the **same** `fetchWithJwtRetry` from `@/lib/proxyHandler` (not a local copy that only sets `Authorization`). Local duplicate helpers have caused **by-user** proxy forwards to omit **`X-Tenant-ID`** and fail with 400.
+  - **DON'T**:
+    ```typescript
+    // ❌ DON'T: Backend fetch with JWT only (missing X-Tenant-ID for tenant-scoped by-user APIs)
+    await fetch(`${API_BASE_URL}/api/user-profiles/by-user/${userId}?tenantId.equals=${tenantId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    ```
+  - **References**: `src/lib/proxyHandler.ts` (`fetchWithJwtRetry`), `src/components/ProfileBootstrapperApiServerActions.ts`, `src/pages/api/proxy/user-profiles/[...slug].ts`.
 
 ---
 **Clerk Middleware Public Routes Configuration**

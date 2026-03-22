@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
 import { withTenantId } from '@/lib/withTenantId';
 import { getRawBody } from '@/lib/getRawBody';
-import { getBackendApiUrl, getDefaultPageSize } from '@/lib/env';
+import { getBackendApiUrl, getDefaultPageSize, getTenantIdOptional } from '@/lib/env';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('PROXY-HANDLER');
@@ -503,13 +503,19 @@ function buildQueryString(query: Record<string, any>) {
 export async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debugLabel = '') {
   console.log('[fetchWithJwtRetry] Called with URL:', apiUrl);
   let token = await getCachedApiJwt();
-  // Tenant-agnostic: do not add X-Tenant-ID from env; only caller-provided tenant in body/query
   console.log('[fetchWithJwtRetry] Using JWT:', token);
 
+  const incoming = (options.headers as Record<string, string>) || {};
   const baseHeaders: Record<string, string> = {
-    ...(options.headers as Record<string, string>),
+    ...incoming,
     Authorization: `Bearer ${token}`,
   };
+  // Backend tenant context: service JWT often has no tenant claim; send default tenant when env is set.
+  // Callers may override via options.headers (e.g. upload proxies with row-specific tenant).
+  const tenantFromEnv = getTenantIdOptional();
+  if (tenantFromEnv && !baseHeaders['X-Tenant-ID'] && !baseHeaders['x-tenant-id']) {
+    baseHeaders['X-Tenant-ID'] = tenantFromEnv;
+  }
 
   // Add timeout to fetch calls (30 seconds default, can be overridden in options)
   const timeoutMs = options.timeout || 30000;

@@ -1,5 +1,5 @@
 "use server";
-import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getTenantId } from '@/lib/env';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -19,35 +19,19 @@ export async function bootstrapUserProfile({
   if (!userId) return;
   try {
     const tenantId = getTenantId();
-    let token = await getCachedApiJwt();
-
-    // Create abort controller for timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
     // 1. Try to fetch by userId + tenantId
     // CRITICAL: If profile exists with correct userId, do NOT update anything
     // This prevents overwriting existing firstName, lastName, email fields
-    let res = await fetch(`${API_BASE_URL}/api/user-profiles/by-user/${userId}?tenantId.equals=${tenantId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-      signal: controller.signal,
-    });
-
-    if (res.status === 401) {
-      clearTimeout(timeout);
-      const newController = new AbortController();
-      const newTimeout = setTimeout(() => newController.abort(), 15000);
-      token = await generateApiJwt();
-      res = await fetch(`${API_BASE_URL}/api/user-profiles/by-user/${userId}?tenantId.equals=${tenantId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+    let res = await fetchWithJwtRetry(
+      `${API_BASE_URL}/api/user-profiles/by-user/${userId}?tenantId.equals=${tenantId}`,
+      {
+        method: 'GET',
         cache: 'no-store',
-        signal: newController.signal,
-      });
-      clearTimeout(newTimeout);
-    } else {
-      clearTimeout(timeout);
-    }
+        timeout: 15000,
+      },
+      'bootstrap-by-user'
+    );
 
     // CRITICAL: If profile exists with correct userId + tenantId, return immediately
     // Do NOT update anything - preserve all existing fields
@@ -66,18 +50,10 @@ export async function bootstrapUserProfile({
     // Some backends return 5xx from /by-user/:id while the criteria list endpoint works (same as root layout / proxy).
     if (!res.ok && res.status !== 404) {
       const criteriaUrl = `${API_BASE_URL}/api/user-profiles?userId.equals=${encodeURIComponent(userId)}&tenantId.equals=${encodeURIComponent(tenantId)}&size=1`;
-      let listToken = token;
-      let listRes = await fetch(criteriaUrl, {
-        headers: { Authorization: `Bearer ${listToken}` },
+      const listRes = await fetchWithJwtRetry(criteriaUrl, {
+        method: 'GET',
         cache: 'no-store',
       });
-      if (listRes.status === 401) {
-        listToken = await generateApiJwt();
-        listRes = await fetch(criteriaUrl, {
-          headers: { Authorization: `Bearer ${listToken}` },
-          cache: 'no-store',
-        });
-      }
       if (listRes.ok) {
         const raw = await listRes.json();
         const profiles = Array.isArray(raw)
@@ -102,18 +78,14 @@ export async function bootstrapUserProfile({
     if (res.status === 404) {
       const email = userData?.email || "";
       if (email) {
-        let emailToken = token;
-        let emailRes = await fetch(`${API_BASE_URL}/api/user-profiles?email.equals=${encodeURIComponent(email)}&tenantId.equals=${tenantId}`, {
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${emailToken}` },
-          cache: 'no-store',
-        });
-        if (emailRes.status === 401) {
-          emailToken = await generateApiJwt();
-          emailRes = await fetch(`${API_BASE_URL}/api/user-profiles?email.equals=${encodeURIComponent(email)}&tenantId.equals=${tenantId}`, {
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${emailToken}` },
+        const emailRes = await fetchWithJwtRetry(
+          `${API_BASE_URL}/api/user-profiles?email.equals=${encodeURIComponent(email)}&tenantId.equals=${tenantId}`,
+          {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
             cache: 'no-store',
-          });
-        }
+          }
+        );
         if (emailRes.ok) {
           const profiles = await emailRes.json();
           if (Array.isArray(profiles) && profiles.length > 0) {
@@ -216,20 +188,11 @@ export async function bootstrapUserProfile({
               console.log('[bootstrapUserProfile] ⚠️ Removed empty email from payload');
             }
 
-            let updateToken = token;
-            let updateRes = await fetch(`${API_BASE_URL}/api/user-profiles/${userProfile.id}`, {
+            await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles/${userProfile.id}`, {
               method: 'PATCH', // Use PATCH instead of PUT to avoid overwriting fields
-              headers: { 'Content-Type': 'application/merge-patch+json', Authorization: `Bearer ${updateToken}` },
+              headers: { 'Content-Type': 'application/merge-patch+json' },
               body: JSON.stringify(updatePayload),
             });
-            if (updateRes.status === 401) {
-              updateToken = await generateApiJwt();
-              updateRes = await fetch(`${API_BASE_URL}/api/user-profiles/${userProfile.id}`, {
-                method: 'PATCH', // Use PATCH instead of PUT
-                headers: { 'Content-Type': 'application/merge-patch+json', Authorization: `Bearer ${updateToken}` },
-                body: JSON.stringify(updatePayload),
-              });
-            }
             return;
           }
         }
@@ -246,24 +209,16 @@ export async function bootstrapUserProfile({
         createdAt: now,
         updatedAt: now,
       };
-      let createToken = token;
-      let createRes = await fetch(`${API_BASE_URL}/api/user-profiles`, {
+      await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${createToken}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
       });
-      if (createRes.status === 401) {
-        createToken = await generateApiJwt();
-        createRes = await fetch(`${API_BASE_URL}/api/user-profiles`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${createToken}` },
-          body: JSON.stringify(profile),
-        });
-      }
       return;
     }
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('timed out')) {
       console.warn('[bootstrapUserProfile] Profile bootstrap timed out after 15 seconds');
     } else {
       console.error('[bootstrapUserProfile] Error bootstrapping user profile:', error);
