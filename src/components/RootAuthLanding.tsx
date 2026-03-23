@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { SignIn, useAuth, useUser } from '@clerk/nextjs';
+import { SignIn, useAuth, useClerk, useUser } from '@clerk/nextjs';
 import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
 import SatelliteAuthBranding from '@/components/auth/SatelliteAuthBranding';
 
@@ -11,14 +11,22 @@ import SatelliteAuthBranding from '@/components/auth/SatelliteAuthBranding';
  * Minimal primary-domain landing at `/` (no main Header/Footer — see ConditionalLayout).
  * Satellite flows continue to use `https://<primary>/sign-in?redirect_url=...` (unchanged).
  * Hash routing lets Clerk render sign-in on `/` without conflicting with `/sign-in` path routing.
+ *
+ * IMPORTANT: `/` does not mount Header, so `clerk_signout=true` must be handled here.
+ * After primary /auth/signout-redirect redirects back (e.g. http://localhost:3001/?clerk_signout=true),
+ * we call signOut() and send the user to /home — otherwise Clerk still shows "signed in" and the
+ * param is never cleared (Header's clerk_signout effect never runs on this route).
  */
 export default function RootAuthLanding() {
   const searchParams = useSearchParams();
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { isSignedIn, userId, isLoaded } = useAuth();
+  const { signOut } = useClerk();
   const { user } = useUser();
   const redirectUrlFromQuery = searchParams?.get('redirect_url') ?? null;
+  const clerkSignOutParam = searchParams?.get('clerk_signout');
+  const clerkSignOutCleanupRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -37,6 +45,20 @@ export default function RootAuthLanding() {
       }).catch(() => {});
     }
   }, [isLoaded, isSignedIn, userId, user]);
+
+  // Clear session when returning from /auth/signout-redirect with ?clerk_signout=true (this page has no Header).
+  useEffect(() => {
+    if (clerkSignOutParam !== 'true' || !isLoaded || clerkSignOutCleanupRef.current) return;
+    clerkSignOutCleanupRef.current = true;
+    (async () => {
+      try {
+        await signOut?.();
+      } catch (e) {
+        console.error('[RootAuthLanding] clerk_signout cleanup:', e);
+      }
+      window.location.replace('/home');
+    })();
+  }, [clerkSignOutParam, isLoaded, signOut]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -64,6 +86,19 @@ export default function RootAuthLanding() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" aria-hidden />
+      </main>
+    );
+  }
+
+  // Match signout-redirect / satellite return: finish sign-out here (no Header on `/`) then go to marketing home.
+  if (clerkSignOutParam === 'true') {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 py-10 gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" aria-hidden />
+        <p className="text-gray-600 text-sm text-center">Signing out…</p>
+        <p className="text-gray-500 text-xs text-center max-w-sm">
+          Redirecting to the home page.
+        </p>
       </main>
     );
   }
