@@ -500,10 +500,17 @@ function buildQueryString(query: Record<string, any>) {
   return qs ? `?${qs}` : '';
 }
 
+/** Log only a short prefix of JWTs — never log full tokens (security). */
+function redactBearerToken(token: string | null | undefined): string {
+  if (!token) return '(none)';
+  if (token.length <= 16) return '***';
+  return `${token.slice(0, 12)}…(len ${token.length})`;
+}
+
 export async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debugLabel = '') {
   console.log('[fetchWithJwtRetry] Called with URL:', apiUrl);
   let token = await getCachedApiJwt();
-  console.log('[fetchWithJwtRetry] Using JWT:', token);
+  console.log('[fetchWithJwtRetry] Using JWT:', redactBearerToken(token));
 
   const incoming = (options.headers as Record<string, string>) || {};
   const baseHeaders: Record<string, string> = {
@@ -533,7 +540,7 @@ export async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debug
     if (response.status === 401) {
       token = await generateApiJwt();
       baseHeaders.Authorization = `Bearer ${token}`;
-      console.log('[fetchWithJwtRetry] Retrying with new JWT:', token);
+      console.log('[fetchWithJwtRetry] Retrying with new JWT:', redactBearerToken(token));
       const retryController = new AbortController();
       const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs);
       try {
