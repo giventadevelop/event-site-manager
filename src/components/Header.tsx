@@ -602,18 +602,25 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
     const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
     const primaryHost = primaryDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
+    // Local dev: treat as primary for sign-out so we never send localhost to satellite signout-redirect.
+    const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
+
     // CRITICAL: If we're on the primary domain, always do normal sign out (never redirect).
     // This prevents sign-out errors when NEXT_PUBLIC_CLERK_DOMAIN is mis-set on primary app.
     const isPrimary =
+      isLocalDev ||
       hostname === primaryHost ||
       hostname === primaryDomain ||
       hostname.includes(primaryHost.replace('www.', '')) ||
       hostname.includes(primaryDomain.replace('www.', ''));
 
+    /** Marketing home (not `/`, which is the auth shell on primary). */
+    const afterPrimarySignOut = '/home';
+
     if (isPrimary) {
       try {
         await signOut();
-        window.location.href = '/';
+        window.location.href = afterPrimarySignOut;
       } catch (error) {
         console.error('[Header] Error signing out:', error);
         setIsSigningOut(false);
@@ -643,10 +650,10 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
       return;
     }
 
-    // Fallback: not primary and not satellite (e.g. localhost) - normal sign out
+    // Fallback: not primary and not satellite — normal sign out to marketing home
     try {
       await signOut();
-      window.location.href = '/';
+      window.location.href = '/home';
     } catch (error) {
       console.error('[Header] Error signing out:', error);
       setIsSigningOut(false);

@@ -206,6 +206,13 @@ export default function AdminPage() {
       label: 'Manual Payments [Zelle, Venmo…]',
       color: 'mintGreen',
       key: 'manual-payments'
+    },
+    {
+      href: '/admin/batch-jobs',
+      icon: 'chartBar',
+      label: 'Batch Job Dashboard',
+      color: 'indigo',
+      key: 'batch-jobs-dashboard'
     }
   ];
 
