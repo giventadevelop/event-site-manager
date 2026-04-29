@@ -1,0 +1,31 @@
+---
+description: Cipher memory (ask_cipher) — when to use
+alwaysApply: true
+---
+
+# Cipher memory (`ask_cipher`) — when to use
+
+Use the **Cipher MCP** tool **`ask_cipher`** for **persistent memory**, not on every message. The same tool does **store** and **search**—state intent clearly in the `message` (e.g. "Remember that …", "Search memory for …", "What did we decide about …?").
+
+## Call `ask_cipher` to **store** when (any)
+
+- You learn **durable, project-relevant** facts a future session should know: architecture, API contracts, non-secret env hints (names/patterns, not values), non-obvious bugs/fixes, deployment constraints, naming conventions **for this codebase**, or a multi-step fix likely to recur.
+- The user **explicitly** asks to remember/save something.
+
+**Scope:** Prefer technical/product context for **this work**. Do **not** store personal/sensitive personal data unless the user explicitly asks.
+
+## Do **not** call `ask_cipher` to store when
+
+- **Secrets:** Never store passwords, API keys, tokens, or full private connection strings. Record **patterns** only (e.g. "credentials live in env `X` / AWS Secrets Manager", "use `CIPHER_PG_URL` in mcp.json").
+- **Small talk**, formatting-only edits, or repeating **only** what is already visible in open files with no new insight.
+- **One-off** trivia with no project value, or the user says **not** to store.
+- You would **duplicate** a fact already stored this session—**dedupe**; prefer **one batched** message with several related facts over many tiny calls.
+
+## Call `ask_cipher` to **search / recall** when
+
+- The user asks about **past** work, prior decisions, or "what we did before."
+- You begin **non-trivial** work and stored context **might** exist—**search first** when unsure.
+
+## If Cipher MCP is unavailable
+
+Continue without blocking; **do not** claim memory was saved or retrieved.

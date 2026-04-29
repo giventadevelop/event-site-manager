@@ -84,7 +84,7 @@ const adminSubmenuItems = [
 ];
 
 /** Prefer deployed branding PNG; repo often omits it — fallback avoids broken header image. */
-const HEADER_LOGO_PREFERRED = '/images/logos/Malayalees_US/Malayalees_US_Header_Branding.png';
+const HEADER_LOGO_PREFERRED = '/images/Event-Site-Manager/Event-Sit-Admin-Logo.png';
 const HEADER_LOGO_FALLBACK = '/images/logo.svg';
 
 type HeaderProps = {
@@ -784,7 +784,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
     <>
       <header className="fixed top-0 left-0 right-0 z-50 header-glass">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-[4.5rem]">
+          <div className="flex flex-nowrap items-center justify-between h-[4.5rem]">
             {/* Left side - Unite India Text Logo with Editorial Typography */}
             <div className="flex items-center h-full">
               <Link href="/home" className="group flex items-center gap-3 h-full">
@@ -805,18 +805,18 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
                   />
                 </div>
                 <div className="text-left">
-                  <div className="header-logo-primary text-[1.375rem] leading-tight group-hover:text-[var(--header-accent-primary)] transition-colors duration-300">
-                    MALAYALEES.US
+                  <div className="header-logo-primary whitespace-nowrap text-[1.375rem] leading-tight group-hover:text-[var(--header-accent-primary)] transition-colors duration-300">
+                    EVENT SITE ADMIN
                   </div>
                 </div>
               </Link>
             </div>
 
             {/* Center - Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-1 ml-6">
+            <div className="hidden lg:flex items-center flex-nowrap gap-1 ml-6 min-w-0">
               {/* Navigation Menu Items */}
               {!hideMenuItems && (
-                <nav className="flex items-center gap-0.5" role="navigation" aria-label="Main navigation">
+                <nav className="flex items-center flex-nowrap gap-0.5 whitespace-nowrap" role="navigation" aria-label="Main navigation">
                   {updatedNavItems.map((item) => {
                     const hasDropdown = item.dropdown && Array.isArray(item.dropdown) && item.dropdown.length > 0;
                     const isAboutActive = hasDropdown && item.name === 'About' && item.dropdown.some(
@@ -833,7 +833,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
                     );
 
                     return (
-                      <div key={item.name} className="relative group">
+                      <div key={item.name} className="relative group shrink-0">
                         {hasDropdown ? (
                           <>
                             <div
@@ -1090,8 +1090,8 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
                 />
               </div>
               <div className="text-left">
-                <div className="header-logo-primary text-lg leading-tight">
-                  MALAYALEES.US
+                <div className="header-logo-primary whitespace-nowrap text-lg leading-tight">
+                  EVENT SITE ADMIN
                 </div>
               </div>
             </Link>

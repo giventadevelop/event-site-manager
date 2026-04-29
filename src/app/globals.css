@@ -68,11 +68,20 @@
   font-weight: 500;
   font-size: 0.9375rem;
   letter-spacing: 0.01em;
+  white-space: nowrap;
   color: var(--header-text-secondary);
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   position: relative;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Keep desktop navbar on one line on narrower desktop / browser zoom */
+@media (min-width: 1024px) and (max-width: 1320px) {
+  .header-nav-link {
+    font-size: 0.875rem;
+    padding: 0.45rem 0.65rem;
+  }
 }
 
 .header-nav-link::after {

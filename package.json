@@ -11,9 +11,9 @@
     }
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build --webpack",
-    "start": "next start",
+    "dev": "npx --no-install next dev",
+    "build": "npx --no-install next build --webpack",
+    "start": "npx --no-install next start",
     "lint": "eslint .",
     "fix:quotes": "tsx scripts/fix-quotes.ts",
     "task": "node .task-master/dev.mjs",
