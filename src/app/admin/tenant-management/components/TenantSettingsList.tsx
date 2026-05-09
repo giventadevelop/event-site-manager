@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaSearch, FaSort } from 'react-icons/fa';
-import type { TenantSettingsDTO, TenantSettingsFilters, PaginationParams } from '@/app/admin/tenant-management/types';
+import type { TenantSettingsDTO, TenantSettingsFilters, TenantOrganizationDTO, PaginationParams } from '@/app/admin/tenant-management/types';
 import { useAdminTenantId } from '../../AdminTenantContext';
 
 interface TenantSettingsListProps {
@@ -19,6 +19,7 @@ export default function TenantSettingsList({
 }: TenantSettingsListProps) {
   const urlTenantId = useAdminTenantId();
   const [settings, setSettings] = useState<TenantSettingsDTO[]>([]);
+  const [organizationNamesByTenant, setOrganizationNamesByTenant] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -68,8 +69,44 @@ export default function TenantSettingsList({
       const data = await response.json();
       const total = parseInt(response.headers.get('x-total-count') || '0');
 
-      setSettings(Array.isArray(data) ? data : []);
+      const settingsData = Array.isArray(data) ? data : [];
+      setSettings(settingsData);
       setTotalCount(total);
+
+      // Resolve organization names for table display.
+      const tenantIds = Array.from(
+        new Set(settingsData.map((setting: TenantSettingsDTO) => setting.tenantId).filter(Boolean))
+      );
+
+      if (tenantIds.length > 0) {
+        const orgMap: Record<string, string> = {};
+
+        await Promise.all(
+          tenantIds.map(async (tenantId) => {
+            try {
+              const orgResponse = await fetch('/api/proxy/tenant-organizations?' + new URLSearchParams({
+                'tenantId.equals': tenantId,
+                page: '0',
+                size: '1',
+              }));
+
+              if (!orgResponse.ok) return;
+
+              const orgData: TenantOrganizationDTO[] = await orgResponse.json();
+              if (Array.isArray(orgData) && orgData.length > 0 && orgData[0]?.organizationName) {
+                orgMap[tenantId] = orgData[0].organizationName;
+              }
+            } catch (orgError) {
+              console.error(`Failed to load organization for tenant ${tenantId}:`, orgError);
+            }
+          })
+        );
+
+        setOrganizationNamesByTenant(orgMap);
+      } else {
+        setOrganizationNamesByTenant({});
+      }
+
       setInitialLoadComplete(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -201,7 +238,7 @@ export default function TenantSettingsList({
       {/* Table */}
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
         <div className="user-table-scroll-container">
-          <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 border border-gray-300 dark:border-gray-600" style={{ minWidth: '800px', width: '100%' }}>
+          <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 border border-gray-300 dark:border-gray-600" style={{ minWidth: '980px', width: '100%' }}>
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left border-b border-r border-gray-300 dark:border-gray-600">
@@ -214,7 +251,7 @@ export default function TenantSettingsList({
                   />
                 </th>
                 <th
-                  className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-r border-gray-300 dark:border-gray-600"
+                  className="w-[160px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-r border-gray-300 dark:border-gray-600"
                   onClick={() => handleSort('tenantId')}
                 >
                   <div className="flex items-center gap-2">
@@ -222,19 +259,22 @@ export default function TenantSettingsList({
                     <FaSort className="text-xs" />
                   </div>
                 </th>
-                <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
+                <th className="w-[200px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
+                  Organization
+                </th>
+                <th className="w-[140px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
                   User Registration
                 </th>
-                <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
+                <th className="w-[150px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
                   WhatsApp Integration
                 </th>
-                <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
+                <th className="w-[140px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
                   Email Marketing
                 </th>
-                <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
+                <th className="w-[140px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
                   Max Events/Month
                 </th>
-                <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-300 dark:border-gray-600">
+                <th className="w-[170px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-300 dark:border-gray-600">
                   Actions
                 </th>
               </tr>
@@ -253,6 +293,11 @@ export default function TenantSettingsList({
                 </td>
                 <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-600">
                   {setting.tenantId}
+                </td>
+                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-600">
+                  <div className="max-w-[180px] truncate" title={organizationNamesByTenant[setting.tenantId] || setting.tenantOrganization?.organizationName || 'Not linked'}>
+                    {organizationNamesByTenant[setting.tenantId] || setting.tenantOrganization?.organizationName || 'Not linked'}
+                  </div>
                 </td>
                 <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${setting.allowUserRegistration
@@ -321,7 +366,7 @@ export default function TenantSettingsList({
             ))}
             {settings.length === 0 && !loading && (
               <tr>
-                <td className="px-2 sm:px-4 lg:px-6 py-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center" colSpan={7}>
+                <td className="px-2 sm:px-4 lg:px-6 py-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center" colSpan={8}>
                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 border-2 border-orange-300 rounded-lg shadow-sm">
                     <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

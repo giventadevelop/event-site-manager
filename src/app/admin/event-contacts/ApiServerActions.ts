@@ -40,7 +40,13 @@ export async function createEventContactServer(
   tenantId?: string
 ) {
   const tid = effectiveTenantId(tenantId);
-  const payload = { ...contact, ...(tid != null ? { tenantId: tid } : {}) };
+  const nowIso = new Date().toISOString();
+  const payload = {
+    ...contact,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    ...(tid != null ? { tenantId: tid } : {}),
+  };
 
   const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-contacts`, {
     method: 'POST',

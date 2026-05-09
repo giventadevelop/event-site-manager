@@ -74,10 +74,15 @@ export default function DirectorEditClient({
         <div className="flex items-center space-x-4">
           <button
             onClick={() => router.push('/admin/event-program-directors')}
-            className="flex items-center space-x-2 text-foreground hover:text-primary reverent-transition"
+            className="flex-shrink-0 h-14 rounded-xl bg-indigo-100 hover:bg-indigo-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"
+            title="Back to Directors"
+            aria-label="Back to Directors"
+            type="button"
           >
-            <FaArrowLeft className="h-4 w-4" />
-            <span>Back to Directors</span>
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-200 flex items-center justify-center">
+              <FaArrowLeft className="w-6 h-6 text-indigo-600" />
+            </div>
+            <span className="font-semibold text-indigo-700">Back to Directors</span>
           </button>
         </div>
       </div>
@@ -154,23 +159,34 @@ export default function DirectorEditClient({
             <button
               type="button"
               onClick={() => router.push('/admin/event-program-directors')}
-              className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring reverent-transition"
+              className="flex-shrink-0 h-14 rounded-xl bg-red-100 hover:bg-red-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"
+              title="Cancel"
+              aria-label="Cancel"
             >
-              Cancel
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-200 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <span className="font-semibold text-red-700">Cancel</span>
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary border border-transparent rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring reverent-transition disabled:opacity-50"
+              className="flex-shrink-0 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6 disabled:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              title={loading ? 'Saving...' : 'Update Director'}
+              aria-label={loading ? 'Saving...' : 'Update Director'}
             >
-              {loading ? (
-                <span className="flex items-center space-x-2">
-                  <FaSpinner className="animate-spin h-4 w-4" />
-                  <span>Saving...</span>
-                </span>
-              ) : (
-                'Update Director'
-              )}
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-200 flex items-center justify-center">
+                {loading ? (
+                  <FaSpinner className="animate-spin w-6 h-6 text-blue-600" />
+                ) : (
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="font-semibold text-blue-700">{loading ? 'Saving...' : 'Update Director'}</span>
             </button>
           </div>
         </form>

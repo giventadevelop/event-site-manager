@@ -6,7 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
-import ConfirmModal from '@/components/ui/Modal';
+import { ConfirmModal } from '@/components/ui/Modal';
 import AdminNavigation from '@/components/AdminNavigation';
 import type { EventProgramDirectorsDTO, EventDetailsDTO } from '@/types';
 import { useAdminTenantId } from '../AdminTenantContext';
