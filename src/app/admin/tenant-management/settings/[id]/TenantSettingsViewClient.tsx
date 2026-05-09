@@ -14,6 +14,10 @@ interface TenantSettingsViewClientProps {
 
 export default function TenantSettingsViewClient({ settings, settingsId, organization }: TenantSettingsViewClientProps) {
   const [activeTab, setActiveTab] = useState<'general' | 'integrations' | 'limits' | 'customization'>('general');
+  const resolvedOrganizationName =
+    organization?.organizationName?.trim() ||
+    settings?.tenantOrganization?.organizationName?.trim() ||
+    'Not linked';
 
   // Tab navigation with colorful icons
   const tabs = [
@@ -108,19 +112,21 @@ export default function TenantSettingsViewClient({ settings, settingsId, organiz
               <dt className="text-sm font-medium text-gray-500">Tenant ID</dt>
               <dd className="mt-1 text-sm text-gray-900 font-mono">{settings?.tenantId}</dd>
             </div>
-            {organization && (
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Organization</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Organization</dt>
+              <dd className="mt-1 text-sm text-gray-900">
+                {organization?.id ? (
                   <Link
                     href={`/admin/tenant-management/organizations/${organization.id}`}
                     className="text-blue-600 hover:text-blue-500"
                   >
-                    {organization.organizationName}
+                    {resolvedOrganizationName}
                   </Link>
-                </dd>
-              </div>
-            )}
+                ) : (
+                  <span>{resolvedOrganizationName}</span>
+                )}
+              </dd>
+            </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">User Registration</dt>
               <dd className="mt-1">

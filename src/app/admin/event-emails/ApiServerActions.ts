@@ -1,5 +1,6 @@
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getAppUrl, appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
+import { withTenantId } from '@/lib/withTenantId';
 import type { EventEmailsDTO } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -36,7 +37,11 @@ export async function fetchEventEmailServer(id: number) {
 }
 
 export async function createEventEmailServer(email: Omit<EventEmailsDTO, 'id' | 'createdAt' | 'updatedAt'>) {
-  const payload = withTenantId(email);
+  const payload = withTenantId({
+    ...email,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
 
   const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-emails`, {
     method: 'POST',

@@ -6,7 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
-import ConfirmModal from '@/components/ui/Modal';
+import { ConfirmModal } from '@/components/ui/Modal';
 import AdminNavigation from '@/components/AdminNavigation';
 import type { EventContactsDTO, EventDetailsDTO } from '@/types';
 import { useAdminTenantId } from '../AdminTenantContext';
@@ -468,7 +468,7 @@ export default function EventContactsPage() {
         }}
         onConfirm={handleDelete}
         title="Delete Contact"
-        message={`Are you sure you want to delete "${selectedContact?.contactName}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${selectedContact?.name}"? This action cannot be undone.`}
         confirmText="Delete"
         variant="danger"
       />
