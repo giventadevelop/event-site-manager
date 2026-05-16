@@ -92,6 +92,8 @@ export type TenantSettingsFormDTO = Omit<TenantSettingsDTO, 'id' | 'createdAt' |
  */
 export interface TenantOrganizationFilters {
   search?: string;
+  /** When set, scopes list to this tenant (tenantId.equals). */
+  tenantId?: string;
   subscriptionStatus?: string;
   isActive?: boolean;
   sortBy?: 'organizationName' | 'createdAt' | 'subscriptionStatus';
@@ -99,12 +101,29 @@ export interface TenantOrganizationFilters {
 }
 
 /**
- * Filter options for tenant settings list
+ * Filter options for tenant settings list (JHipster-style criteria on /api/tenant-settings).
+ * `tenantId` scopes with `tenantId.equals` only when non-empty (e.g. from ?tenant=).
  */
 export interface TenantSettingsFilters {
+  /** @deprecated use tenantIdContains */
   search?: string;
   tenantId?: string;
-  sortBy?: 'tenantId' | 'createdAt';
+  tenantIdContains?: string;
+  idEquals?: number;
+  emailContains?: string;
+  phoneNumberContains?: string;
+  countryContains?: string;
+  stateProvinceContains?: string;
+  addressLine1Contains?: string;
+  /** Resolved via /api/tenant-organizations then tenantId.in on settings (nested org criteria not used). */
+  organizationNameContains?: string;
+  allowUserRegistration?: boolean;
+  requireAdminApproval?: boolean;
+  enableWhatsappIntegration?: boolean;
+  enableEmailMarketing?: boolean;
+  enableGuestRegistration?: boolean;
+  isMembershipSubscriptionEnabled?: boolean;
+  sortBy?: 'tenantId' | 'createdAt' | 'updatedAt' | 'id' | 'maxEventsPerMonth';
   sortOrder?: 'asc' | 'desc';
 }
 

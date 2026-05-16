@@ -1,15 +1,15 @@
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getTenantId, getAppUrl } from '@/lib/env';
+import { getApiBaseUrl, getTenantId } from '@/lib/env';
+import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import type { EventMediaDTO } from '@/types';
 import { withTenantId } from '@/lib/withTenantId';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 export async function fetchUserProfileServer(userId: string) {
   if (!userId) return null;
-  const tenantId = getTenantId();
-  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles/by-user/${userId}?tenantId.equals=${tenantId}`, {
+  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles/by-user/${userId}`, {
     cache: 'no-store',
   });
   if (!res.ok) return null;
@@ -17,7 +17,7 @@ export async function fetchUserProfileServer(userId: string) {
 }
 
 export async function fetchMediaServer(eventId: string) {
-  const url = `${API_BASE_URL}/api/event-medias?eventId.equals=${eventId}&isEventManagementOfficialDocument.equals=false&sort=updatedAt,desc&tenantId.equals=${getTenantId()}`;
+  const url = `${API_BASE_URL}/api/event-medias?eventId.equals=${eventId}&isEventManagementOfficialDocument.equals=false&sort=updatedAt,desc`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return [];
   const data = await res.json();
@@ -35,7 +35,6 @@ export async function fetchMediaFilteredServer(
     'eventId.equals': eventId,
     'isEventManagementOfficialDocument.equals': 'false',
     sort: 'updatedAt,desc',
-    'tenantId.equals': getTenantId(),
     page: page.toString(),
     size: size.toString(),
   });
@@ -70,7 +69,7 @@ export async function fetchMediaFilteredServer(
 }
 
 export async function fetchOfficialDocsServer(eventId: string) {
-  const url = `${API_BASE_URL}/api/event-medias?eventId.equals=${eventId}&isEventManagementOfficialDocument.equals=true&sort=updatedAt,desc&tenantId.equals=${getTenantId()}`;
+  const url = `${API_BASE_URL}/api/event-medias?eventId.equals=${eventId}&isEventManagementOfficialDocument.equals=true&sort=updatedAt,desc`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return [];
   const data = await res.json();
@@ -166,7 +165,8 @@ export async function uploadMedia(eventId: number, {
   formData.append('startDisplayingFromDate', startDisplayingFromDate);
 
   // Use the proxy endpoint (not direct backend call)
-  const url = `${getAppUrl()}/api/proxy/event-medias/upload-multiple`;
+  const base = await getAdminProxyBaseUrl();
+  const url = `${base}/api/proxy/event-medias/upload-multiple`;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -182,7 +182,7 @@ export async function uploadMedia(eventId: number, {
 }
 
 export async function deleteMediaServer(mediaId: number | string) {
-  const url = `${API_BASE_URL}/api/event-medias/${mediaId}?tenantId.equals=${getTenantId()}`;
+  const url = `${API_BASE_URL}/api/event-medias/${mediaId}`;
   const res = await fetchWithJwtRetry(url, {
     method: 'DELETE',
     });
@@ -284,8 +284,7 @@ function inferEventMediaType(file: File): string {
 
 export async function fetchEventDetailsByIdServer(eventId: number) {
   if (!eventId) return null;
-  const tenantId = getTenantId();
-  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-details/${eventId}?tenantId.equals=${tenantId}`, {
+  const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-details/${eventId}`, {
     cache: 'no-store',
   });
   if (!res.ok) {

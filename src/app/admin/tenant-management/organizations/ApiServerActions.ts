@@ -1,3 +1,4 @@
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { withTenantId } from '@/lib/withTenantId';
 import type {
@@ -8,7 +9,7 @@ import type {
   PaginatedResponse
 } from '@/app/admin/tenant-management/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Fetch paginated list of tenant organizations
@@ -28,6 +29,7 @@ export async function fetchTenantOrganizations(
     if (filters.search) {
       params.append('organizationName.contains', filters.search);
     }
+    appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
     if (filters.subscriptionStatus) {
       params.append('subscriptionStatus.equals', filters.subscriptionStatus);
     }

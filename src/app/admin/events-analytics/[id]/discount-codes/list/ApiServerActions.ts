@@ -1,14 +1,14 @@
 "use server";
-import { getTenantId, getAppUrl } from "@/lib/env";
+import { getApiBaseUrl, getTenantId } from '@/lib/env';
+import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
 import { withTenantId } from "@/lib/withTenantId";
 import { DiscountCodeDTO } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 export async function fetchDiscountCodesForEvent(eventId: string): Promise<DiscountCodeDTO[]> {
-  const tenantId = getTenantId();
-  const url = `${API_BASE_URL}/api/discount-codes?eventId.equals=${eventId}&tenantId.equals=${tenantId}`;
+  const url = `${API_BASE_URL}/api/discount-codes?eventId.equals=${eventId}`;
 
   const response = await fetchWithJwtRetry(url, {
       next: { revalidate: 0 },
@@ -27,7 +27,7 @@ export async function createDiscountCodeServer(
   code: Omit<DiscountCodeDTO, "id" | "tenantId" | "createdAt" | "updatedAt">,
   eventId: string
 ): Promise<DiscountCodeDTO> {
-  const baseUrl = getAppUrl();
+  const baseUrl = await getAdminProxyBaseUrl();
   const url = `${baseUrl}/api/proxy/discount-codes`;
 
   const payload = withTenantId({
@@ -76,11 +76,11 @@ export async function deleteDiscountCodeServer(discountCodeId: number): Promise<
 export async function fetchDiscountCodeByIdServer(
   id: number
 ): Promise<DiscountCodeDTO | null> {
-  const baseUrl = getAppUrl();
+  const baseUrl = await getAdminProxyBaseUrl();
   const url = `${baseUrl}/api/proxy/discount-codes/${id}`;
 
-  const response = await fetchWithJwtRetry(url, {
-    next: { revalidate: 0 },
+  const response = await fetch(url, {
+    cache: 'no-store',
   });
 
   if (!response.ok) {
@@ -90,7 +90,7 @@ export async function fetchDiscountCodeByIdServer(
         response.status,
         await response.text()
       );
-  }
+    }
     return null;
   }
   return response.json();
@@ -100,7 +100,7 @@ export async function patchDiscountCodeServer(
   id: number,
   code: Partial<Omit<DiscountCodeDTO, "tenantId" | "eventId" | "createdAt" | "updatedAt">> & { eventId: number }
 ): Promise<DiscountCodeDTO> {
-  const baseUrl = getAppUrl();
+  const baseUrl = await getAdminProxyBaseUrl();
   const url = `${baseUrl}/api/proxy/discount-codes/${id}`;
   const now = new Date().toISOString();
   const payload: Partial<DiscountCodeDTO> = {

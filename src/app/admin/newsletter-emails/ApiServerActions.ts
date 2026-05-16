@@ -1,12 +1,12 @@
 "use server";
-import { getAppUrl } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
 import type {
   PromotionEmailTemplateDTO,
   PromotionEmailTemplateFormDTO,
 } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Fetch newsletter email templates with optional filtering

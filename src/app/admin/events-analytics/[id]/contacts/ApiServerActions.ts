@@ -1,9 +1,9 @@
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import type { EventContactsDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 const baseUrl = getAppUrl();
 
 export async function fetchEventContactsServer(eventId: number) {

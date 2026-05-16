@@ -2,13 +2,11 @@
 
 import { unstable_noStore } from 'next/cache';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { effectiveTenantId, appendTenantIfPresent, getDefaultPageSize } from '@/lib/env';
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getDefaultPageSize } from '@/lib/env';
 import type { ManualPaymentRequestDTO, ManualPaymentSummaryReportDTO } from '@/types';
 
 function requireApiBaseUrl(): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!base) throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured');
-  return base;
+  return getApiBaseUrl();
 }
 
 export interface ManualPaymentListOptions {

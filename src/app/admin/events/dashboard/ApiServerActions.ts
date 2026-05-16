@@ -1,8 +1,8 @@
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 import type { EventDetailsDTO, EventAttendeeDTO, EventAttendeeGuestDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 export interface EventDashboardData {
   eventDetails: EventDetailsDTO | null;

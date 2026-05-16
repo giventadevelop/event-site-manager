@@ -1,9 +1,9 @@
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 import type { EventDetailsDTO, EventFocusGroupDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Associate an event with a focus group

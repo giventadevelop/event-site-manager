@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { EventSponsorsDTO } from "@/types";
-import { getAppUrl } from '@/lib/env';
 import { SponsorCard } from '@/components/sponsors/SponsorCard';
 
 const OurSponsorsSection: React.FC = () => {
@@ -63,8 +62,7 @@ const OurSponsorsSection: React.FC = () => {
           'isActive.equals': 'true' // Only active sponsors
         });
 
-        const baseUrl = getAppUrl();
-        const response = await fetch(`${baseUrl}/api/proxy/event-sponsors?${params.toString()}`, {
+        const response = await fetch(`/api/proxy/event-sponsors?${params.toString()}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           cache: 'no-store',

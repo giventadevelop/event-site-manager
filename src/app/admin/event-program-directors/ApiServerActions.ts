@@ -1,8 +1,9 @@
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl, appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl } from '@/lib/env';
+import { withTenantId } from '@/lib/withTenantId';
 import type { EventProgramDirectorsDTO, EventMediaDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 const baseUrl = getAppUrl();
 
 export async function fetchEventProgramDirectorsServer(
@@ -229,7 +230,7 @@ export async function updateEventMediaServer(
   updates: Partial<EventMediaDTO>,
   tenantId?: string
 ): Promise<EventMediaDTO> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_BASE_URL = getApiBaseUrl();
   if (!API_BASE_URL) {
     throw new Error('API base URL not configured');
   }

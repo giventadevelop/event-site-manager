@@ -2,12 +2,12 @@
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { revalidateSatelliteConfigCache } from '@/lib/satelliteConfigRuntime';
-import { appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import type { SatelliteDomainDTO } from '@/types';
 import { fetchTenantSettingsByTenantId } from '@/app/admin/tenant-management/settings/ApiServerActions';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Returns tenant settings logoImageUrl for a tenant ID (for satellite branding / copy-paste).

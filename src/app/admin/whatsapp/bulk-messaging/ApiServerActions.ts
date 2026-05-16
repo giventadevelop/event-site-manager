@@ -1,7 +1,7 @@
 "use server";
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import {
   WhatsAppMessageRequest,
@@ -11,7 +11,7 @@ import {
   WhatsAppAnalytics
 } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Send a single WhatsApp message

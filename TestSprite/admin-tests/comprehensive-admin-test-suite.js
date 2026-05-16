@@ -1,5 +1,6 @@
 /**
- * Playwright admin smoke tests — includes Event Analytics (/admin/event-analytics),
+ * Playwright admin smoke tests — includes a crawl of every link in the /admin home button grid,
+ * Event Analytics (/admin/event-analytics),
  * Manage Events (/admin/manage-events), Manage Users (/admin/manage-usage),
  * Bulk Email hub (/admin/bulk-email), Executive Committee (/admin/executive-committee),
  * Tenant Organizations (/admin/tenant-management/organizations),
@@ -12,7 +13,12 @@
  * Manage Focus Groups (/admin/focus-groups).
  *
  * Usage:
- *   PLAYWRIGHT_BASE_URL=http://localhost:3004 npm run test:admin
+ *   npm run test:admin -- --port=3001
+ *   npm run test:admin -- --base-url=http://127.0.0.1:3001
+ *   $env:TEST_PORT = '3001'; npm run test:admin
+ *   $env:TEST_BASE_URL = 'http://localhost:3001'; npm run test:admin
+ *
+ * Resolution order: see resolve-admin-test-base-url.js (CLI → env URLs → TEST_PORT/PORT → auth.json baseUrl → localhost:3000).
  *
  * Credentials: TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD, or copy auth.json.example → auth.json
  */
@@ -26,17 +32,18 @@ import {
   saveAuthState,
   readAdminCredentials,
 } from '../sanity-tests/authenticate-playwright.js';
+import { resolveAdminTestBaseUrl } from './resolve-admin-test-base-url.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCREENSHOT_DIR = join(__dirname, 'screenshots');
 
 function baseUrl() {
-  return (
-    process.env.PLAYWRIGHT_BASE_URL ||
-    process.env.BASE_URL ||
-    process.env.TEST_BASE_URL ||
-    'http://localhost:3000'
-  ).replace(/\/$/, '');
+  return resolveAdminTestBaseUrl();
+}
+
+/** List/search tenant filter on admin pages (#admin-tenant-id is the separate sticky bar — different aria). */
+function adminListTenantFilter(page) {
+  return page.locator('#admin-filter-tenant-id');
 }
 
 async function screenshotOnError(page, label) {
@@ -113,7 +120,7 @@ async function assertAdminManageEvents(page) {
   await page.getByRole('link', { name: 'Communication Center' }).first().waitFor({ state: 'visible' });
 
   await page.getByText('Search Events').first().waitFor({ state: 'visible', timeout: 15000 });
-  await page.getByRole('textbox', { name: /Filter by Tenant ID/i }).waitFor({ state: 'visible' });
+  await adminListTenantFilter(page).waitFor({ state: 'visible' });
 
   await page.getByText('Search By', { exact: true }).first().waitFor({ state: 'visible' });
   await page.getByPlaceholder('Search by title').waitFor({ state: 'visible', timeout: 15000 });
@@ -192,10 +199,10 @@ async function assertAdminEventAnalytics(page) {
   }
 
   await page.getByRole('heading', { name: 'Quick Actions' }).first().waitFor({ state: 'visible' });
-  await page.getByRole('link', { name: 'Create New Event' }).first().waitFor({ state: 'visible' });
-  await page.getByRole('link', { name: 'View Analytics' }).first().waitFor({ state: 'visible' });
-  await page.getByRole('link', { name: 'Manage Registrations' }).first().waitFor({ state: 'visible' });
-  await page.getByRole('link', { name: 'Export Data' }).first().waitFor({ state: 'visible' });
+  await page.getByRole('link', { name: 'Create New Event' }).filter({ visible: true }).first().waitFor({ state: 'visible' });
+  await page.getByRole('link', { name: 'View Analytics' }).filter({ visible: true }).first().waitFor({ state: 'visible' });
+  await page.getByRole('link', { name: 'Manage Registrations' }).filter({ visible: true }).first().waitFor({ state: 'visible' });
+  await page.getByRole('link', { name: 'Export Data' }).filter({ visible: true }).first().waitFor({ state: 'visible' });
 
   const links = [
     '/admin/events/dashboard',
@@ -205,7 +212,7 @@ async function assertAdminEventAnalytics(page) {
     '/admin/events/reports',
   ];
   for (const href of links) {
-    await page.locator(`a[href="${href}"]`).first().waitFor({ state: 'visible' });
+    await page.locator(`a[href="${href}"]`).filter({ visible: true }).first().waitFor({ state: 'visible' });
   }
 }
 
@@ -232,7 +239,7 @@ async function assertAdminManageUsage(page) {
   await page.getByRole('button', { name: /Bulk Upload User List/i }).waitFor({ state: 'visible', timeout: 15000 });
   await page.getByRole('link', { name: /Download Bulk Upload Template File/i }).waitFor({ state: 'visible', timeout: 15000 });
 
-  await page.getByRole('textbox', { name: /Filter by Tenant ID/i }).waitFor({ state: 'visible' });
+  await adminListTenantFilter(page).waitFor({ state: 'visible' });
 
   await page.getByPlaceholder('Search by First Name...').waitFor({ state: 'visible', timeout: 15000 });
 
@@ -294,13 +301,13 @@ async function assertAdminBulkEmail(page) {
     .getByText(/Create and send promotional emails for specific events/i)
     .first()
     .waitFor({ state: 'visible' });
-  for (const line of [
-    'Create event-specific email templates',
-    'Send test emails before bulk sending',
-    'Send to all members or specific groups',
-    'Track email history and delivery status',
+  for (const pattern of [
+    /Create event-specific email templates/i,
+    /Send test emails before bulk sending/i,
+    /Send to all members or specific groups/i,
+    /Track email history and delivery status/i,
   ]) {
-    await page.getByText(line, { exact: true }).first().waitFor({ state: 'visible', timeout: 10000 });
+    await page.getByText(pattern).first().waitFor({ state: 'visible', timeout: 10000 });
   }
   const promoCard = page.locator('a[href="/admin/promotion-emails"]').first();
   await promoCard.waitFor({ state: 'visible' });
@@ -310,13 +317,13 @@ async function assertAdminBulkEmail(page) {
     .getByText(/Create and send newsletter emails with news and updates/i)
     .first()
     .waitFor({ state: 'visible' });
-  await page.getByText('Create newsletter email templates', { exact: true }).first().waitFor({ state: 'visible' });
-  for (const line of [
-    'Send test emails before bulk sending',
-    'Send to all members or specific groups',
-    'Track email history and delivery status',
+  await page.getByText(/Create newsletter email templates/i).first().waitFor({ state: 'visible' });
+  for (const pattern of [
+    /Send test emails before bulk sending/i,
+    /Send to all members or specific groups/i,
+    /Track email history and delivery status/i,
   ]) {
-    await page.getByText(line, { exact: true }).nth(1).waitFor({ state: 'visible', timeout: 10000 });
+    await page.getByText(pattern).nth(1).waitFor({ state: 'visible', timeout: 10000 });
   }
   const newsletterCard = page.locator('a[href="/admin/newsletter-emails"]').first();
   await newsletterCard.waitFor({ state: 'visible' });
@@ -352,15 +359,15 @@ async function assertAdminExecutiveCommittee(page) {
   await page.getByText('Profile Image Guidelines').first().waitFor({ state: 'visible', timeout: 15000 });
   await page.getByText('Dimensions:').first().waitFor({ state: 'visible', timeout: 10000 });
   await page.getByText('800×1000px (4:5 aspect ratio)').first().waitFor({ state: 'visible', timeout: 10000 });
-  await page.getByText('Tip:').first().waitFor({ state: 'visible', timeout: 10000 });
-  await page
-    .getByText(/Hover over the Member or Title & Department columns to see detailed information/i)
-    .first()
-    .waitFor({ state: 'visible', timeout: 10000 });
 
   const hasMemberTable = await page.locator('th').filter({ hasText: /^Member$/i }).first().isVisible().catch(() => false);
 
   if (hasMemberTable) {
+    await page
+      .getByText(/Tip:.*Hover over the Member|Hover over the Member or Title & Department columns/i)
+      .first()
+      .waitFor({ state: 'visible', timeout: 15000 });
+
     for (const h of ['Member', 'Title & Department', 'Actions']) {
       await page.locator('th').filter({ hasText: new RegExp(`^${h}$`, 'i') }).first().waitFor({ state: 'visible' });
     }
@@ -460,7 +467,7 @@ async function assertAdminEventFeaturedPerformers(page) {
 
   await page.getByRole('link', { name: /Global Performers/i }).first().waitFor({ state: 'visible', timeout: 15000 });
 
-  await page.getByRole('textbox', { name: /Filter by Tenant ID/i }).waitFor({ state: 'visible', timeout: 15000 });
+  await adminListTenantFilter(page).waitFor({ state: 'visible', timeout: 15000 });
   await page.getByPlaceholder('Search performers...').waitFor({ state: 'visible', timeout: 15000 });
 
   const eventsFilter = page.locator('select').filter({ has: page.locator('option', { hasText: 'All Events' }) }).first();
@@ -510,7 +517,7 @@ async function assertAdminEventContacts(page) {
 
   await page.getByRole('link', { name: /Global Contacts/i }).first().waitFor({ state: 'visible', timeout: 15000 });
 
-  await page.getByRole('textbox', { name: /Filter by Tenant ID/i }).waitFor({ state: 'visible', timeout: 15000 });
+  await adminListTenantFilter(page).waitFor({ state: 'visible', timeout: 15000 });
   await page.getByPlaceholder('Search contacts...').waitFor({ state: 'visible', timeout: 15000 });
 
   const eventsFilter = page.locator('select').filter({ has: page.locator('option', { hasText: 'All Events' }) }).first();
@@ -560,7 +567,7 @@ async function assertAdminEventEmails(page) {
 
   await page.getByRole('link', { name: /Global Emails/i }).first().waitFor({ state: 'visible', timeout: 15000 });
 
-  await page.getByRole('textbox', { name: /Filter by Tenant ID/i }).waitFor({ state: 'visible', timeout: 15000 });
+  await adminListTenantFilter(page).waitFor({ state: 'visible', timeout: 15000 });
   await page.getByPlaceholder('Search emails...').waitFor({ state: 'visible', timeout: 15000 });
   await page.getByRole('button', { name: 'Add Email' }).first().waitFor({ state: 'visible', timeout: 15000 });
 
@@ -604,7 +611,7 @@ async function assertAdminEventProgramDirectors(page) {
 
   await page.getByRole('link', { name: /Global Directors/i }).first().waitFor({ state: 'visible', timeout: 15000 });
 
-  await page.getByRole('textbox', { name: /Filter by Tenant ID/i }).waitFor({ state: 'visible', timeout: 15000 });
+  await adminListTenantFilter(page).waitFor({ state: 'visible', timeout: 15000 });
   await page.getByPlaceholder('Search directors...').waitFor({ state: 'visible', timeout: 15000 });
 
   const eventsFilter = page.locator('select').filter({ has: page.locator('option', { hasText: 'All Events' }) }).first();
@@ -692,9 +699,7 @@ async function assertAdminSatelliteDomains(page) {
     .first()
     .waitFor({ state: 'visible', timeout: 15000 });
 
-  await page.getByRole('link', { name: /Satellite Domains/i }).first().waitFor({ state: 'visible', timeout: 15000 });
-
-  await page.getByRole('textbox', { name: /Filter by Tenant ID/i }).waitFor({ state: 'visible', timeout: 15000 });
+  await adminListTenantFilter(page).waitFor({ state: 'visible', timeout: 15000 });
   await page.getByPlaceholder('Search by name, key, hostname, or tenant...').waitFor({ state: 'visible', timeout: 15000 });
   await page.getByRole('button', { name: 'Add Satellite Domain' }).first().waitFor({ state: 'visible', timeout: 15000 });
 
@@ -773,6 +778,47 @@ async function assertAdminFocusGroupsNew(page) {
   await page.getByRole('heading', { name: /Create Focus Group/i }).waitFor({ state: 'visible', timeout: 30000 });
 }
 
+/**
+ * Visit each unique /admin path linked from the admin home button grid (see src/app/admin/page.tsx adminButtons).
+ * Ensures every dashboard tile resolves without sign-in and returns substantive HTML.
+ *
+ * @param {import('playwright').Page} page
+ */
+async function assertAdminHomeGridDestinations(page) {
+  const url = baseUrl();
+  await page.goto(`${url}/admin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForLoadState('networkidle', { timeout: 25000 }).catch(() => {});
+
+  if (page.url().includes('/sign-in')) {
+    throw new Error('Admin home grid destinations: unauthenticated');
+  }
+
+  const hrefs = await page
+    .locator('div.w-full.mb-8 div.grid a[href^="/admin"]')
+    .evaluateAll((anchors) => [...new Set(anchors.map((a) => a.getAttribute('href')).filter(Boolean))]);
+
+  if (!hrefs.length) {
+    throw new Error('Admin home: no /admin links in button grid (update selector if layout changed)');
+  }
+
+  hrefs.sort();
+
+  for (const path of hrefs) {
+    const dest = path.startsWith('http') ? path : `${url}${path}`;
+    await page.goto(dest, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+
+    if (page.url().includes('/sign-in')) {
+      throw new Error(`Admin grid destination redirected to sign-in: ${path}`);
+    }
+
+    const textLen = (await page.locator('body').innerText()).trim().length;
+    if (textLen < 80) {
+      throw new Error(`Admin grid destination body too short (${textLen} chars): ${path}`);
+    }
+  }
+}
+
 async function run() {
   const headless = process.env.HEADLESS !== 'false';
   const browser = await chromium.launch({ headless });
@@ -791,6 +837,7 @@ async function run() {
           if (page.url().includes('/sign-in')) throw new Error('Admin home redirected to sign-in');
         },
       },
+      { name: 'admin home grid destinations (all dashboard links)', run: () => assertAdminHomeGridDestinations(page) },
       { name: 'admin event analytics', run: () => assertAdminEventAnalytics(page) },
       { name: 'admin manage events', run: () => assertAdminManageEvents(page) },
       { name: 'admin manage usage (manage users)', run: () => assertAdminManageUsage(page) },

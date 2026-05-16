@@ -1,10 +1,12 @@
+"use server";
+
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl, getTenantId } from '@/lib/env';
+import { getApiBaseUrl, getTenantId } from '@/lib/env';
+import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import { withTenantId } from '@/lib/withTenantId';
 import type { EventFeaturedPerformersDTO, EventMediaDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const baseUrl = getAppUrl();
+const API_BASE_URL = getApiBaseUrl();
 
 export async function fetchEventFeaturedPerformersServer(eventId: number) {
   const params = new URLSearchParams();
@@ -285,7 +287,7 @@ export async function uploadEventPerformerPosterServer(
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   params.append('startDisplayingFromDate', today);
 
-  const baseUrl = getAppUrl();
+  const baseUrl = await getAdminProxyBaseUrl();
   const url = `${baseUrl}/api/proxy/event-medias/upload?${params.toString()}`;
 
   const response = await fetch(url, {
@@ -308,18 +310,14 @@ export async function uploadEventPerformerPosterServer(
 export async function fetchEventPerformerMediaServer(
   eventId: number,
   performerId: number,
-  tenantId?: string
+  _tenantId?: string
 ): Promise<EventMediaDTO[]> {
-  const baseUrl = getAppUrl();
+  const baseUrl = await getAdminProxyBaseUrl();
   const params = new URLSearchParams();
 
   // Use eventId.equals and performerId.equals query parameters (JHipster criteria syntax)
   params.append('eventId.equals', String(eventId));
   params.append('performerId.equals', String(performerId));
-
-  // Add tenantId filter (always include tenantId for multi-tenant filtering)
-  const tenantIdToUse = tenantId || getTenantId();
-  params.append('tenantId.equals', tenantIdToUse);
 
   // Sort by priority ranking (ascending - lower = higher priority)
   params.append('sort', 'priorityRanking,asc');

@@ -1,10 +1,11 @@
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl, effectiveTenantId, appendTenantIfPresent, getDefaultPageSize } from '@/lib/env';
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getDefaultPageSize } from '@/lib/env';
+import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import type { EventMediaDTO } from '@/types';
 import { withTenantId } from '@/lib/withTenantId';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 export async function fetchUserProfileServer(userId: string, tenantId?: string) {
   if (!userId) return null;
@@ -210,7 +211,8 @@ export async function uploadMedia(eventId: number, {
   formData.append('startDisplayingFromDate', startDisplayingFromDate);
 
   // Use the proxy endpoint (not direct backend call)
-  const url = `${getAppUrl()}/api/proxy/event-medias/upload-multiple`;
+  const base = await getAdminProxyBaseUrl();
+  const url = `${base}/api/proxy/event-medias/upload-multiple`;
 
   const res = await fetch(url, {
     method: 'POST',

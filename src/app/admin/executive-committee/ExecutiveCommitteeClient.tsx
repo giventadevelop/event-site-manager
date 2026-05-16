@@ -1,47 +1,126 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaEdit, FaTrashAlt, FaEye } from 'react-icons/fa';
 import type { ExecutiveCommitteeTeamMemberDTO } from '@/types/executiveCommitteeTeamMember';
 import ExecutiveCommitteeForm from './ExecutiveCommitteeForm';
 import ExecutiveCommitteeList from './ExecutiveCommitteeList';
 import ImageUploadDialog from './ImageUploadDialog';
 import { Modal } from '@/components/Modal';
-import { deleteExecutiveCommitteeMember } from './ApiServerActions';
+import AdminTenantFilterField from '../AdminTenantFilterField';
+import { useAdminTenantId } from '../AdminTenantContext';
+import {
+  deleteExecutiveCommitteeMember,
+  fetchExecutiveCommitteeMembersPage,
+  type ExecutiveCommitteeListFilters,
+} from './ApiServerActions';
+
+type SearchField = 'firstName' | 'lastName' | 'title' | 'email' | 'department' | 'designation' | 'id';
 
 interface ExecutiveCommitteeClientProps {
   initialMembers: ExecutiveCommitteeTeamMemberDTO[];
+  initialTotalCount: number;
+  initialPageSize: number;
 }
 
-export default function ExecutiveCommitteeClient({ initialMembers }: ExecutiveCommitteeClientProps) {
+function buildListFilters(
+  tenantId: string | undefined,
+  searchField: SearchField,
+  searchQuery: string,
+  sort: string,
+  filterActive: 'all' | 'active' | 'inactive'
+): ExecutiveCommitteeListFilters {
+  const filters: ExecutiveCommitteeListFilters = {
+    tenantId,
+    sort: sort.trim() || 'priorityOrder,asc',
+  };
+  if (filterActive === 'active') filters.isActive = true;
+  else if (filterActive === 'inactive') filters.isActive = false;
+
+  const q = searchQuery.trim();
+  if (!q) return filters;
+
+  if (searchField === 'id') {
+    filters.id = q;
+    return filters;
+  }
+  if (searchField === 'firstName') filters.firstName = q;
+  else if (searchField === 'lastName') filters.lastName = q;
+  else if (searchField === 'title') filters.title = q;
+  else if (searchField === 'email') filters.email = q;
+  else if (searchField === 'department') filters.department = q;
+  else if (searchField === 'designation') filters.designation = q;
+
+  return filters;
+}
+
+export default function ExecutiveCommitteeClient({
+  initialMembers,
+  initialTotalCount,
+  initialPageSize,
+}: ExecutiveCommitteeClientProps) {
+  const tenantId = useAdminTenantId();
   const [members, setMembers] = useState<ExecutiveCommitteeTeamMemberDTO[]>(initialMembers);
+  const [totalCount, setTotalCount] = useState(initialTotalCount);
+  const [pageSize] = useState(initialPageSize);
+  const [page, setPage] = useState(0);
+  const [listLoading, setListLoading] = useState(false);
+
+  const [searchField, setSearchField] = useState<SearchField>('firstName');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sort, setSort] = useState('priorityOrder,asc');
+  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
+
+  const loadListAt = useCallback(
+    async (targetPage: number) => {
+      setListLoading(true);
+      try {
+        const filters = buildListFilters(tenantId, searchField, searchQuery, sort, filterActive);
+        const { members: rows, totalCount: tc } = await fetchExecutiveCommitteeMembersPage(
+          targetPage,
+          pageSize,
+          filters
+        );
+        setMembers(rows);
+        setTotalCount(tc);
+      } catch (e) {
+        console.error('[ExecutiveCommitteeClient] loadListAt failed:', e);
+      } finally {
+        setListLoading(false);
+      }
+    },
+    [tenantId, searchField, searchQuery, sort, filterActive, pageSize]
+  );
+
+  useEffect(() => {
+    void loadListAt(page);
+  }, [page, loadListAt]);
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<ExecutiveCommitteeTeamMemberDTO | null>(null);
   const [viewingMember, setViewingMember] = useState<ExecutiveCommitteeTeamMemberDTO | null>(null);
   const [deletingMember, setDeletingMember] = useState<ExecutiveCommitteeTeamMemberDTO | null>(null);
   const [uploadingMember, setUploadingMember] = useState<ExecutiveCommitteeTeamMemberDTO | null>(null);
   
-  // Pagination state
-  const [page, setPage] = useState(0);
-  const [pageSize] = useState(10);
-  const totalCount = members.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-
-  const handleMemberCreated = (newMember: ExecutiveCommitteeTeamMemberDTO) => {
-    setMembers(prev => [...prev, newMember]);
+  const handleMemberCreated = (_newMember: ExecutiveCommitteeTeamMemberDTO) => {
     setIsFormOpen(false);
+    if (page === 0) void loadListAt(0);
+    else setPage(0);
   };
 
   const handleMemberUpdated = (updatedMember: ExecutiveCommitteeTeamMemberDTO) => {
-    setMembers(prev => prev.map(member =>
-      member.id === updatedMember.id ? updatedMember : member
-    ));
+    setMembers((prev) => prev.map((member) => (member.id === updatedMember.id ? updatedMember : member)));
     setEditingMember(null);
   };
 
-  const handleMemberDeleted = (deletedId: number) => {
-    setMembers(prev => prev.filter(member => member.id !== deletedId));
+  const handleMemberDeleted = (_deletedId: number) => {
     setDeletingMember(null);
+    const nextPage = members.length <= 1 && page > 0 ? page - 1 : page;
+    if (nextPage !== page) setPage(nextPage);
+    else void loadListAt(page);
   };
 
   const handleImageUploadSuccess = (imageUrl: string) => {
@@ -80,11 +159,73 @@ export default function ExecutiveCommitteeClient({ initialMembers }: ExecutiveCo
 
   return (
     <div className="space-y-6">
+      <div className="mb-2">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+          <div className="text-lg font-semibold text-blue-800 mb-4">Search team members</div>
+          <div className="flex flex-wrap gap-4 items-end">
+            <AdminTenantFilterField />
+            <div>
+              <label className="block text-xs font-semibold mb-1">Search by</label>
+              <select
+                className="border px-3 py-2 rounded w-44"
+                value={searchField}
+                onChange={(e) => setSearchField(e.target.value as SearchField)}
+              >
+                <option value="firstName">First name</option>
+                <option value="lastName">Last name</option>
+                <option value="title">Title</option>
+                <option value="email">Email</option>
+                <option value="department">Department</option>
+                <option value="designation">Designation</option>
+                <option value="id">Member ID</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1">
+                {searchField === 'id' ? 'Member ID' : 'Contains'}
+              </label>
+              <input
+                type={searchField === 'id' ? 'number' : 'text'}
+                className="border px-3 py-2 rounded w-48 min-w-[12rem]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={searchField === 'id' ? 'Numeric id' : `Search ${searchField}`}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1">Status</label>
+              <select
+                className="border px-3 py-2 rounded w-36"
+                value={filterActive}
+                onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
+              >
+                <option value="all">All</option>
+                <option value="active">Active only</option>
+                <option value="inactive">Inactive only</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1">Sort</label>
+              <select className="border px-3 py-2 rounded w-48" value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="priorityOrder,asc">Priority (low first)</option>
+                <option value="priorityOrder,desc">Priority (high first)</option>
+                <option value="lastName,asc">Last name (A–Z)</option>
+                <option value="lastName,desc">Last name (Z–A)</option>
+                <option value="firstName,asc">First name (A–Z)</option>
+                <option value="firstName,desc">First name (Z–A)</option>
+                <option value="title,asc">Title (A–Z)</option>
+                <option value="title,desc">Title (Z–A)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Header with Add Button */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Team Members ({members.length})
+            Team Members ({totalCount})
           </h2>
         </div>
         <button
@@ -158,7 +299,8 @@ export default function ExecutiveCommitteeClient({ initialMembers }: ExecutiveCo
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}
-        onPageChange={setPage}
+        onPageChange={handlePageChange}
+        isLoading={listLoading}
       />
 
       {/* Add/Edit Form Modal */}

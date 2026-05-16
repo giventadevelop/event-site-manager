@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import type { ExecutiveCommitteeTeamMemberDTO } from '@/types';
-import { getAppUrl } from '@/lib/env';
 import styles from './TeamSection.module.css';
 
 const TeamSection: React.FC = () => {
@@ -15,9 +14,8 @@ const TeamSection: React.FC = () => {
     // Fetch team members when component mounts
     const loadTeamMembers = async () => {
       try {
-        const baseUrl = getAppUrl();
         const response = await fetch(
-          `${baseUrl}/api/proxy/executive-committee-team-members?isActive.equals=true&sort=priorityOrder,asc`,
+          `/api/proxy/executive-committee-team-members?isActive.equals=true&sort=priorityOrder,asc`,
           {
             method: 'GET',
             headers: {

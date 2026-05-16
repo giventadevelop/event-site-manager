@@ -53,18 +53,15 @@ export default function AlbumMediaClientPage({
   const loadMedia = async () => {
     setLoading(true);
     try {
-      // Fetch media from API proxy endpoint with pagination
-      const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      // Fetch media from API proxy endpoint with pagination (same-origin; tenant via proxy JWT + X-Tenant-ID)
       const params = new URLSearchParams();
-      params.append('tenantId.equals', tenantId || '');
       params.append('albumId.equals', albumId.toString());
       params.append('page', page.toString());
       params.append('size', pageSize.toString());
       params.append('sort', 'displayOrder,asc');
       params.append('sort', 'updatedAt,desc');
 
-      const url = `${appUrl}/api/proxy/event-medias?${params.toString()}`;
+      const url = `/api/proxy/event-medias?${params.toString()}`;
       console.log('Loading media from:', url);
       const res = await fetch(url, { cache: 'no-store' });
 
@@ -167,9 +164,6 @@ export default function AlbumMediaClientPage({
         throw new Error('NEXT_PUBLIC_TENANT_ID is not set in environment variables');
       }
 
-      // Get app URL from environment variable (available on client)
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
       // Append album-specific parameters
       formData.append('albumId', String(albumId));
       formData.append('eventId', ''); // Empty string to indicate no event association
@@ -196,8 +190,8 @@ export default function AlbumMediaClientPage({
 
       formData.append('startDisplayingFromDate', startDisplayingFromDate);
 
-      // Use the proxy endpoint directly from client
-      const url = `${appUrl}/api/proxy/event-medias/upload-multiple`;
+      // Use the proxy endpoint directly from client (same-origin)
+      const url = `/api/proxy/event-medias/upload-multiple`;
 
       const res = await fetch(url, {
         method: 'POST',
@@ -227,10 +221,10 @@ export default function AlbumMediaClientPage({
           for (const media of uploadedMedia) {
             if (!media.id) continue;
 
-            const updateUrl = `${appUrl}/api/proxy/event-medias/${media.id}`;
+            const updateUrl = `/api/proxy/event-medias/${media.id}`;
             // Use the full media object from upload response, ensuring all required fields are properly typed
             // CRITICAL: Backend requires all these fields to be non-null, so we must include them explicitly
-            const updatePayload: Partial<EventMediaDTO> = {
+            const updatePayload = {
               // Required fields - must be non-null
               id: media.id!,
               title: media.title || '',
@@ -242,7 +236,7 @@ export default function AlbumMediaClientPage({
               isLiveEventImage: Boolean(media.isLiveEventImage ?? false),
               // Fields we're updating
               albumId, // Set albumId
-              eventId: null, // Clear event association
+              eventId: null, // Clear event association (merge-patch)
               tenantId: tenantId || media.tenantId,
               updatedAt: new Date().toISOString(),
               // Include all other fields from upload response
@@ -269,7 +263,7 @@ export default function AlbumMediaClientPage({
               performerId: media.performerId,
               directorId: media.directorId,
               priorityRanking: media.priorityRanking,
-            };
+            } as Partial<EventMediaDTO>;
 
             const updateRes = await fetch(updateUrl, {
               method: 'PATCH',
@@ -325,16 +319,13 @@ export default function AlbumMediaClientPage({
     if (!editMedia || !editMedia.id) return;
     setEditLoading(true);
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
       const payload = {
         ...updated,
         id: editMedia.id,
-        tenantId,
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await fetch(`${appUrl}/api/proxy/event-medias/${editMedia.id}`, {
+      const res = await fetch(`/api/proxy/event-medias/${editMedia.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/merge-patch+json' },
         body: JSON.stringify(payload),
@@ -357,9 +348,7 @@ export default function AlbumMediaClientPage({
   const handleDelete = async (mediaId: number) => {
     if (!confirm('Are you sure you want to delete this media?')) return;
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
-      const res = await fetch(`${appUrl}/api/proxy/event-medias/${mediaId}?tenantId.equals=${tenantId}`, {
+      const res = await fetch(`/api/proxy/event-medias/${mediaId}`, {
         method: 'DELETE',
       });
 
@@ -383,16 +372,13 @@ export default function AlbumMediaClientPage({
   const handleRemoveFromAlbum = async (mediaId: number) => {
     if (!confirm('Remove this media from the album? The media file will not be deleted.')) return;
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
       const payload = {
         id: mediaId,
         albumId: null,
-        tenantId,
         updatedAt: new Date().toISOString(),
-      };
+      } as Partial<EventMediaDTO>;
 
-      const res = await fetch(`${appUrl}/api/proxy/event-medias/${mediaId}`, {
+      const res = await fetch(`/api/proxy/event-medias/${mediaId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/merge-patch+json' },
         body: JSON.stringify(payload),
@@ -421,16 +407,13 @@ export default function AlbumMediaClientPage({
       return;
     }
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
       const payload = {
         id: albumId,
         coverImageUrl: media.fileUrl,
-        tenantId,
         updatedAt: new Date().toISOString(),
       };
 
-      const res = await fetch(`${appUrl}/api/proxy/gallery-albums/${albumId}`, {
+      const res = await fetch(`/api/proxy/gallery-albums/${albumId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/merge-patch+json' },
         body: JSON.stringify(payload),

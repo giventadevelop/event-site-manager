@@ -1,13 +1,11 @@
 "use server";
 import { stripe } from '@/lib/stripe';
-import { getTenantId, getAppUrl } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl, getTenantId } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import type { EventTicketTransactionDTO } from '@/types';
 
 function requireApiBaseUrl(): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!base) throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured');
-  return base;
+  return getApiBaseUrl();
 }
 
 export async function refundTicketTransactionServer(ticket: EventTicketTransactionDTO, reason: string) {

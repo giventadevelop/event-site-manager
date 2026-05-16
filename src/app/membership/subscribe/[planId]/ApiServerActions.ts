@@ -1,12 +1,12 @@
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl, getTenantId, getPaymentMethodDomainId } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl, getPaymentMethodDomainId, getTenantId } from '@/lib/env';
 import { auth } from '@clerk/nextjs/server';
 import { stripe } from '@/lib/stripe';
 import { withTenantId } from '@/lib/withTenantId';
 import type { MembershipPlanDTO, UserProfileDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Fetch a specific membership plan by ID

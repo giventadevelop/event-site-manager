@@ -1,10 +1,10 @@
 'use server';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getTenantId } from '@/lib/env';
+import { getApiBaseUrl, getTenantId } from '@/lib/env';
 import type { EventDetailsDTO, EventMediaDTO, GalleryAlbumDTO, GalleryAlbumWithMedia } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 export interface GalleryEventWithMedia {
   event: EventDetailsDTO;

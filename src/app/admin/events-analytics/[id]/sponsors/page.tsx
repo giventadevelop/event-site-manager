@@ -368,60 +368,6 @@ export default function EventSponsorsPage() {
     loadAvailableSponsors(page, availableSponsorsSearchTerm);
   };
 
-  const testApiCall = async () => {
-    console.log('🧪 Testing API call for event ID:', eventId);
-    try {
-      const data = await fetchEventSponsorsJoinServer(parseInt(eventId));
-      console.log('🧪 Test API result:', data);
-      console.log('🧪 Test API result structure:', JSON.stringify(data, null, 2));
-      setToastMessage({ type: 'success', message: `API test successful. Found ${Array.isArray(data) ? data.length : 'unknown'} sponsors. Check console for full data structure.` });
-    } catch (error: any) {
-      console.error('🧪 Test API error:', error);
-      setToastMessage({ type: 'error', message: `API test failed: ${error.message}` });
-    }
-  };
-
-  const testDirectBackendCall = async () => {
-    console.log('🔍 Testing direct backend call for event ID:', eventId);
-    try {
-      // Test the specific endpoint
-      const specificUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/event-sponsors-join/event/${eventId}`;
-      console.log('🔍 Testing specific URL:', specificUrl);
-
-      const specificResponse = await fetch(specificUrl, {
-        headers: {
-          'Authorization': `Bearer ${await import('@/lib/api/jwt').then(m => m.getCachedApiJwt())}`,
-        },
-      });
-
-      console.log('🔍 Specific endpoint response status:', specificResponse.status);
-      const specificData = await specificResponse.json();
-      console.log('🔍 Specific endpoint data:', JSON.stringify(specificData, null, 2));
-
-      // Test the generic endpoint with query parameters
-      const genericUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/event-sponsors-join?eventId.equals=${eventId}`;
-      console.log('🔍 Testing generic URL:', genericUrl);
-
-      const genericResponse = await fetch(genericUrl, {
-        headers: {
-          'Authorization': `Bearer ${await import('@/lib/api/jwt').then(m => m.getCachedApiJwt())}`,
-        },
-      });
-
-      console.log('🔍 Generic endpoint response status:', genericResponse.status);
-      const genericData = await genericResponse.json();
-      console.log('🔍 Generic endpoint data:', JSON.stringify(genericData, null, 2));
-
-      setToastMessage({
-        type: 'success',
-        message: `Backend test complete. Specific: ${specificResponse.status}, Generic: ${genericResponse.status}. Check console for details.`
-      });
-    } catch (error: any) {
-      console.error('🔍 Direct backend test error:', error);
-      setToastMessage({ type: 'error', message: `Backend test failed: ${error.message}` });
-    }
-  };
-
   const openEditModal = (sponsor: EventSponsorsJoinDTO) => {
     setSelectedSponsor(sponsor);
     setFormData({
@@ -600,7 +546,7 @@ export default function EventSponsorsPage() {
   return (
     <div className="max-w-7xl mx-auto px-8 py-8" style={{ paddingTop: '180px' }}>
       {/* Header with back button */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center mb-6">
         <div className="flex items-center">
           <Link
             href={`/admin/events/${eventId}/edit`}
@@ -616,20 +562,6 @@ export default function EventSponsorsPage() {
             </h1>
             <p className="text-gray-600">Manage sponsor assignments for this specific event only</p>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={testApiCall}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg shadow font-medium flex items-center gap-2 hover:bg-purple-700 transition"
-          >
-            🧪 Test API
-          </button>
-          <button
-            onClick={testDirectBackendCall}
-            className="bg-orange-600 text-white px-4 py-2 rounded-lg shadow font-medium flex items-center gap-2 hover:bg-orange-700 transition"
-          >
-            🔍 Test Backend
-          </button>
         </div>
       </div>
 

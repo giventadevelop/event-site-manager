@@ -1,10 +1,10 @@
 "use server";
-import { getAppUrl, effectiveTenantId, appendTenantIfPresent } from "@/lib/env";
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
 import { withTenantId } from "@/lib/withTenantId";
 import { DiscountCodeDTO } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 export async function fetchDiscountCodesForEvent(eventId: string, tenantId?: string): Promise<DiscountCodeDTO[]> {
   const params = new URLSearchParams();

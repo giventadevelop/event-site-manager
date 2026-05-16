@@ -1,8 +1,8 @@
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 import type { EventAttendeeDTO, EventAttendeeGuestDTO, EventDetailsDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 export interface RegistrationManagementData {
   attendees: EventAttendeeDTO[];
@@ -331,7 +331,7 @@ export async function updateAttendeeStatus(
 ): Promise<boolean> {
   try {
     const { fetchWithJwtRetry } = await import('@/lib/proxyHandler');
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const API_BASE_URL = getApiBaseUrl();
 
     if (!API_BASE_URL) {
       console.error('API_BASE_URL is not configured');
@@ -372,7 +372,7 @@ export async function updateAttendeeRegistration(
 ): Promise<boolean> {
   try {
     const { fetchWithJwtRetry } = await import('@/lib/proxyHandler');
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const API_BASE_URL = getApiBaseUrl();
 
     if (!API_BASE_URL) {
       console.error('API_BASE_URL is not configured');
@@ -410,7 +410,7 @@ export async function updateAttendeeRegistration(
 export async function deleteAttendeeRegistration(attendeeId: number): Promise<boolean> {
   try {
     const { fetchWithJwtRetry } = await import('@/lib/proxyHandler');
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const API_BASE_URL = getApiBaseUrl();
 
     if (!API_BASE_URL) {
       console.error('API_BASE_URL is not configured');

@@ -1,7 +1,7 @@
 "use server";
 import { QrCodeUsageDTO, EventTicketTransactionDTO } from '@/types';
 import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
-import { getAppUrl } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 
 const BASE_URL = getAppUrl();
 
@@ -34,7 +34,7 @@ export async function updateQrCodeCheckIn(
 }
 
 export async function updateEventTicketTransactionCheckIn(transactionId: string, payload: Partial<EventTicketTransactionDTO>) {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_BASE_URL = getApiBaseUrl();
   const url = `${API_BASE_URL}/api/event-ticket-transactions/${transactionId}`;
   let token = await getCachedApiJwt();
   if (!token) {
