@@ -61,15 +61,32 @@ alwaysApply: true
     ```
 
 - **JWT handling**
-  - Use `fetchWithJwtRetry` **from `@/lib/proxyHandler`** for all backend calls (it adds **`Authorization`**, **`X-Tenant-ID`** when `getTenantIdOptional()` is set, and 401 retry; see **X-Tenant-ID for tenant-scoped backend APIs** below). **Do not** define a local `fetchWithJwtRetry` in `src/pages/api/proxy/**` that only adds `Authorization`.
-  - Do not call backend APIs directly with raw `fetch` unless unavoidable; if you must, send **`Authorization`** and **`X-Tenant-ID`** (see **X-Tenant-ID** section).
+  - Use `fetchWithJwtRetry` **from `@/lib/proxyHandler`** for all backend calls (it adds **`Authorization`** and **`X-Tenant-ID`**; see **X-Tenant-ID for tenant-scoped backend APIs** below). Older inline examples may omit `X-Tenant-ID` — do not copy them for direct backend URLs.
+  - Do not call backend APIs directly with fetch; always use the helper
   - Example:
     ```typescript
-    import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-    const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/resource`, {
-      method: 'GET',
-      cache: 'no-store',
-    });
+    import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
+    async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debugLabel = '') {
+      let token = await getCachedApiJwt();
+      let response = await fetch(apiUrl, {
+        ...options,
+        headers: {
+          ...options.headers,
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.status === 401) {
+        token = await generateApiJwt();
+        response = await fetch(apiUrl, {
+          ...options,
+          headers: {
+            ...options.headers,
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+      return response;
+    }
     ```
 
 - **Error handling**
@@ -486,29 +503,31 @@ alwaysApply: true
   - See `src/pages/api/proxy/event-ticket-transactions/[...slug].ts` for a working example.
   - See `src/pages/api/proxy/discount-codes/[...slug].ts` for the required fix.
 
-- **Port-Agnostic App URL Configuration**
-  - Use `getAppUrl()` from `@/lib/env` instead of hardcoded URLs for server-side API calls.
-  - This ensures the application works on any port (3000, 3001, etc.) without hardcoding.
-  - **DO:**
-    ```typescript
-    import { getAppUrl } from '@/lib/env';
-    const baseUrl = getAppUrl();
-    const response = await fetch(`${baseUrl}/api/proxy/event-details`);
-    ```
-  - **DON'T:**
-    ```typescript
-    // ❌ DON'T: Hardcode port numbers
-    const baseUrl = 'http://localhost:3000';
-    // ❌ DON'T: Use environment variable with hardcoded fallback
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    ```
-  - **Rationale:**
-    - Makes the application truly port-agnostic
-    - Supports development on any port (3000, 3001, 3002, etc.)
-    - Maintains compatibility with production environment variables
+- **App URL and fetch targets (client vs server) — use the right base**
+  - **Browser / `'use client'` calling `/api/proxy/*` (public data): use same-origin relative URLs**
+    - **DO:** `fetch('/api/proxy/executive-committee-team-members?isActive.equals=true&sort=priorityOrder,asc', { ... })`
+    - **DON'T:** `const baseUrl = getAppUrl(); fetch(\`${baseUrl}/api/proxy/...\`)` from the browser.
+    - **Why:** `getAppUrl()` often resolves to `http://localhost:3000` while the tab may be `http://127.0.0.1:3001` (or another host/port). Browsers treat those as **different origins** → CORS / `TypeError: Failed to fetch` even though the proxy works. Relative paths always hit the current tab’s origin.
+    - **Do NOT add `tenantId.equals` in the query** when calling the proxy for default tenant-scoped lists; tenant context comes from the proxy’s JWT / `X-Tenant-ID` merge. Only add `tenantId.equals` when the UI explicitly filters by tenant (e.g. tenant picker).
+    - **References:** `src/components/TeamSection.tsx`, `src/components/OurSponsorsSection.tsx`, `src/components/TenantSettingsProvider.tsx`
+  - **Server code calling the backend API directly (server components, server actions, `ApiServerActions.ts`): use `getApiBaseUrl()` + `fetchWithJwtRetry`**
+    - **DO:** `await fetchWithJwtRetry(\`${getApiBaseUrl()}/api/resource?tenantId.equals=${getTenantId()}&...\`, { cache: 'no-store' })` (add `tenantId.equals` when the backend criteria require it; `fetchWithJwtRetry` adds `Authorization` and `X-Tenant-ID`).
+    - **DON'T:** Loop through the Next app with `getAppUrl() + '/api/proxy/...'` from server code unless you have a specific reason (extra hop, wrong port if env is stale).
+    - **References:** `src/app/admin/executive-committee/ApiServerActions.ts`, `src/app/admin/event-sponsors/ApiServerActions.ts`, `src/lib/proxyHandler.ts`
+  - **Server code that must call this Next app (e.g. multipart upload to a Pages API route): prefer request host, then env**
+    - **DO:** `import { headers } from 'next/headers'` → build `proto://host` from `x-forwarded-host` / `host` and `x-forwarded-proto` when possible (matches actual dev port and deployment host).
+    - **Fallback:** `getAppUrl()` from `@/lib/env` when not in a request context — never hardcode `http://localhost:3000` in application code.
+  - **Legacy `getAppUrl()` note**
+    - `getAppUrl()` remains correct for **absolute links**, emails, QR bases, and **server→Next** when `headers()` is unavailable — not for **browser→proxy** fetches.
   - **References:**
-    - See `src/app/page.tsx` for correct usage
-    - See `src/lib/env.ts` for the `getAppUrl()` implementation
+    - See `src/lib/env.ts` for `getAppUrl()` and `getApiBaseUrl()`
+
+- **Admin `/admin/*` list pages — tenant-agnostic criteria and pagination**
+  - **Scope:** All admin listing flows under `/admin/*` (tables, grids, paginated lists) should treat tenant context as **HTTP + JWT** (`Authorization`, `X-Tenant-ID` via `fetchWithJwtRetry`, or the Pages proxy’s service JWT), **not** as a default `tenantId.equals` query param on every list request.
+  - **Server actions calling this Next app’s `/api/proxy/*`:** use `await getAdminProxyBaseUrl()` from `@/lib/adminProxyBaseUrl` (request `host` / forwarded headers first, then `getAppUrl()` fallback) so dev servers on non-default ports (e.g. `localhost:3001`) still hit the correct origin. **Do not** build proxy URLs with `getApiBaseUrl()` (that targets the **backend** host, not Next).
+  - **Criteria lists:** omit `tenantId.equals` from the forwarded query unless the UI explicitly filters by tenant (e.g. super-admin tenant picker). Use `appendTenantIfPresent` / `effectiveTenantId` only when a `?tenant=` (or equivalent) override is active. Pagination: `page`, `size`, `sort`, and read total from **`x-total-count`** (or `X-Total-Count`) where the backend supports it.
+  - **Client components in admin:** prefer same-origin **`/api/proxy/...`** relative URLs for proxy reads (never `NEXT_PUBLIC_APP_URL` + absolute URL in the browser). Prefer server actions for authenticated mutations where the codebase already does so.
+  - **References:** `src/lib/adminProxyBaseUrl.ts`, `src/app/admin/executive-committee/ApiServerActions.ts`, `src/lib/proxyHandler.ts` (`createProxyHandler`, `fetchWithJwtRetry`).
 
 - **Graceful API Failure Handling**
   - Always handle API fetch failures gracefully in server components to prevent page crashes.
@@ -553,14 +572,13 @@ alwaysApply: true
   - **Rationale:** Server actions called from client components can trigger `headers()` without awaiting, causing runtime errors in Next.js 15+.
   - **DO:**
     ```typescript
-    // ✅ DO: Use direct fetch to proxy endpoints from client components on public pages
+    // ✅ DO: Same-origin relative URL to /api/proxy/* from client on public pages (no getAppUrl in browser)
     'use client';
     export function TeamSection() {
       useEffect(() => {
         const loadData = async () => {
-          const baseUrl = getAppUrl();
           const response = await fetch(
-            `${baseUrl}/api/proxy/executive-committee-team-members?isActive.equals=true&sort=priorityOrder,asc`,
+            '/api/proxy/executive-committee-team-members?isActive.equals=true&sort=priorityOrder,asc',
             {
               method: 'GET',
               headers: { 'Content-Type': 'application/json' },
@@ -576,7 +594,9 @@ alwaysApply: true
       }, []);
     }
     ```
+  - **Also normalize API shape:** backends may return HAL `_embedded` or Spring `content` instead of a bare array — parse before `setData` (see `src/lib/parseExecutiveCommitteeTeamMembersResponse.ts`).
   - **Executive committee priority order:** The list is sorted by `priorityOrder` ascending (`sort=priorityOrder,asc`). **Lower number = higher rank** (0 appears first, 10 later). Show this tip in the admin form (tooltip or info above the Priority Order field).
+  - **DON'T (client):** `getAppUrl()` / `NEXT_PUBLIC_APP_URL` + absolute `/api/proxy/...` from the browser — use relative URLs (see **App URL and fetch targets** above).
   - **DON'T:**
     ```typescript
     // ❌ DON'T: Call server actions from client components on public pages
@@ -611,11 +631,12 @@ alwaysApply: true
   - **Rationale**: This ensures consistent authentication, error handling, and prevents `headers()` async context errors in Next.js 15+.
   - **DO:**
     ```typescript
-    // ✅ DO: Use fetchWithJwtRetry for all backend API calls
+    // ✅ DO: Use fetchWithJwtRetry for all backend API calls (prefer getApiBaseUrl() from @/lib/env)
     import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+    import { getApiBaseUrl } from '@/lib/env';
 
     export async function fetchDataServer() {
-      const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/some-endpoint`, {
+      const res = await fetchWithJwtRetry(`${getApiBaseUrl()}/api/some-endpoint`, {
         cache: 'no-store',
       });
       if (!res.ok) return null;
@@ -640,7 +661,7 @@ alwaysApply: true
     const res = await fetch(`${API_BASE_URL}/api/some-endpoint`);
     ```
   - **Exception**: Only use direct `fetch()` for proxy endpoints (e.g., `/api/proxy/...`) that are in the public routes list.
-  - **Exception — raw `fetch` to backend base URL**: Rare (e.g. streaming multipart uploads to the backend with `node-fetch`). If you cannot use `fetchWithJwtRetry`, send **`Authorization: Bearer <token>`** and **`X-Tenant-ID: <getTenantIdOptional() or explicit tenant>`** on every request. `ProfileBootstrapperApiServerActions` uses **`fetchWithJwtRetry`** (not raw fetch). Service JWTs typically have **no** `tenant_id` claim; the backend can return **400** (“Tenant context is required…”) if only query params like `tenantId.equals` are present. See **X-Tenant-ID for tenant-scoped backend APIs** below.
+  - **Exception — raw `fetch` to backend base URL**: Rare (e.g. `ProfileBootstrapperApiServerActions`). If you must call `NEXT_PUBLIC_API_BASE_URL` with `fetch` instead of `fetchWithJwtRetry`, send **`Authorization: Bearer <token>`** and **`X-Tenant-ID: getTenantId()`** on every request. Service JWTs typically have **no** `tenant_id` claim; the backend `TenantContextFilter` / `getUserProfileByUserId` can return **400** (“Tenant context is required…”) if only query params like `tenantId.equals` are present. See **X-Tenant-ID for tenant-scoped backend APIs** below.
   - **Enforcement**: This rule applies to ALL server actions in the codebase. Any server action found using direct `fetch()` to backend APIs will be flagged for immediate correction.
   - **References:**
     - See `src/lib/proxyHandler.ts` for the `fetchWithJwtRetry` implementation
@@ -649,8 +670,8 @@ alwaysApply: true
 
 - **X-Tenant-ID for tenant-scoped backend APIs (user profile by user ID, etc.)**
   - **Problem**: Backend endpoints that resolve **user profile by Clerk user ID** (`/api/user-profiles/by-user/...` or criteria that map to `getUserProfileByUserId`) require **tenant context** on the HTTP request: **`X-Tenant-ID`** header (value from `getTenantId()`), or an equivalent tenant query/JWT claim **as implemented by your `TenantContextFilter`**. Sending only `tenantId.equals` in the query string may **not** set thread-local tenant for that code path → **HTTP 400** with a message like *“Tenant context is required to load a user profile by user id”*.
-  - **DO — prefer shared helper**: Use **`fetchWithJwtRetry` from `@/lib/proxyHandler`**. It merges **`Authorization`** and **`X-Tenant-ID`** (from `getTenantIdOptional()` when not already set) on every call (see `src/lib/proxyHandler.ts`). Use this for server actions and any code that calls the backend REST URL directly.
-  - **DO — raw `fetch` when unavoidable**: Build headers with both `Authorization: Bearer <token>` and **`X-Tenant-ID: <getTenantId()>`** (plus `Content-Type` when needed). See streaming upload proxies under `src/pages/api/proxy/event-medias/upload/` for **`getTenantIdOptional()`** + manual header merge.
+  - **DO — prefer shared helper**: Use **`fetchWithJwtRetry` from `@/lib/proxyHandler`**. It merges **`Authorization`** and **`X-Tenant-ID`** on every call (see `src/lib/proxyHandler.ts`). Use this for server actions and any code that calls the backend REST URL directly.
+  - **DO — raw `fetch` when unavoidable**: Build headers with both `Authorization: Bearer <token>` and **`X-Tenant-ID: <getTenantId()>`** (plus `Content-Type` when needed). Example pattern: `src/components/ProfileBootstrapperApiServerActions.ts` (`tenantAuthHeaders`).
   - **DO — Pages Router proxies**: **`src/pages/api/proxy/user-profiles/[...slug].ts`** must forward using the **same** `fetchWithJwtRetry` from `@/lib/proxyHandler` (not a local copy that only sets `Authorization`). Local duplicate helpers have caused **by-user** proxy forwards to omit **`X-Tenant-ID`** and fail with 400.
   - **DON'T**:
     ```typescript

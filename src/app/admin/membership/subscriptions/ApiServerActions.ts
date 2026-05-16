@@ -1,10 +1,11 @@
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl, effectiveTenantId, appendTenantIfPresent, getDefaultPageSize } from '@/lib/env';
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getDefaultPageSize } from '@/lib/env';
+import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import { withTenantId } from '@/lib/withTenantId';
 import type { MembershipSubscriptionDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 export interface FetchSubscriptionsFilters {
   userProfileId?: number;
@@ -46,8 +47,9 @@ export async function fetchAllSubscriptionsServer(
   params.append('page', String((filters.page ?? 1) - 1)); // Backend uses 0-based pagination
   params.append('size', String(filters.pageSize ?? getDefaultPageSize()));
 
-  const url = `${getAppUrl()}/api/proxy/membership-subscriptions?${params.toString()}`;
-  const res = await fetchWithJwtRetry(url, {
+  const base = await getAdminProxyBaseUrl();
+  const url = `${base}/api/proxy/membership-subscriptions?${params.toString()}`;
+  const res = await fetch(url, {
     method: 'GET',
     cache: 'no-store',
   });
@@ -80,8 +82,9 @@ export async function getSubscriptionDetailsServer(
     return null;
   }
 
-  const url = `${getAppUrl()}/api/proxy/membership-subscriptions/${subscriptionId}`;
-  const res = await fetchWithJwtRetry(url, {
+  const base = await getAdminProxyBaseUrl();
+  const url = `${base}/api/proxy/membership-subscriptions/${subscriptionId}`;
+  const res = await fetch(url, {
     method: 'GET',
     cache: 'no-store',
   });

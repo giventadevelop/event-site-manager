@@ -1,10 +1,10 @@
 "use server";
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { effectiveTenantId, appendTenantIfPresent, getDefaultPageSize } from '@/lib/env';
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getDefaultPageSize } from '@/lib/env';
 import type { TenantEmailAddressDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Fetch tenant email addresses for the current tenant with pagination.

@@ -2,9 +2,9 @@
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { EventTicketTransactionDTO, EventTicketTypeDTO } from '@/types';
-import { getTenantId, getPaymentMethodDomainId } from '@/lib/env';
+import { getApiBaseUrl, getPaymentMethodDomainId, getTenantId } from '@/lib/env';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 export async function createEventTicketTransactionServer(transaction: Omit<EventTicketTransactionDTO, 'id'>): Promise<EventTicketTransactionDTO> {
   const url = `${API_BASE_URL}/api/event-ticket-transactions`;

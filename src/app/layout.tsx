@@ -12,7 +12,7 @@ import MobileDebugConsole from "../components/MobileDebugConsole";
 import { TenantSettingsProvider } from "../components/TenantSettingsProvider";
 import { headers } from "next/headers";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { getAppUrl } from "@/lib/env";
+import { getAppUrl, getRequestOriginFromHeaders } from "@/lib/env";
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
 import { getAllowedRedirectOrigins, isKnownSatelliteHost } from "@/lib/satelliteConfig";
 import { getMergedSatelliteConfigs } from "@/lib/satelliteConfigRuntime";
@@ -40,6 +40,8 @@ export default async function RootLayout({
   // This warning is expected for public routes and can be ignored in TestSprite/Playwright tests
   // The page will still render correctly despite the console warning
   const headersList = await headers();
+  /** Same host:port as this request — required for server fetch to /api/proxy when dev port ≠ NEXT_PUBLIC_APP_URL */
+  const sameOriginApiBase = getRequestOriginFromHeaders(headersList) || getAppUrl();
   const hostname = headersList.get('host') || '';
   const pathname = headersList.get('x-pathname') || '';
 
@@ -158,7 +160,7 @@ export default async function RootLayout({
       }
 
       if (userId) {
-        const baseUrl = getAppUrl();
+        const baseUrl = sameOriginApiBase;
         // Tenant-agnostic: do not add tenantId.equals; only userId (or email) for profile lookup
         console.log('[Layout] 🔍 Fetching user profile:', { userId, baseUrl });
 

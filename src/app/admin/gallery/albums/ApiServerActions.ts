@@ -1,12 +1,11 @@
 'use server';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getTenantId, getAppUrl } from '@/lib/env';
+import { getApiBaseUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import type { GalleryAlbumDTO, EventMediaDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const baseUrl = getAppUrl();
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Create new album
@@ -52,9 +51,7 @@ export async function fetchAlbumsServer(
   isPublic?: boolean
 ): Promise<{ albums: GalleryAlbumDTO[]; totalCount: number }> {
   try {
-    const tenantId = getTenantId();
     const params = new URLSearchParams();
-    params.append('tenantId.equals', tenantId);
     params.append('page', page.toString());
     params.append('size', size.toString());
     params.append('sort', 'displayOrder,asc');
@@ -240,9 +237,7 @@ export async function fetchAlbumMediaServer(
   size: number = 20
 ): Promise<{ media: EventMediaDTO[]; totalCount: number }> {
   try {
-    const tenantId = getTenantId();
     const params = new URLSearchParams();
-    params.append('tenantId.equals', tenantId);
     params.append('albumId.equals', albumId.toString());
     params.append('page', page.toString());
     params.append('size', size.toString());
@@ -339,7 +334,7 @@ export async function editAlbumMediaServer(mediaId: number | string, payload: Pa
  */
 export async function deleteAlbumMediaServer(mediaId: number | string): Promise<void> {
   try {
-    const url = `${API_BASE_URL}/api/event-medias/${mediaId}?tenantId.equals=${getTenantId()}`;
+    const url = `${API_BASE_URL}/api/event-medias/${mediaId}`;
     const res = await fetchWithJwtRetry(url, {
       method: 'DELETE',
       cache: 'no-store',

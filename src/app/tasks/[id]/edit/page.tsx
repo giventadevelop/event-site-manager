@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { notFound } from 'next/navigation';
 import { TaskForm } from '@/components/task-form';
+import { getAppUrl } from '@/lib/env';
 
 interface EditTaskPageProps {
   params: Promise<{ id: string }> | { id: string }
@@ -17,10 +18,11 @@ export default async function EditTaskPage(props: EditTaskPageProps) {
   // Await params for Next.js 15+ compatibility
   const resolvedParams = typeof props.params.then === 'function' ? await props.params : props.params;
 
-  // Fetch the task from the API
+  // Fetch via Next proxy (JWT + forwarding handled by Pages API route — do not call backend URL directly)
   let task = null;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user-tasks/${resolvedParams.id}`, {
+    const baseUrl = getAppUrl();
+    const res = await fetch(`${baseUrl}/api/proxy/user-tasks/${resolvedParams.id}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',

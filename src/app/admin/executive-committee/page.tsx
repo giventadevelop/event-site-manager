@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import ExecutiveCommitteeClient from './ExecutiveCommitteeClient';
-import { fetchExecutiveCommitteeMembers } from './ApiServerActions';
+import { fetchExecutiveCommitteeMembersPage } from './ApiServerActions';
 import AdminNavigation from '@/components/AdminNavigation';
 
 export default async function ExecutiveCommitteePage() {
@@ -12,21 +12,25 @@ export default async function ExecutiveCommitteePage() {
     redirect('/sign-in');
   }
 
-  // Add timeout wrapper to prevent hanging
-  let members = [];
+  const PAGE_SIZE = 10;
+  let members: Awaited<ReturnType<typeof fetchExecutiveCommitteeMembersPage>>['members'] = [];
+  let totalCount = 0;
   try {
-    members = await Promise.race([
-      fetchExecutiveCommitteeMembers(),
-      new Promise<[]>((resolve) =>
+    const result = await Promise.race([
+      fetchExecutiveCommitteeMembersPage(0, PAGE_SIZE),
+      new Promise<{ members: typeof members; totalCount: number }>((resolve) =>
         setTimeout(() => {
           console.warn('[ExecutiveCommittee] Data fetch timeout after 25 seconds');
-          resolve([]);
+          resolve({ members: [], totalCount: 0 });
         }, 25000)
-      )
+      ),
     ]);
+    members = result.members;
+    totalCount = result.totalCount;
   } catch (error) {
     console.error('Failed to fetch executive committee members:', error);
-    members = []; // Ensure members is always an array
+    members = [];
+    totalCount = 0;
   }
 
   return (
@@ -47,7 +51,11 @@ export default async function ExecutiveCommitteePage() {
         </div>
       </div>
 
-      <ExecutiveCommitteeClient initialMembers={members} />
+      <ExecutiveCommitteeClient
+        initialMembers={members}
+        initialTotalCount={totalCount}
+        initialPageSize={PAGE_SIZE}
+      />
     </div>
   );
 }

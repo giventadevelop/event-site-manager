@@ -14,6 +14,7 @@ interface ExecutiveCommitteeListProps {
   pageSize: number;
   totalCount: number;
   onPageChange: (page: number) => void;
+  isLoading?: boolean;
 }
 
 // DetailsTooltip component following the UI style guide
@@ -144,12 +145,12 @@ export default function ExecutiveCommitteeList({
   pageSize,
   totalCount,
   onPageChange,
+  isLoading = false,
 }: ExecutiveCommitteeListProps) {
-  // Calculate pagination
+  // Pagination: `members` is the current page from the server; `totalCount` from x-total-count
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const startItem = totalCount > 0 ? page * pageSize + 1 : 0;
   const endItem = totalCount > 0 ? Math.min((page + 1) * pageSize, totalCount) : 0;
-  const paginatedMembers = members.slice(page * pageSize, (page + 1) * pageSize);
   
   const handlePrevPage = () => {
     if (page > 0) {
@@ -194,7 +195,7 @@ export default function ExecutiveCommitteeList({
     };
   }, []);
 
-  if (members.length === 0) {
+  if (totalCount === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-gray-400 text-6xl mb-4">👥</div>
@@ -203,9 +204,15 @@ export default function ExecutiveCommitteeList({
       </div>
     );
   }
-  
-  const isLoading = false; // Can be passed as prop if needed
 
+  if (members.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-600">
+        {isLoading ? 'Loading…' : 'No rows on this page.'}
+      </div>
+    );
+  }
+  
   return (
     <div className="bg-white shadow-sm rounded-lg overflow-hidden mx-8 my-6">
       {/* Tooltip note for users */}
@@ -231,7 +238,7 @@ export default function ExecutiveCommitteeList({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedMembers.map((member) => (
+            {members.map((member) => (
               <tr key={member.id} className="hover:bg-gray-50">
                 <td
                   className="px-3 py-3 whitespace-nowrap cursor-pointer"

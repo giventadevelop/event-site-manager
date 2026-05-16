@@ -1,19 +1,19 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { getTenantId, getAppUrl } from '@/lib/env';
+import { getApiBaseUrl } from '@/lib/env';
+import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import { withTenantId } from '@/lib/withTenantId';
 import type { EventTicketTypeDTO, EventTicketTypeFormDTO, EventDetailsDTO } from '@/types';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const APP_URL = getAppUrl();
+const API_BASE_URL = getApiBaseUrl();
 
 
 export async function fetchTicketTypesServer(eventId: number) {
-  const tenantId = getTenantId();
+  const base = await getAdminProxyBaseUrl();
   const res = await fetch(
-    `${API_BASE_URL}/api/proxy/event-ticket-types?eventId.equals=${eventId}&tenantId.equals=${tenantId}&sort=createdAt,desc`,
+    `${base}/api/proxy/event-ticket-types?eventId.equals=${eventId}&sort=createdAt,desc`,
     { cache: 'no-store' }
   );
   if (!res.ok) {
@@ -104,7 +104,7 @@ export async function deleteTicketTypeServer(ticketTypeId: number, eventId: stri
 export async function fetchTicketTypeByIdServer(
   ticketTypeId: number
 ): Promise<EventTicketTypeDTO | null> {
-  const baseUrl = getAppUrl();
+  const baseUrl = await getAdminProxyBaseUrl();
   const response = await fetch(
     `${baseUrl}/api/proxy/event-ticket-types/${ticketTypeId}`,
     {
@@ -142,7 +142,7 @@ export async function updateTicketTypeInventoryServer(
       updatedAt: new Date().toISOString(),
     };
 
-    const baseUrl = getAppUrl();
+    const baseUrl = await getAdminProxyBaseUrl();
     const response = await fetch(`${baseUrl}/api/proxy/event-ticket-types/${ticketTypeId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -164,14 +164,16 @@ export async function updateTicketTypeInventoryServer(
 }
 
 export async function fetchEventDetailsForTicketListPage(eventId: number): Promise<EventDetailsDTO | null> {
-    const url = `${APP_URL}/api/proxy/event-details/${eventId}`;
+    const base = await getAdminProxyBaseUrl();
+    const url = `${base}/api/proxy/event-details/${eventId}`;
     const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) return null;
     return response.json();
 }
 
 export async function fetchTicketTypesForTicketListPage(eventId: number): Promise<EventTicketTypeDTO[]> {
-    const url = `${APP_URL}/api/proxy/event-ticket-types?eventId.equals=${eventId}`;
+    const base = await getAdminProxyBaseUrl();
+    const url = `${base}/api/proxy/event-ticket-types?eventId.equals=${eventId}`;
     const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) return [];
     return response.json();

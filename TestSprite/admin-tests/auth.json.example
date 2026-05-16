@@ -1,4 +1,5 @@
 {
   "email": "your-admin@example.com",
-  "password": "your-clerk-password"
+  "password": "your-clerk-password",
+  "baseUrl": "http://localhost:3000"
 }

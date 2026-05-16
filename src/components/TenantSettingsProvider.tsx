@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { TenantSettingsDTO } from '@/types';
-import { getAppUrl } from '@/lib/env';
 
 interface TenantSettingsContextType {
   settings: TenantSettingsDTO | null;
@@ -56,9 +55,8 @@ export const TenantSettingsProvider: React.FC<TenantSettingsProviderProps> = ({ 
       }
 
       try {
-        const baseUrl = getAppUrl();
         const response = await fetch(
-          `${baseUrl}/api/proxy/tenant-settings`,
+          `/api/proxy/tenant-settings`,
           {
             method: 'GET',
             headers: {

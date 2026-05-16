@@ -1,8 +1,11 @@
+"use server";
+
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl, appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl, getTenantId } from '@/lib/env';
+import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import type { EventSponsorsDTO, EventSponsorsJoinDTO, EventMediaDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 const baseUrl = getAppUrl();
 
 export async function fetchEventSponsorsServer(page: number = 0, pageSize: number = 10, tenantId?: string) {
@@ -441,17 +444,13 @@ export async function uploadEventSponsorMediaServer(
  */
 export async function fetchSponsorMediaServer(
   sponsorId: number,
-  tenantId?: string
+  _tenantId?: string
 ): Promise<EventMediaDTO[]> {
-  const baseUrl = getAppUrl();
+  const baseUrl = await getAdminProxyBaseUrl();
   const params = new URLSearchParams();
 
   // Use sponsorId.equals query parameter (JHipster criteria syntax)
   params.append('sponsorId.equals', String(sponsorId));
-
-  // Add tenantId filter (always include tenantId for multi-tenant filtering)
-  const tenantIdToUse = tenantId || getTenantId();
-  params.append('tenantId.equals', tenantIdToUse);
 
   // Sort by priority ranking (ascending - lower = higher priority)
   params.append('sort', 'priorityRanking,asc');
@@ -486,14 +485,10 @@ export async function fetchSponsorMediaServer(
 export async function fetchEventSponsorMediaServer(
   eventId: number,
   sponsorId: number,
-  tenantId?: string
+  _tenantId?: string
 ): Promise<EventMediaDTO[]> {
-  const baseUrl = getAppUrl();
+  const baseUrl = await getAdminProxyBaseUrl();
   const params = new URLSearchParams();
-
-  // Always include tenantId for multi-tenant filtering (same pattern as fetchSponsorMediaServer)
-  const tenantIdToUse = tenantId || getTenantId();
-  params.append('tenantId.equals', tenantIdToUse);
 
   // Sort by priority ranking (ascending - lower = higher priority)
   params.append('sort', 'priorityRanking,asc');
@@ -532,7 +527,7 @@ export async function updateEventMediaServer(
   updates: Partial<EventMediaDTO>,
   tenantId?: string
 ): Promise<EventMediaDTO> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_BASE_URL = getApiBaseUrl();
   if (!API_BASE_URL) {
     throw new Error('API base URL not configured');
   }
@@ -576,7 +571,7 @@ export async function updateMediaPriorityRankingServer(
   const existingMedia = await fetchEventMediaServer(mediaId, tenantId);
 
   // Use fetchWithJwtRetry for authenticated backend call
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_BASE_URL = getApiBaseUrl();
   if (!API_BASE_URL) {
     throw new Error('API base URL not configured');
   }
@@ -623,7 +618,7 @@ export async function fetchEventMediaServer(
   mediaId: number,
   tenantId?: string
 ): Promise<EventMediaDTO> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_BASE_URL = getApiBaseUrl();
   if (!API_BASE_URL) {
     throw new Error('API base URL not configured');
   }
@@ -648,7 +643,7 @@ export async function deleteEventMediaServer(
   mediaId: number,
   tenantId?: string
 ): Promise<boolean> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_BASE_URL = getApiBaseUrl();
   if (!API_BASE_URL) {
     throw new Error('API base URL not configured');
   }

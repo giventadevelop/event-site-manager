@@ -104,6 +104,30 @@ export function getAppUrl(): string {
 }
 
 /**
+ * Origin of the current request to this Next.js app (server-side).
+ * Uses `Host` / `X-Forwarded-Host` and `X-Forwarded-Proto` so server `fetch` to same-origin
+ * `/api/proxy/*` targets the port the user actually hit (e.g. dev on :3004), avoiding
+ * `ECONNREFUSED` when `NEXT_PUBLIC_APP_URL` still points at :3000.
+ *
+ * @returns `null` if Host is missing — fall back to {@link getAppUrl}.
+ */
+export function getRequestOriginFromHeaders(headersLike: {
+  get(name: string): string | null | undefined;
+}): string | null {
+  const hostRaw = headersLike.get('x-forwarded-host') || headersLike.get('host');
+  const host = hostRaw?.trim();
+  if (!host) return null;
+  const rawProto = headersLike.get('x-forwarded-proto');
+  const firstProto = rawProto?.split(',')[0]?.trim();
+  const isLocal =
+    host.startsWith('localhost') ||
+    host.startsWith('127.') ||
+    host.includes('.local');
+  const proto = firstProto || (isLocal ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
+
+/**
  * Get the email host URL prefix for QR code generation
  * This is used to ensure QR codes work properly in email contexts
  * Returns the full URL including protocol (e.g., "http://localhost:3000" or "https://mcefee.org")
@@ -194,6 +218,9 @@ export function getBackendApiUrl(): string {
     'http://localhost:8080'
   );
 }
+
+/** Same as {@link getBackendApiUrl} — name aligned with project API rules (`getApiBaseUrl`). */
+export const getApiBaseUrl = getBackendApiUrl;
 
 /**
  * Get feature flag for Stripe Checkout migration

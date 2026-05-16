@@ -1,10 +1,12 @@
+"use server";
+
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl, getTenantId } from '@/lib/env';
+import { getApiBaseUrl, getTenantId } from '@/lib/env';
+import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import { withTenantId } from '@/lib/withTenantId';
 import type { EventProgramDirectorsDTO, EventMediaDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const baseUrl = getAppUrl();
+const API_BASE_URL = getApiBaseUrl();
 
 export async function fetchEventProgramDirectorsServer(eventId: number) {
   const params = new URLSearchParams();
@@ -266,7 +268,7 @@ export async function uploadEventDirectorPosterServer(
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   params.append('startDisplayingFromDate', today);
 
-  const baseUrl = getAppUrl();
+  const baseUrl = await getAdminProxyBaseUrl();
   // Use the generic upload endpoint (same pattern as sponsors)
   const url = `${baseUrl}/api/proxy/event-medias/upload?${params.toString()}`;
 
@@ -300,18 +302,14 @@ export async function uploadEventDirectorPosterServer(
 export async function fetchEventDirectorMediaServer(
   eventId: number,
   directorId: number,
-  tenantId?: string
+  _tenantId?: string
 ): Promise<EventMediaDTO[]> {
-  const baseUrl = getAppUrl();
+  const baseUrl = await getAdminProxyBaseUrl();
   const params = new URLSearchParams();
 
   // Use eventId.equals and directorId.equals query parameters (JHipster criteria syntax)
   params.append('eventId.equals', String(eventId));
   params.append('directorId.equals', String(directorId));
-
-  // Add tenantId filter (always include tenantId for multi-tenant filtering)
-  const tenantIdToUse = tenantId || getTenantId();
-  params.append('tenantId.equals', tenantIdToUse);
 
   // Sort by priority ranking (ascending - lower = higher priority)
   params.append('sort', 'priorityRanking,asc');
@@ -356,7 +354,7 @@ export async function updateMediaPriorityRankingServer(
   const existingMedia = await fetchEventMediaServer(mediaId, tenantId);
 
   // Use fetchWithJwtRetry for authenticated backend call
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_BASE_URL = getApiBaseUrl();
   if (!API_BASE_URL) {
     throw new Error('API base URL not configured');
   }
@@ -401,7 +399,7 @@ export async function fetchEventMediaServer(
   mediaId: number,
   tenantId?: string
 ): Promise<EventMediaDTO> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_BASE_URL = getApiBaseUrl();
   if (!API_BASE_URL) {
     throw new Error('API base URL not configured');
   }
@@ -426,7 +424,7 @@ export async function deleteEventMediaServer(
   mediaId: number,
   tenantId?: string
 ): Promise<boolean> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_BASE_URL = getApiBaseUrl();
   if (!API_BASE_URL) {
     throw new Error('API base URL not configured');
   }

@@ -1,35 +1,11 @@
 'use server';
 
-import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
 import { withTenantId } from '@/lib/withTenantId';
-import { getTenantId } from '@/lib/env';
+import { getTenantId, getApiBaseUrl } from '@/lib/env';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import type { EventAttendeeDTO, EventAttendeeGuestDTO, UserProfileDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debugLabel = '') {
-  let token = await getCachedApiJwt();
-  let response = await fetch(apiUrl, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  
-  if (response.status === 401) {
-    token = await generateApiJwt();
-    response = await fetch(apiUrl, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  }
-  
-  return response;
-}
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Create a new user profile

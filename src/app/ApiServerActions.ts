@@ -1,7 +1,7 @@
 'use server';
 
 import { TenantSettingsDTO } from '@/types';
-import { getTenantId } from '@/lib/env';
+import { getApiBaseUrl, getTenantId } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 
 /**
@@ -10,7 +10,7 @@ import { fetchWithJwtRetry } from '@/lib/proxyHandler';
  */
 export async function fetchTenantSettingsServer(): Promise<TenantSettingsDTO | null> {
   try {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const API_BASE_URL = getApiBaseUrl();
     if (!API_BASE_URL) {
       console.error('[fetchTenantSettingsServer] API base URL not configured');
       return null;

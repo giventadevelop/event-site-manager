@@ -1,10 +1,85 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { FaSearch, FaSort } from 'react-icons/fa';
-import type { TenantSettingsDTO, TenantSettingsFilters, TenantOrganizationDTO, PaginationParams } from '@/app/admin/tenant-management/types';
+import type { TenantSettingsDTO, TenantOrganizationDTO, TenantSettingsFilters } from '@/app/admin/tenant-management/types';
 import { useAdminTenantId } from '../../AdminTenantContext';
+import AdminTenantFilterField from '../../AdminTenantFilterField';
+import { deleteTenantSetting, fetchTenantSettings } from '../settings/ApiServerActions';
+
+type SearchField =
+  | 'tenantId'
+  | 'id'
+  | 'organization'
+  | 'email'
+  | 'phoneNumber'
+  | 'country'
+  | 'stateProvince'
+  | 'addressLine1';
+
+type Tri = 'all' | 'yes' | 'no';
+
+function triToBool(v: Tri): boolean | undefined {
+  if (v === 'all') return undefined;
+  return v === 'yes';
+}
+
+function buildTenantSettingsListFilters(
+  tenantId: string | undefined,
+  searchField: SearchField,
+  searchQuery: string,
+  allowUserRegistration: Tri,
+  requireAdminApproval: Tri,
+  enableWhatsappIntegration: Tri,
+  enableEmailMarketing: Tri,
+  enableGuestRegistration: Tri,
+  isMembershipSubscriptionEnabled: Tri,
+  sortBy: NonNullable<TenantSettingsFilters['sortBy']>,
+  sortOrder: 'asc' | 'desc'
+): TenantSettingsFilters {
+  const out: TenantSettingsFilters = {
+    tenantId: tenantId?.trim() || undefined,
+    sortBy,
+    sortOrder,
+  };
+
+  const q = searchQuery.trim();
+  if (q) {
+    if (searchField === 'tenantId') {
+      out.tenantIdContains = q;
+    } else if (searchField === 'id') {
+      const n = parseInt(q, 10);
+      if (!Number.isNaN(n)) out.idEquals = n;
+    } else if (searchField === 'organization') {
+      out.organizationNameContains = q;
+    } else if (searchField === 'email') {
+      out.emailContains = q;
+    } else if (searchField === 'phoneNumber') {
+      out.phoneNumberContains = q;
+    } else if (searchField === 'country') {
+      out.countryContains = q;
+    } else if (searchField === 'stateProvince') {
+      out.stateProvinceContains = q;
+    } else if (searchField === 'addressLine1') {
+      out.addressLine1Contains = q;
+    }
+  }
+
+  const a = triToBool(allowUserRegistration);
+  if (a !== undefined) out.allowUserRegistration = a;
+  const r = triToBool(requireAdminApproval);
+  if (r !== undefined) out.requireAdminApproval = r;
+  const w = triToBool(enableWhatsappIntegration);
+  if (w !== undefined) out.enableWhatsappIntegration = w;
+  const e = triToBool(enableEmailMarketing);
+  if (e !== undefined) out.enableEmailMarketing = e;
+  const g = triToBool(enableGuestRegistration);
+  if (g !== undefined) out.enableGuestRegistration = g;
+  const m = triToBool(isMembershipSubscriptionEnabled);
+  if (m !== undefined) out.isMembershipSubscriptionEnabled = m;
+
+  return out;
+}
 
 interface TenantSettingsListProps {
   initialData?: TenantSettingsDTO[];
@@ -18,130 +93,136 @@ export default function TenantSettingsList({
   onRefresh
 }: TenantSettingsListProps) {
   const urlTenantId = useAdminTenantId();
-  const [settings, setSettings] = useState<TenantSettingsDTO[]>([]);
+  const [settings, setSettings] = useState<TenantSettingsDTO[]>(initialData);
   const [organizationNamesByTenant, setOrganizationNamesByTenant] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData.length);
   const [error, setError] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(initialTotalCount);
 
   const [currentPage, setCurrentPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(10);
 
-  const [filters, setFilters] = useState<TenantSettingsFilters>({
-    search: '',
-    tenantId: '',
-    sortBy: 'tenantId',
-    sortOrder: 'asc'
-  });
+  const [searchField, setSearchField] = useState<SearchField>('tenantId');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allowUserRegistration, setAllowUserRegistration] = useState<Tri>('all');
+  const [requireAdminApproval, setRequireAdminApproval] = useState<Tri>('all');
+  const [enableWhatsappIntegration, setEnableWhatsappIntegration] = useState<Tri>('all');
+  const [enableEmailMarketing, setEnableEmailMarketing] = useState<Tri>('all');
+  const [enableGuestRegistration, setEnableGuestRegistration] = useState<Tri>('all');
+  const [isMembershipSubscriptionEnabled, setIsMembershipSubscriptionEnabled] = useState<Tri>('all');
+  const [sortBy, setSortBy] = useState<NonNullable<TenantSettingsFilters['sortBy']>>('tenantId');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Sync filter from layout bar (?tenant=) when it changes; user can still override in local filter UI
+  const filterSignatureRef = useRef('');
+  const filterSignature = [
+    urlTenantId ?? '',
+    searchField,
+    searchQuery,
+    allowUserRegistration,
+    requireAdminApproval,
+    enableWhatsappIntegration,
+    enableEmailMarketing,
+    enableGuestRegistration,
+    isMembershipSubscriptionEnabled,
+    sortBy,
+    sortOrder,
+  ].join('|');
+
   useEffect(() => {
-    if (urlTenantId !== undefined && urlTenantId !== null) {
-      setFilters(prev => ({ ...prev, tenantId: urlTenantId }));
-    }
-  }, [urlTenantId]);
+    if (filterSignatureRef.current === filterSignature) return;
+    filterSignatureRef.current = filterSignature;
+    setCurrentPage(0);
+  }, [filterSignature]);
 
-  // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // Track if initial load has completed
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const loadListAt = useCallback(
+    async (targetPage: number) => {
+      setLoading(true);
+      setError(null);
 
-  // Load data function
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const effectiveTenantId = filters.tenantId || urlTenantId || '';
-      const response = await fetch('/api/proxy/tenant-settings?' + new URLSearchParams({
-        page: currentPage.toString(),
-        size: pageSize.toString(),
-        ...(filters.search && { 'tenantId.contains': filters.search }),
-        ...(effectiveTenantId && { 'tenantId.equals': effectiveTenantId }),
-        ...(filters.sortBy && { sort: `${filters.sortBy},${filters.sortOrder}` })
-      }));
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch settings');
-      }
-
-      const data = await response.json();
-      const total = parseInt(response.headers.get('x-total-count') || '0');
-
-      const settingsData = Array.isArray(data) ? data : [];
-      setSettings(settingsData);
-      setTotalCount(total);
-
-      // Resolve organization names for table display.
-      const tenantIds = Array.from(
-        new Set(settingsData.map((setting: TenantSettingsDTO) => setting.tenantId).filter(Boolean))
-      );
-
-      if (tenantIds.length > 0) {
-        const orgMap: Record<string, string> = {};
-
-        await Promise.all(
-          tenantIds.map(async (tenantId) => {
-            try {
-              const orgResponse = await fetch('/api/proxy/tenant-organizations?' + new URLSearchParams({
-                'tenantId.equals': tenantId,
-                page: '0',
-                size: '1',
-              }));
-
-              if (!orgResponse.ok) return;
-
-              const orgData: TenantOrganizationDTO[] = await orgResponse.json();
-              if (Array.isArray(orgData) && orgData.length > 0 && orgData[0]?.organizationName) {
-                orgMap[tenantId] = orgData[0].organizationName;
-              }
-            } catch (orgError) {
-              console.error(`Failed to load organization for tenant ${tenantId}:`, orgError);
-            }
-          })
+      try {
+        const listFilters = buildTenantSettingsListFilters(
+          urlTenantId ?? undefined,
+          searchField,
+          searchQuery,
+          allowUserRegistration,
+          requireAdminApproval,
+          enableWhatsappIntegration,
+          enableEmailMarketing,
+          enableGuestRegistration,
+          isMembershipSubscriptionEnabled,
+          sortBy,
+          sortOrder
         );
 
-        setOrganizationNamesByTenant(orgMap);
-      } else {
-        setOrganizationNamesByTenant({});
+        const response = await fetchTenantSettings(
+          { page: targetPage, pageSize },
+          listFilters
+        );
+
+        const settingsData = response.data;
+        setSettings(settingsData);
+        setTotalCount(response.totalCount);
+
+        const tenantIds = Array.from(
+          new Set(settingsData.map((setting: TenantSettingsDTO) => setting.tenantId).filter(Boolean))
+        );
+
+        if (tenantIds.length > 0) {
+          const orgMap: Record<string, string> = {};
+
+          await Promise.all(
+            tenantIds.map(async (tenantId) => {
+              try {
+                const orgResponse = await fetch('/api/proxy/tenant-organizations?' + new URLSearchParams({
+                  'tenantId.equals': tenantId,
+                  page: '0',
+                  size: '1',
+                }));
+
+                if (!orgResponse.ok) return;
+
+                const orgData: TenantOrganizationDTO[] = await orgResponse.json();
+                if (Array.isArray(orgData) && orgData.length > 0 && orgData[0]?.organizationName) {
+                  orgMap[tenantId] = orgData[0].organizationName;
+                }
+              } catch (orgError) {
+                console.error(`Failed to load organization for tenant ${tenantId}:`, orgError);
+              }
+            })
+          );
+
+          setOrganizationNamesByTenant(orgMap);
+        } else {
+          setOrganizationNamesByTenant({});
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
       }
+    },
+    [
+      urlTenantId,
+      searchField,
+      searchQuery,
+      allowUserRegistration,
+      requireAdminApproval,
+      enableWhatsappIntegration,
+      enableEmailMarketing,
+      enableGuestRegistration,
+      isMembershipSubscriptionEnabled,
+      sortBy,
+      sortOrder,
+      pageSize,
+    ]
+  );
 
-      setInitialLoadComplete(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load data on mount and when filters/pagination change
   useEffect(() => {
-    loadData();
-  }, [currentPage, pageSize, filters]);
+    void loadListAt(currentPage);
+  }, [currentPage, loadListAt]);
 
-  // Handle search
-  const handleSearch = (searchTerm: string) => {
-    setFilters(prev => ({ ...prev, search: searchTerm }));
-    setCurrentPage(0); // Reset to first page when searching
-  };
-
-  // Handle filter changes
-  const handleFilterChange = (key: keyof TenantSettingsFilters, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(0);
-  };
-
-  // Handle sorting
-  const handleSort = (field: 'tenantId' | 'createdAt') => {
-    setFilters(prev => ({
-      ...prev,
-      sortBy: field,
-      sortOrder: prev.sortBy === field && prev.sortOrder === 'asc' ? 'desc' : 'asc'
-    }));
-  };
-
-  // Handle selection
   const handleSelectAll = (checked: boolean) => {
     setSelectedIds(checked ? settings.map(setting => setting.id!).filter(Boolean) : []);
   };
@@ -154,32 +235,42 @@ export default function TenantSettingsList({
     );
   };
 
-  // Handle delete
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete these settings?')) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/proxy/tenant-settings/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
-        loadData(); // Refresh the list
-        onRefresh?.();
-      }
+      await deleteTenantSetting(id);
+      const nextPage = settings.length <= 1 && currentPage > 0 ? currentPage - 1 : currentPage;
+      if (nextPage !== currentPage) setCurrentPage(nextPage);
+      else void loadListAt(currentPage);
+      onRefresh?.();
     } catch (err) {
       console.error('Failed to delete settings:', err);
     }
   };
 
-  // Calculate pagination
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
   const hasPrevPage = currentPage > 0;
   const hasNextPage = currentPage < totalPages - 1;
   const startItem = totalCount > 0 ? currentPage * pageSize + 1 : 0;
   const endItem = currentPage * pageSize + settings.length;
+
+  const triSelect = (label: string, value: Tri, onChange: (v: Tri) => void) => (
+    <div>
+      <label className="block text-xs font-semibold mb-1 text-gray-700 dark:text-gray-300">{label}</label>
+      <select
+        className="border border-gray-300 dark:border-gray-600 px-2 py-2 rounded w-full min-w-[7rem] text-xs sm:text-sm dark:bg-gray-700 dark:text-white"
+        value={value}
+        onChange={(e) => onChange(e.target.value as Tri)}
+      >
+        <option value="all">All</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+    </div>
+  );
 
   if (loading && settings.length === 0) {
     return (
@@ -198,44 +289,94 @@ export default function TenantSettingsList({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 sm:p-4 md:p-6">
-      {/* Header */}
       <div className="mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white text-center sm:text-left">Tenant Settings</h2>
       </div>
 
-      {/* Search and Filters */}
-      <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+      <div className="mb-4 sm:mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-600 p-4 sm:p-6">
+          <div className="text-base font-semibold text-blue-800 dark:text-blue-300 mb-4">Search &amp; filters</div>
+          <div className="flex flex-wrap gap-3 sm:gap-4 items-end">
+            <AdminTenantFilterField />
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-gray-700 dark:text-gray-300">Search by</label>
+              <select
+                className="border border-gray-300 dark:border-gray-600 px-3 py-2 rounded w-52 min-w-[13rem] text-sm dark:bg-gray-700 dark:text-white"
+                value={searchField}
+                onChange={(e) => setSearchField(e.target.value as SearchField)}
+              >
+                <option value="tenantId">Tenant ID (contains)</option>
+                <option value="id">Settings ID</option>
+                <option value="organization">Organization name</option>
+                <option value="email">Email</option>
+                <option value="phoneNumber">Phone</option>
+                <option value="country">Country</option>
+                <option value="stateProvince">State / province</option>
+                <option value="addressLine1">Address line 1</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-gray-700 dark:text-gray-300">
+                {searchField === 'id' ? 'Numeric ID' : 'Contains'}
+              </label>
               <input
-                type="text"
-                placeholder="Search by tenant ID..."
-                value={filters.search || ''}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-xs sm:text-sm"
+                type={searchField === 'id' ? 'number' : 'text'}
+                className="border border-gray-300 dark:border-gray-600 px-3 py-2 rounded w-48 min-w-[12rem] text-sm dark:bg-gray-700 dark:text-white"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={
+                  searchField === 'id'
+                    ? 'e.g. 42'
+                    : searchField === 'organization'
+                      ? 'e.g. Cultural Center'
+                      : `Search ${searchField}`
+                }
               />
             </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-gray-700 dark:text-gray-300">Sort</label>
+              <select
+                className="border border-gray-300 dark:border-gray-600 px-3 py-2 rounded w-44 text-sm dark:bg-gray-700 dark:text-white"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as NonNullable<TenantSettingsFilters['sortBy']>)}
+              >
+                <option value="tenantId">Tenant ID</option>
+                <option value="createdAt">Created</option>
+                <option value="updatedAt">Updated</option>
+                <option value="id">ID</option>
+                <option value="maxEventsPerMonth">Max events / month</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-gray-700 dark:text-gray-300">Order</label>
+              <select
+                className="border border-gray-300 dark:border-gray-600 px-3 py-2 rounded w-28 text-sm dark:bg-gray-700 dark:text-white"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+              >
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+            </div>
           </div>
-          <input
-            type="text"
-            placeholder="Filter by specific tenant ID..."
-            value={filters.tenantId || ''}
-            onChange={(e) => handleFilterChange('tenantId', e.target.value || undefined)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-xs sm:text-sm"
-          />
+
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {triSelect('User registration', allowUserRegistration, setAllowUserRegistration)}
+            {triSelect('Require admin approval', requireAdminApproval, setRequireAdminApproval)}
+            {triSelect('WhatsApp integration', enableWhatsappIntegration, setEnableWhatsappIntegration)}
+            {triSelect('Email marketing', enableEmailMarketing, setEnableEmailMarketing)}
+            {triSelect('Guest registration', enableGuestRegistration, setEnableGuestRegistration)}
+            {triSelect('Membership subscriptions', isMembershipSubscriptionEnabled, setIsMembershipSubscriptionEnabled)}
+          </div>
         </div>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
           <p className="text-red-600">{error}</p>
         </div>
       )}
 
-      {/* Table */}
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
         <div className="user-table-scroll-container">
           <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 border border-gray-300 dark:border-gray-600" style={{ minWidth: '980px', width: '100%' }}>
@@ -250,14 +391,8 @@ export default function TenantSettingsList({
                     onClick={(e) => e.stopPropagation()}
                   />
                 </th>
-                <th
-                  className="w-[160px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-r border-gray-300 dark:border-gray-600"
-                  onClick={() => handleSort('tenantId')}
-                >
-                  <div className="flex items-center gap-2">
-                    Tenant ID
-                    <FaSort className="text-xs" />
-                  </div>
+                <th className="w-[160px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
+                  Tenant ID
                 </th>
                 <th className="w-[200px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
                   Organization
@@ -324,7 +459,7 @@ export default function TenantSettingsList({
                   </span>
                 </td>
                 <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-600">
-                  {setting.maxEventsPerMonth || 'Unlimited'}
+                  {setting.maxEventsPerMonth ?? 'Unlimited'}
                 </td>
                 <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
                   <div className="flex items-center justify-end gap-1 sm:gap-2" onClick={(e) => e.stopPropagation()}>
@@ -382,10 +517,8 @@ export default function TenantSettingsList({
         </div>
       </div>
 
-      {/* Pagination Controls - Always visible, matching admin page style */}
       <div className="mt-8">
         <div className="flex justify-between items-center gap-2">
-          {/* Previous Button */}
           <button
             onClick={() => setCurrentPage(prev => prev - 1)}
             disabled={!hasPrevPage || loading}
@@ -400,14 +533,12 @@ export default function TenantSettingsList({
             <span className="hidden sm:inline">Previous</span>
           </button>
 
-          {/* Page Info */}
           <div className="px-2 sm:px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm flex-shrink-0">
             <span className="text-xs sm:text-sm font-bold text-blue-700">
-              Page <span className="text-blue-600">{currentPage + 1}</span> of <span className="text-blue-600">{totalPages || 1}</span>
+              Page <span className="text-blue-600">{currentPage + 1}</span> of <span className="text-blue-600">{totalPages}</span>
             </span>
           </div>
 
-          {/* Next Button */}
           <button
             onClick={() => setCurrentPage(prev => prev + 1)}
             disabled={!hasNextPage || loading}
@@ -423,7 +554,6 @@ export default function TenantSettingsList({
           </button>
         </div>
 
-        {/* Item Count Text */}
         <div className="text-center mt-3">
           {totalCount > 0 ? (
             <div className="inline-flex items-center px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">

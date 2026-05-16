@@ -1,4 +1,4 @@
-import { getAppUrl } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { withTenantId } from '@/lib/withTenantId';
 import type { EventSponsorsDTO, EventSponsorsJoinDTO } from '@/types';
@@ -145,7 +145,7 @@ export async function updateEventSponsorServer(id: number, sponsor: Partial<Even
   };
 
   const currentTime = new Date().toISOString();
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const API_BASE_URL = getApiBaseUrl();
 
   // Direct backend call pattern for PATCH/PUT operations
   const payload = withTenantId({

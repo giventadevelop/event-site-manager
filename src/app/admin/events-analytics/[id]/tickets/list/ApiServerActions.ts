@@ -1,9 +1,8 @@
 "use server";
 import { stripe } from '@/lib/stripe';
-import { getTenantId, getAppUrl } from '@/lib/env';
+import { getTenantId, getApiBaseUrl } from '@/lib/env';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import type { EventTicketTransactionDTO } from '@/types';
-
-const API_BASE_URL = getAppUrl();
 
 export async function refundTicketTransactionServer(ticket: EventTicketTransactionDTO, reason: string) {
   if (!ticket.stripePaymentIntentId) {
@@ -68,12 +67,16 @@ export async function refundTicketTransactionServer(ticket: EventTicketTransacti
     checkInTime: ticket.checkInTime,
     checkOutTime: ticket.checkOutTime,
   };
-  const res = await fetch(`${API_BASE_URL}/api/proxy/event-ticket-transactions/${ticket.id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/merge-patch+json' },
-    body: JSON.stringify(patchPayload),
-    cache: 'no-store',
-  });
+  const res = await fetchWithJwtRetry(
+    `${getApiBaseUrl()}/api/event-ticket-transactions/${ticket.id}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/merge-patch+json' },
+      body: JSON.stringify(patchPayload),
+      cache: 'no-store',
+    },
+    'refundTicketTransactionServer PATCH'
+  );
   if (!res.ok) {
     throw new Error('Failed to update ticket transaction status after refund');
   }

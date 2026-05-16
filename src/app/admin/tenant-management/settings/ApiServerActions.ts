@@ -1,6 +1,9 @@
+'use server';
+
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { withTenantId } from '@/lib/withTenantId';
-import { getAppUrl } from '@/lib/env';
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl } from '@/lib/env';
+import { fetchTenantOrganizations } from '@/app/admin/tenant-management/organizations/ApiServerActions';
 import type {
   TenantSettingsDTO,
   TenantSettingsFormDTO,
@@ -9,7 +12,7 @@ import type {
   PaginatedResponse
 } from '@/app/admin/tenant-management/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Fetch paginated list of tenant settings
@@ -25,13 +28,79 @@ export async function fetchTenantSettings(
     params.append('page', pagination.page.toString());
     params.append('size', pagination.pageSize.toString());
 
-    // Add filters
-    if (filters.search) {
-      params.append('tenantId.contains', filters.search);
+    appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
+
+    const tenantIdContains = filters.tenantIdContains?.trim() || filters.search?.trim();
+    if (tenantIdContains) {
+      params.append('tenantId.contains', tenantIdContains);
     }
-    if (filters.tenantId) {
-      params.append('tenantId.equals', filters.tenantId);
+    if (filters.idEquals != null && !Number.isNaN(filters.idEquals)) {
+      params.append('id.equals', String(filters.idEquals));
     }
+    if (filters.emailContains?.trim()) {
+      params.append('email.contains', filters.emailContains.trim());
+    }
+    if (filters.phoneNumberContains?.trim()) {
+      params.append('phoneNumber.contains', filters.phoneNumberContains.trim());
+    }
+    if (filters.countryContains?.trim()) {
+      params.append('country.contains', filters.countryContains.trim());
+    }
+    if (filters.stateProvinceContains?.trim()) {
+      params.append('stateProvince.contains', filters.stateProvinceContains.trim());
+    }
+    if (filters.addressLine1Contains?.trim()) {
+      params.append('addressLine1.contains', filters.addressLine1Contains.trim());
+    }
+
+    // Organization name is not a supported criteria on /api/tenant-settings in practice.
+    // Resolve matching tenant IDs from /api/tenant-organizations, then filter settings with tenantId.in.
+    const orgNameQ = filters.organizationNameContains?.trim();
+    if (orgNameQ) {
+      const orgPageSize = 200;
+      const tenantIdSet = new Set<string>();
+      let orgPage = 0;
+      let orgTotal = Infinity;
+      const maxOrgPages = 50;
+      while (orgPage < maxOrgPages && orgPage * orgPageSize < orgTotal) {
+        const orgResult = await fetchTenantOrganizations(
+          { page: orgPage, pageSize: orgPageSize },
+          {
+            search: orgNameQ,
+            tenantId: filters.tenantId?.trim() || undefined,
+          }
+        );
+        for (const o of orgResult.data) {
+          if (typeof o.tenantId === 'string' && o.tenantId.trim() !== '') {
+            tenantIdSet.add(o.tenantId.trim());
+          }
+        }
+        orgTotal = orgResult.totalCount;
+        orgPage += 1;
+        if (orgResult.data.length < orgPageSize) break;
+      }
+      const tenantIds = [...tenantIdSet];
+      if (tenantIds.length === 0) {
+        return {
+          data: [],
+          totalCount: 0,
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+          totalPages: 0,
+        };
+      }
+      params.append('tenantId.in', tenantIds.join(','));
+    }
+
+    const boolParam = (key: string, v: boolean | undefined) => {
+      if (v !== undefined) params.append(`${key}.equals`, String(v));
+    };
+    boolParam('allowUserRegistration', filters.allowUserRegistration);
+    boolParam('requireAdminApproval', filters.requireAdminApproval);
+    boolParam('enableWhatsappIntegration', filters.enableWhatsappIntegration);
+    boolParam('enableEmailMarketing', filters.enableEmailMarketing);
+    boolParam('enableGuestRegistration', filters.enableGuestRegistration);
+    boolParam('isMembershipSubscriptionEnabled', filters.isMembershipSubscriptionEnabled);
 
     // Add sorting
     if (filters.sortBy) {

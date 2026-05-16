@@ -1,10 +1,10 @@
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getAppUrl, getTenantId } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl, getTenantId } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import type { MembershipSubscriptionDTO } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Fetch user's current subscription

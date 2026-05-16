@@ -1,19 +1,77 @@
-import { getAppUrl, getTenantId } from '@/lib/env';
+'use server';
+
+import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
+import { appendTenantIfPresent, effectiveTenantId, getTenantId } from '@/lib/env';
 import type { ExecutiveCommitteeTeamMemberDTO } from '@/types/executiveCommitteeTeamMember';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+/** Optional filters for admin list; tenant only when `?tenant=` is passed (see effectiveTenantId). */
+export interface ExecutiveCommitteeListFilters {
+  tenantId?: string;
+  firstName?: string;
+  lastName?: string;
+  title?: string;
+  email?: string;
+  department?: string;
+  designation?: string;
+  /** Exact member id */
+  id?: string;
+  /** When set, adds isActive.equals */
+  isActive?: boolean;
+  /** Spring sort, e.g. priorityOrder,asc */
+  sort?: string;
+}
 
-export async function fetchExecutiveCommitteeMembers(): Promise<ExecutiveCommitteeTeamMemberDTO[]> {
+function appendContainsIfTrimmed(params: URLSearchParams, field: string, value: string | undefined): void {
+  const v = value?.trim();
+  if (v) params.append(`${field}.contains`, v);
+}
+
+/**
+ * Paginated list for admin. Omit tenantId.equals unless filters.tenantId is set (URL ?tenant=);
+ * otherwise proxy uses JWT + X-Tenant-ID only.
+ */
+export async function fetchExecutiveCommitteeMembersPage(
+  page: number,
+  pageSize: number,
+  filters?: ExecutiveCommitteeListFilters
+): Promise<{ members: ExecutiveCommitteeTeamMemberDTO[]; totalCount: number }> {
   try {
-    const baseUrl = getAppUrl();
-    // Create abort controller for timeout
+    const baseUrl = await getAdminProxyBaseUrl();
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch(`${baseUrl}/api/proxy/executive-committee-team-members`, {
-      signal: controller.signal,
-      cache: 'no-store',
+    const params = new URLSearchParams({
+      sort: (filters?.sort?.trim() || 'priorityOrder,asc'),
+      page: String(Math.max(0, page)),
+      size: String(Math.max(1, pageSize)),
     });
+
+    appendTenantIfPresent(params, effectiveTenantId(filters?.tenantId));
+
+    const idTrim = filters?.id?.trim();
+    if (idTrim && /^\d+$/.test(idTrim)) {
+      params.append('id.equals', idTrim);
+    }
+
+    appendContainsIfTrimmed(params, 'firstName', filters?.firstName);
+    appendContainsIfTrimmed(params, 'lastName', filters?.lastName);
+    appendContainsIfTrimmed(params, 'title', filters?.title);
+    appendContainsIfTrimmed(params, 'email', filters?.email);
+    appendContainsIfTrimmed(params, 'department', filters?.department);
+    appendContainsIfTrimmed(params, 'designation', filters?.designation);
+
+    if (typeof filters?.isActive === 'boolean') {
+      params.append('isActive.equals', filters.isActive ? 'true' : 'false');
+    }
+
+    const response = await fetch(
+      `${baseUrl}/api/proxy/executive-committee-team-members?${params.toString()}`,
+      {
+        signal: controller.signal,
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
 
     clearTimeout(timeout);
 
@@ -22,14 +80,18 @@ export async function fetchExecutiveCommitteeMembers(): Promise<ExecutiveCommitt
     }
 
     const data = await response.json();
-    return Array.isArray(data) ? data : [];
+    const members = Array.isArray(data) ? data : [];
+    const totalHeader = response.headers.get('x-total-count');
+    const parsed = totalHeader != null ? parseInt(totalHeader, 10) : NaN;
+    const totalCount = Number.isFinite(parsed) ? parsed : members.length;
+    return { members, totalCount };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       console.warn('Executive committee members fetch timed out after 15 seconds');
     } else {
       console.error('Error fetching executive committee members:', error);
     }
-    return [];
+    return { members: [], totalCount: 0 };
   }
 }
 
@@ -37,7 +99,7 @@ export async function createExecutiveCommitteeMember(
   memberData: Omit<ExecutiveCommitteeTeamMemberDTO, 'id'>
 ): Promise<ExecutiveCommitteeTeamMemberDTO | null> {
   try {
-    const baseUrl = getAppUrl();
+    const baseUrl = await getAdminProxyBaseUrl();
     const response = await fetch(`${baseUrl}/api/proxy/executive-committee-team-members`, {
       method: 'POST',
       headers: {
@@ -62,7 +124,7 @@ export async function updateExecutiveCommitteeMember(
   memberData: Partial<ExecutiveCommitteeTeamMemberDTO>
 ): Promise<ExecutiveCommitteeTeamMemberDTO | null> {
   try {
-    const baseUrl = getAppUrl();
+    const baseUrl = await getAdminProxyBaseUrl();
     const response = await fetch(`${baseUrl}/api/proxy/executive-committee-team-members/${id}`, {
       method: 'PATCH',
       headers: {
@@ -84,7 +146,7 @@ export async function updateExecutiveCommitteeMember(
 
 export async function deleteExecutiveCommitteeMember(id: number): Promise<boolean> {
   try {
-    const baseUrl = getAppUrl();
+    const baseUrl = await getAdminProxyBaseUrl();
     const response = await fetch(`${baseUrl}/api/proxy/executive-committee-team-members/${id}`, {
       method: 'DELETE',
     });
@@ -105,7 +167,7 @@ export async function updateProfileImage(
   imageUrl: string
 ): Promise<ExecutiveCommitteeTeamMemberDTO | null> {
   try {
-    const baseUrl = getAppUrl();
+    const baseUrl = await getAdminProxyBaseUrl();
     const response = await fetch(`${baseUrl}/api/proxy/executive-committee-team-members/${memberId}`, {
       method: 'PATCH',
       headers: {
@@ -113,7 +175,7 @@ export async function updateProfileImage(
       },
       body: JSON.stringify({
         id: memberId,
-        profileImageUrl: imageUrl
+        profileImageUrl: imageUrl,
       }),
     });
 
@@ -163,9 +225,10 @@ export async function uploadTeamMemberProfileImage(
     params.append('isTeamMemberProfileImage', 'true'); // Set to true for team member profile images
     params.append('title', `Team Member Profile Image - ${memberId}`); // Required parameter
     params.append('description', 'Profile image uploaded for executive committee team member');
-    params.append('tenantId', getTenantId()); // Required parameter
+    // Streaming upload proxy forwards query to backend; tenant is not duplicated as criteria here.
+    params.append('tenantId', getTenantId()); // Required by upload pipeline / backend contract
 
-    const baseUrl = getAppUrl();
+    const baseUrl = await getAdminProxyBaseUrl();
     const url = `${baseUrl}/api/proxy/event-medias/upload?${params.toString()}`;
 
     const response = await fetch(url, {
@@ -219,14 +282,16 @@ export async function uploadTeamMemberProfileImage(
         // Since HTTP status was 2xx, the upload actually succeeded
         return 'upload-successful-parse-error';
       }
-            } else {
+    } else {
       // 🚫 Any non-2xx status code indicates failure
       // CRITICAL: For error responses, avoid parsing the response body as it may contain null objects
       console.error('❌ Upload failed - HTTP status:', response.status);
 
       // Don't try to parse error response body to avoid null object issues
       // The proxy handler now returns structured error JSON, but we'll be safe and not rely on it
-      throw new Error(`Upload failed with HTTP status ${response.status}. Please try again or contact support if the issue persists.`);
+      throw new Error(
+        `Upload failed with HTTP status ${response.status}. Please try again or contact support if the issue persists.`
+      );
     }
   } catch (error) {
     console.error('Error uploading team member profile image:', error);
@@ -234,4 +299,3 @@ export async function uploadTeamMemberProfileImage(
     throw error;
   }
 }
-

@@ -26,7 +26,7 @@
     "test:mosc": "node TestSprite/sanity-tests/run-mosc-pages-tests.js",
     "test:admin": "node TestSprite/admin-tests/comprehensive-admin-test-suite.js",
     "test:admin:dynamic": "node TestSprite/admin-tests/dynamic-event-test-suite.js",
-    "test:admin:all": "npm run test:admin && npm run test:admin:dynamic",
+    "test:admin:all": "node TestSprite/admin-tests/run-admin-tests-all.js",
     "test:admin:diagnose": "node TestSprite/admin-tests/diagnose-event-discovery.js",
     "test:install-playwright": "npx playwright install chromium",
     "record:scroll-video": "node scripts/record-mosc-scroll-video.js",

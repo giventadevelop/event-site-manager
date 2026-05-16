@@ -1,13 +1,11 @@
 "use server";
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getTenantId } from '@/lib/env';
+import { getApiBaseUrl, getTenantId } from '@/lib/env';
 import type { EventTicketTransactionDTO, EventDetailsDTO, ManualPaymentRequestDTO, ManualPaymentMethodType, ManualPaymentSummaryReportDTO } from '@/types';
 
 function requireApiBaseUrl(): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!base) throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured');
-  return base;
+  return getApiBaseUrl();
 }
 
 export interface SalesAnalyticsOptions {

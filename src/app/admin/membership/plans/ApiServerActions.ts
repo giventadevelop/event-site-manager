@@ -1,9 +1,10 @@
 "use server";
-import { getAppUrl, effectiveTenantId, appendTenantIfPresent, getDefaultPageSize } from '@/lib/env';
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getDefaultPageSize } from '@/lib/env';
+import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import type { MembershipPlanDTO } from '@/types';
 import { stripe } from '@/lib/stripe';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Fetch all membership plans for admin with pagination support
@@ -27,7 +28,8 @@ export async function fetchAllMembershipPlansServer(
   params.append('size', String(options.size ?? getDefaultPageSize()));
 
   // Use regular fetch for proxy endpoints (proxy handler handles JWT)
-  const url = `${getAppUrl()}/api/proxy/membership-plans?${params.toString()}`;
+  const base = await getAdminProxyBaseUrl();
+  const url = `${base}/api/proxy/membership-plans?${params.toString()}`;
   const res = await fetch(url, { method: 'GET', cache: 'no-store' });
 
   if (!res.ok) {
@@ -82,7 +84,8 @@ export async function createMembershipPlanServer(
 
   // Use regular fetch for proxy endpoints (proxy handler handles JWT and tenantId)
   // fetchWithJwtRetry is only for direct backend API calls
-  const url = `${getAppUrl()}/api/proxy/membership-plans`;
+  const base = await getAdminProxyBaseUrl();
+  const url = `${base}/api/proxy/membership-plans`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -228,7 +231,8 @@ export async function updateMembershipPlanServer(
   };
 
   // Use regular fetch for proxy endpoints (proxy handler handles JWT and tenantId)
-  const url = `${getAppUrl()}/api/proxy/membership-plans/${planId}`;
+  const base = await getAdminProxyBaseUrl();
+  const url = `${base}/api/proxy/membership-plans/${planId}`;
   const res = await fetch(url, {
     method: 'PATCH',
     headers: {
@@ -264,7 +268,8 @@ export async function deleteMembershipPlanServer(planId: number): Promise<void> 
   }
 
   // Use regular fetch for proxy endpoints (proxy handler handles JWT)
-  const url = `${getAppUrl()}/api/proxy/membership-plans/${planId}`;
+  const base = await getAdminProxyBaseUrl();
+  const url = `${base}/api/proxy/membership-plans/${planId}`;
   const res = await fetch(url, {
     method: 'DELETE',
     cache: 'no-store',
