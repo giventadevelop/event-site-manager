@@ -34,6 +34,13 @@ current-env.json
 
 # Editor directories and files
 .idea
+*.iml
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# Local debug screenshots (may capture auth UI)
+debug-*.png
 
 *.suo
 *.ntvs*
