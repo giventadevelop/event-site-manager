@@ -78,3 +78,10 @@ TestSprite/admin-tests/screenshots/
 
 # All screenshot folders (catch-all pattern for any screenshots directory)
 **/screenshots/
+
+# TestSprite generated output and local MCP config (may contain API keys)
+testsprite_tests/tmp/
+TestSprite/**/*-report.html
+TestSprite/**/test-report.html
+TestSprite/**/comprehensive-test-report.html
+TestSprite/**/diagnostic-output/
