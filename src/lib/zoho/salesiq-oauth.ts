@@ -3,13 +3,31 @@
  * Used by /oauth/zoho/start and /oauth/zoho/callback.
  */
 
-export const DEFAULT_ZOHO_SCOPES = 'SalesIQ.articles.READ,SalesIQ.articles.DELETE';
+export const DEFAULT_ZOHO_SCOPES =
+  'SalesIQ.articles.READ,SalesIQ.articles.CREATE,SalesIQ.articles.DELETE,SalesIQ.faqs.READ,SalesIQ.faqs.CREATE,SalesIQ.faqs.DELETE,SalesIQ.departments.READ';
 
 export function getZohoAccountsBaseUrl(): string {
   return process.env.ZOHO_ACCOUNTS_BASE_URL?.replace(/\/$/, '') || 'https://accounts.zoho.com';
 }
 
+function isLocalDevOrigin(origin: string): boolean {
+  try {
+    const hostname = new URL(origin).hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Redirect URI sent to Zoho must exactly match a URI registered in the API console.
+ * Local dev (localhost / 127.0.0.1) always uses the current origin so production
+ * ZOHO_OAUTH_REDIRECT_URI does not steal the callback away from your dev server.
+ */
 export function getZohoOAuthRedirectUri(requestOrigin?: string): string {
+  if (requestOrigin && isLocalDevOrigin(requestOrigin)) {
+    return `${requestOrigin.replace(/\/$/, '')}/oauth/zoho/callback`;
+  }
   if (process.env.ZOHO_OAUTH_REDIRECT_URI) {
     return process.env.ZOHO_OAUTH_REDIRECT_URI;
   }

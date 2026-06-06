@@ -3,9 +3,12 @@ import { exchangeZohoAuthorizationCode, getZohoOAuthRedirectUri } from '@/lib/zo
 
 function requestOrigin(req: NextRequest): string {
   const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
-  const proto = req.headers.get('x-forwarded-proto') || 'https';
-  if (host) return `${proto}://${host}`;
-  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://www.event-site-manager.com';
+  if (!host) {
+    return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://www.event-site-manager.com';
+  }
+  const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+  const proto = req.headers.get('x-forwarded-proto') || (isLocal ? 'http' : 'https');
+  return `${proto}://${host}`;
 }
 
 function escapeHtml(value: string): string {
@@ -121,7 +124,21 @@ export async function GET(req: NextRequest) {
       { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    let message = error instanceof Error ? error.message : String(error);
+    if (message.includes('ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET must be set')) {
+      const host = req.headers.get('host') || '';
+      const isProdHost = host.includes('event-site-manager.com');
+      if (isProdHost) {
+        message +=
+          ' Production does not have ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET in Amplify env yet. ' +
+          'Either add them and redeploy, or run OAuth locally: cd event-site-manager && npm run dev, ' +
+          'register http://localhost:3000/oauth/zoho/callback in Zoho API Console, then open http://localhost:3000/oauth/zoho/start';
+      } else {
+        message +=
+          ' Restart the dev server after adding ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET to event-site-manager/.env.local. ' +
+          'Run npm run dev from F:\\project_workspace\\event-site-manager (not mosc-temp).';
+      }
+    }
     return new NextResponse(errorHtml(message), {
       status: 500,
       headers: { 'Content-Type': 'text/html; charset=utf-8' },

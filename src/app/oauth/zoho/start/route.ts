@@ -3,9 +3,12 @@ import { buildZohoAuthorizationUrl, getZohoOAuthRedirectUri } from '@/lib/zoho/s
 
 function requestOrigin(req: NextRequest): string {
   const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
-  const proto = req.headers.get('x-forwarded-proto') || 'https';
-  if (host) return `${proto}://${host}`;
-  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://www.event-site-manager.com';
+  if (!host) {
+    return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://www.event-site-manager.com';
+  }
+  const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+  const proto = req.headers.get('x-forwarded-proto') || (isLocal ? 'http' : 'https');
+  return `${proto}://${host}`;
 }
 
 function isSetupAuthorized(req: NextRequest): boolean {

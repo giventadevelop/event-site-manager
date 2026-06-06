@@ -278,7 +278,7 @@ export default function TenantEmailAddressesPage() {
 
   const columns: Column<TenantEmailAddressDTO>[] = [
     { key: 'emailType', label: 'Type', sortable: true },
-    { key: 'emailAddress', label: 'Email Address', sortable: true },
+    { key: 'emailAddress', label: 'From Email Address', sortable: true },
     { key: 'copyToEmailAddress', label: 'Copy-To Address', sortable: true },
     { key: 'displayName', label: 'Display Name', sortable: true },
     {
@@ -615,10 +615,11 @@ function TenantEmailAddressForm({
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email Address <span className="text-red-500">*</span>
+          <label htmlFor="tenant-email-from-address" className="block text-sm font-medium text-gray-700 mb-1">
+            [From] Email Address <span className="text-red-500">*</span>
           </label>
           <input
+            id="tenant-email-from-address"
             type="email"
             name="emailAddress"
             value={formData.emailAddress || ''}
