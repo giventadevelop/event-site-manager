@@ -8,6 +8,8 @@ import { formatInTimeZone } from 'date-fns-tz';
 import LocationDisplay from '@/components/LocationDisplay';
 import { isRecurringEvent, getNextOccurrenceDate } from '@/lib/eventUtils';
 import { isDonationBasedEvent, isTicketedFundraiserEvent } from '@/lib/donation/utils';
+import { BUNDLED_EMERGENCY_HERO_IMAGE } from '@/lib/hero/defaultHeroImages';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 // import { formatInTimeZone } from 'date-fns-tz';
 
 const EVENTS_PAGE_SIZE = 20; // Minimum events to display per page
@@ -46,6 +48,7 @@ function DescriptionDisplay({
 
 export default function EventsPage() {
   const router = useRouter();
+  const tenantHeroFallbackUrl = useHeroFallbackUrl();
   const [events, setEvents] = useState<EventWithMedia[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -53,7 +56,7 @@ export default function EventsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [displayedCount, setDisplayedCount] = useState(0); // Actual count after filtering recurring events
   const [hasMoreEvents, setHasMoreEvents] = useState(false); // Track if there are more events available
-  const [heroImageUrl, setHeroImageUrl] = useState<string>("/images/default_placeholder_hero_image.jpeg");
+  const [heroImageUrl, setHeroImageUrl] = useState<string>(BUNDLED_EMERGENCY_HERO_IMAGE);
   const [fetchError, setFetchError] = useState(false);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [searchTitle, setSearchTitle] = useState("");
@@ -314,11 +317,11 @@ export default function EventsPage() {
             return;
           }
         }
-        setHeroImageUrl("/images/default_placeholder_hero_image.jpeg");
+        setHeroImageUrl(tenantHeroFallbackUrl);
       } catch (err) {
         setFetchError(true);
         setEvents([]);
-        setHeroImageUrl("/images/default_placeholder_hero_image.jpeg");
+        setHeroImageUrl(tenantHeroFallbackUrl);
       } finally {
         setLoading(false);
       }

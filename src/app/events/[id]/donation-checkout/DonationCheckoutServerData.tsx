@@ -3,6 +3,7 @@ import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getTenantId, getAppUrl } from '@/lib/env';
 import { isDonationBasedEvent, getDonationMetadata, isTicketedFundraiserEvent } from '@/lib/donation/utils';
 import type { EventDetailsDTO } from '@/types';
+import { getTenantHeroFallbackUrl } from '@/lib/hero/getTenantHeroFallback';
 
 interface TicketType {
   id: number;
@@ -47,8 +48,6 @@ export interface DonationCheckoutData {
   givebutterCampaignId?: string;
   isOffering: boolean; // Check if event is OFFERING type
 }
-
-const DEFAULT_HERO_IMAGE = '/images/default_placeholder_hero_image.jpeg';
 
 /**
  * Cached server-side data fetcher for donation-checkout page
@@ -146,7 +145,7 @@ export const getDonationCheckoutData = cache(async (eventId: string): Promise<Do
     }
 
     // Fetch hero image - Priority: Homepage Hero > Regular Hero > Flyer > Featured Image
-    let heroImageUrl = DEFAULT_HERO_IMAGE;
+    let heroImageUrl: string | null = null;
     const baseUrl = getAppUrl();
 
     try {
@@ -166,7 +165,7 @@ export const getDonationCheckoutData = cache(async (eventId: string): Promise<Do
       }
 
       // 2. If no homepage hero, try regular hero image
-      if (heroImageUrl === DEFAULT_HERO_IMAGE) {
+      if (!heroImageUrl) {
         const regularHeroUrl = `${baseUrl}/api/proxy/event-medias?eventId.equals=${eventId}&isHeroImage.equals=true`;
         mediaRes = await fetch(regularHeroUrl, { cache: 'no-store' });
 
@@ -181,7 +180,7 @@ export const getDonationCheckoutData = cache(async (eventId: string): Promise<Do
       }
 
       // 3. If no hero image, try flyer
-      if (heroImageUrl === DEFAULT_HERO_IMAGE) {
+      if (!heroImageUrl) {
         const flyerUrl = `${baseUrl}/api/proxy/event-medias?eventId.equals=${eventId}&eventFlyer.equals=true`;
         const flyerRes = await fetch(flyerUrl, { cache: 'no-store' });
 
@@ -196,7 +195,7 @@ export const getDonationCheckoutData = cache(async (eventId: string): Promise<Do
       }
 
       // 4. If no flyer, try featured image
-      if (heroImageUrl === DEFAULT_HERO_IMAGE) {
+      if (!heroImageUrl) {
         const featuredUrl = `${baseUrl}/api/proxy/event-medias?eventId.equals=${eventId}&isFeaturedImage.equals=true`;
         const featuredRes = await fetch(featuredUrl, { cache: 'no-store' });
 
@@ -210,13 +209,15 @@ export const getDonationCheckoutData = cache(async (eventId: string): Promise<Do
         }
       }
 
-      if (heroImageUrl === DEFAULT_HERO_IMAGE) {
-        console.warn('[DonationCheckoutServerData] ⚠️ No hero image found, using default:', DEFAULT_HERO_IMAGE);
+      if (!heroImageUrl) {
+        console.warn('[DonationCheckoutServerData] No event hero image found, using tenant/bundled fallback');
       }
     } catch (error) {
       console.error('[DonationCheckoutServerData] ❌ Error fetching hero image:', error);
       // Use default image
     }
+
+    const resolvedHeroImageUrl = await getTenantHeroFallbackUrl(heroImageUrl);
 
     console.log('[DonationCheckoutServerData] ✅ Server-side fetch complete:', {
       eventId,
@@ -226,14 +227,14 @@ export const getDonationCheckoutData = cache(async (eventId: string): Promise<Do
       isOffering,
       ticketCount: ticketTypes.length,
       discountCount: discounts.length,
-      heroImageUrl,
+      heroImageUrl: resolvedHeroImageUrl,
     });
 
     return {
       event,
       ticketTypes,
       discounts,
-      heroImageUrl,
+      heroImageUrl: resolvedHeroImageUrl,
       isDonationBased,
       isTicketedFundraiser,
       isFundraiserEvent: donationMeta.isFundraiserEvent,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenantId, getAppUrl } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+import { getTenantHeroFallbackUrl } from '@/lib/hero/getTenantHeroFallback';
 
 const APP_URL = getAppUrl();
 
@@ -15,7 +16,6 @@ const APP_URL = getAppUrl();
  */
 
 async function getHeroImageUrl(eventId: number) {
-  const defaultHeroImageUrl = `/images/default_placeholder_hero_image.jpeg?v=${Date.now()}`;
   let imageUrl: string | null = null;
   try {
     const flyerRes = await fetch(`${APP_URL}/api/proxy/event-medias?eventId.equals=${eventId}&eventFlyer.equals=true`, { cache: 'no-store' });
@@ -37,7 +37,7 @@ async function getHeroImageUrl(eventId: number) {
   } catch (error) {
     console.error('Error fetching hero image:', error);
   }
-  return imageUrl || defaultHeroImageUrl;
+  return getTenantHeroFallbackUrl(imageUrl);
 }
 
 /**

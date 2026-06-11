@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { BUNDLED_EMERGENCY_HERO_IMAGE } from '@/lib/hero/defaultHeroImages';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 interface LoadingTicketProps {
   sessionId?: string;
@@ -7,7 +9,8 @@ interface LoadingTicketProps {
 
 export default function LoadingTicket({ sessionId }: LoadingTicketProps) {
   const [mounted, setMounted] = useState(false);
-  const [heroImageUrl, setHeroImageUrl] = useState<string>("/images/default_placeholder_hero_image.jpeg");
+  const tenantHeroFallback = useHeroFallbackUrl();
+  const [heroImageUrl, setHeroImageUrl] = useState<string>(BUNDLED_EMERGENCY_HERO_IMAGE);
 
   // Mark as mounted to prevent hydration mismatch
   useEffect(() => {
@@ -75,7 +78,7 @@ export default function LoadingTicket({ sessionId }: LoadingTicketProps) {
       {mounted && (
         <div className="relative w-full overflow-hidden bg-transparent" style={{ minHeight: '400px', paddingTop: '80px' }}>
           <img
-            src={heroImageUrl}
+            src={heroImageUrl || tenantHeroFallback}
             alt="Event Hero"
             style={{
               display: 'block',

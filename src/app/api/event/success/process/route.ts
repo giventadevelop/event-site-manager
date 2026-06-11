@@ -3,6 +3,7 @@ import { processStripeSessionServer, fetchTransactionQrCode } from '@/app/event/
 import { fetchEventDetailsByIdServer } from '@/app/admin/events/[id]/media/ApiServerActions';
 import { getServerStripe } from '@/lib/stripe/serverStripe';
 import { getTenantId, getPaymentMethodDomainId, getAppUrl } from '@/lib/env';
+import { getTenantHeroFallbackUrl } from '@/lib/hero/getTenantHeroFallback';
 
 const APP_URL = getAppUrl();
 
@@ -19,7 +20,6 @@ async function fetchTicketTypeById(ticketTypeId: number) {
 }
 
 async function getHeroImageUrl(eventId: number) {
-  const defaultHeroImageUrl = `/images/default_placeholder_hero_image.jpeg?v=${Date.now()}`;
   let imageUrl: string | null = null;
   try {
     const flyerRes = await fetch(`${APP_URL}/api/proxy/event-medias?eventId.equals=${eventId}&eventFlyer.equals=true`, { cache: 'no-store' });
@@ -41,7 +41,7 @@ async function getHeroImageUrl(eventId: number) {
   } catch (error) {
     console.error('Error fetching hero image:', error);
   }
-  return imageUrl || defaultHeroImageUrl;
+  return getTenantHeroFallbackUrl(imageUrl);
 }
 
 // Function to get session_id from payment intent

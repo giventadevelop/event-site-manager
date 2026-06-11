@@ -9,6 +9,7 @@ import {
   FaMoneyBillWave, FaInfoCircle, FaReceipt, FaMapPin, FaTags
 } from 'react-icons/fa';
 import LocationDisplay from '@/components/LocationDisplay';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 import { getAppUrl } from '@/lib/env';
 import type {
   ManualPaymentRequestDTO,
@@ -358,7 +359,7 @@ export default function ManualPaymentSuccessClient({
     return '';
   };
 
-  const defaultHeroImageUrl = '/images/default_placeholder_hero_image.jpeg';
+  const defaultHeroImageUrl = useHeroFallbackUrl(heroImageUrl);
 
   if (loading) {
     return (
@@ -413,7 +414,7 @@ export default function ManualPaymentSuccessClient({
         padding: '80px 0 0 0'
       }}>
         <img
-          src={heroImageUrl || defaultHeroImageUrl}
+          src={defaultHeroImageUrl}
           alt="Event Hero"
           className="hero-image"
           style={{

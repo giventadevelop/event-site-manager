@@ -10,6 +10,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import LocationDisplay from '@/components/LocationDisplay';
 import { sendTicketEmailAsync } from '@/lib/emailUtils';
 import MobileDebugConsole from '@/components/MobileDebugConsole';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 function formatTime(time: string): string {
   if (!time) return '';
@@ -135,6 +136,7 @@ export default function TicketQrClient({ initialPi, initialSessionId }: TicketQr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const heroDisplayUrl = useHeroFallbackUrl(result?.heroImageUrl);
   const [qrCodeData, setQrCodeData] = useState<any>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [apiLogs, setApiLogs] = useState<string[]>([]);
@@ -809,7 +811,7 @@ export default function TicketQrClient({ initialPi, initialSessionId }: TicketQr
         padding: '80px 0 0 0'
       }}>
         <img
-          src={fetchedHeroImageUrl || "/images/default_placeholder_hero_image.jpeg"}
+          src={heroDisplayUrl}
           alt="Event Hero"
           className="hero-image"
           style={{

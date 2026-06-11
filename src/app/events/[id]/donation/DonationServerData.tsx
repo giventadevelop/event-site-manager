@@ -3,6 +3,7 @@ import { getTenantId } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { isDonationBasedEvent, getDonationMetadata } from '@/lib/donation/utils';
 import type { EventDetailsDTO } from '@/types';
+import { getTenantHeroFallbackUrl } from '@/lib/hero/getTenantHeroFallback';
 
 export interface DonationCheckoutData {
   event: EventDetailsDTO;
@@ -12,8 +13,6 @@ export interface DonationCheckoutData {
   givebutterCampaignId?: string;
   heroImageUrl: string;
 }
-
-const DEFAULT_HERO_IMAGE = '/images/default_placeholder_hero_image.jpeg';
 
 /**
  * Cached server-side data fetcher for donation checkout
@@ -59,7 +58,7 @@ export const getDonationCheckoutData = cache(async (eventId: string): Promise<Do
     const donationMeta = getDonationMetadata(event);
 
     // Fetch hero image
-    let heroImageUrl = DEFAULT_HERO_IMAGE;
+    let heroImageUrl: string | null = null;
     if (event.id) {
       try {
         const mediaRes = await fetchWithJwtRetry(
@@ -71,13 +70,15 @@ export const getDonationCheckoutData = cache(async (eventId: string): Promise<Do
           const mediaData = await mediaRes.json();
           if (Array.isArray(mediaData) && mediaData.length > 0) {
             const heroMedia = mediaData[0];
-            heroImageUrl = heroMedia.fileUrl || heroMedia.preSignedUrl || DEFAULT_HERO_IMAGE;
+            heroImageUrl = heroMedia.fileUrl || heroMedia.preSignedUrl || null;
           }
         }
       } catch (mediaError) {
-        console.warn('[DonationServerData] Error fetching hero image, using default:', mediaError);
+        console.warn('[DonationServerData] Error fetching hero image, using tenant fallback:', mediaError);
       }
     }
+
+    const resolvedHeroImageUrl = await getTenantHeroFallbackUrl(heroImageUrl);
 
     return {
       event,
@@ -85,7 +86,7 @@ export const getDonationCheckoutData = cache(async (eventId: string): Promise<Do
       isFundraiserEvent: donationMeta.isFundraiserEvent,
       isCharityEvent: donationMeta.isCharityEvent,
       givebutterCampaignId: donationMeta.givebutterCampaignId,
-      heroImageUrl,
+      heroImageUrl: resolvedHeroImageUrl,
     };
   } catch (error) {
     console.error('[DonationServerData] Error:', error);

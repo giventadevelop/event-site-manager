@@ -1,5 +1,7 @@
 # Hero Image Selection & Overlay Logic Specification
 
+**Related:** [DEFAULT_HERO_IMAGES_HOMEPAGE_ROTATION.html](./DEFAULT_HERO_IMAGES_HOMEPAGE_ROTATION.html) · [DEFAULT_HERO_IMAGES_DATABASE_PRD.md](./DEFAULT_HERO_IMAGES_DATABASE_PRD.md) · [DEFAULT_HERO_IMAGES_BACKEND_APPLICATION_PRD.md](./DEFAULT_HERO_IMAGES_BACKEND_APPLICATION_PRD.md) · [DEFAULT_HERO_IMAGES_FRONTEND_ADMIN_PRD.md](./DEFAULT_HERO_IMAGES_FRONTEND_ADMIN_PRD.md)
+
 ## Overview
 
 This document defines the complete logic for hero image selection and conditional overlay display on the home page hero section.
@@ -216,7 +218,7 @@ is_home_page_hero_image BOOLEAN NOT NULL DEFAULT false
 - **Main Component:** `src/components/HeroSection.tsx`
 - **Types:** `src/types/index.ts`
 - **Images:** `public/images/` directory
-- **Documentation:** `documentation/hero-image-selection-overlay-logic.md`
+- **Documentation:** `documentation/default_hero_images_rotation/hero-image-selection-overlay-logic.md`
 
 ## Multiple Hero Images for Same Event
 

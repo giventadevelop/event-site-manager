@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { fetchMembershipSubscriptionDetailsServer } from './ApiServerActions';
 import { PlanFeaturesList } from '@/components/membership/PlanFeaturesList';
 import type { MembershipPlanDTO, MembershipSubscriptionDTO } from '@/types';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 interface MembershipSuccessClientProps {
   session_id?: string;
@@ -43,7 +44,7 @@ export function MembershipSuccessClient({ session_id, payment_intent }: Membersh
   };
 
   // Default hero image URL - same as event success page
-  const defaultHeroImageUrl = '/images/default_placeholder_hero_image.jpeg';
+  const defaultHeroImageUrl = useHeroFallbackUrl();
 
   // Combined mobile detection and data fetching in a single useEffect
   useEffect(() => {

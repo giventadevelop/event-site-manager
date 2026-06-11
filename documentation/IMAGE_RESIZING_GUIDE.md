@@ -188,7 +188,7 @@ While ImageResizer.com is recommended, you can also use:
 
 - [Hero Section Image Specifications](./HERO_SECTION_IMAGE_SPECIFICATIONS.md)
 - [Our Team Image Specifications](./OUR_TEAM_IMAGE_SPECIFICATIONS.md)
-- [Hero Image Selection & Overlay Logic](./hero-image-selection-overlay-logic.md)
+- [Hero Image Selection & Overlay Logic](./default_hero_images_rotation/hero-image-selection-overlay-logic.md)
 
 ## Version History
 

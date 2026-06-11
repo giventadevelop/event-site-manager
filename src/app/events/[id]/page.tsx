@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,6 +12,7 @@ import styles from './GalleryThumbnails.module.css';
 import cardGridStyles from './CenteredCardGrid.module.css';
 import { SponsorCard } from '@/components/sponsors/SponsorCard';
 import { isDonationBasedEvent, isTicketedFundraiserEvent } from '@/lib/donation/utils';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 // Helper function to get initials from a name
 function getInitials(name: string): string {
@@ -130,6 +131,15 @@ export default function EventDetailsPage() {
   const [slideshowInitialIndex, setSlideshowInitialIndex] = useState(0);
   // Track failed images for placeholder fallback
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+
+  const heroImage = useMemo(
+    () =>
+      media.find((m) => m.isHomePageHeroImage && m.fileUrl) ||
+      media.find((m) => m.eventFlyer && m.fileUrl) ||
+      media.find((m) => m.fileUrl),
+    [media]
+  );
+  const heroImageUrl = useHeroFallbackUrl(heroImage?.fileUrl);
 
   useEffect(() => {
     async function fetchEventDetails() {
@@ -357,12 +367,6 @@ export default function EventDetailsPage() {
   if (loading) return <div className="p-8 text-center">Loading event details...</div>;
   if (!event) return <div className="p-8 text-center text-red-500">Event not found.</div>;
 
-  // Find hero image - Prioritize isHomePageHeroImage, then fallback to eventFlyer
-  const heroImage = media.find((m) => m.isHomePageHeroImage && m.fileUrl) ||
-                    media.find((m) => m.eventFlyer && m.fileUrl) ||
-                    media.find((m) => m.fileUrl);
-  // Use default hero image if no hero image found (same as events page)
-  const heroImageUrl = heroImage?.fileUrl || "/images/default_placeholder_hero_image.jpeg";
   const gallery = media.filter((m) => m.fileUrl && (!heroImage || m.id !== heroImage.id));
 
   // Get preview images (first 12 media items for grid display)

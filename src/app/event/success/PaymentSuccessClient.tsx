@@ -14,6 +14,7 @@ import { getAppUrl } from '@/lib/env';
 import type { PaymentTransactionDTO, EventTicketTransactionDTO, EventDetailsDTO } from '@/types';
 import { sendTicketEmailAsync } from '@/lib/emailUtils';
 import MobileDebugConsole from '@/components/MobileDebugConsole';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 interface PaymentSuccessClientProps {
   transactionId: string;
@@ -138,6 +139,7 @@ export default function PaymentSuccessClient({ transactionId, eventId: eventIdPa
   const [ticketTransaction, setTicketTransaction] = useState<EventTicketTransactionDTO | null>(null);
   const [eventDetails, setEventDetails] = useState<EventDetailsDTO | null>(null);
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
+  const resolvedHeroImageUrl = useHeroFallbackUrl(heroImageUrl);
   const [qrCodeData, setQrCodeData] = useState<{ qrCodeImageUrl: string } | null>(null);
   const [qrCodeLoading, setQrCodeLoading] = useState(false);
   const [qrCodeError, setQrCodeError] = useState<string | null>(null);
@@ -1047,8 +1049,6 @@ export default function PaymentSuccessClient({ transactionId, eventId: eventIdPa
     }
   }, [qrCodeData, ticketTransaction?.id, eventDetails?.id, paymentTransaction?.metadata?.customerEmail, transactionId]);
 
-  const defaultHeroImageUrl = '/images/default-event-hero.jpg';
-
   if (loading || polling) {
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -1068,7 +1068,7 @@ export default function PaymentSuccessClient({ transactionId, eventId: eventIdPa
             opacity: 0.7
           }}>
             <img
-              src={heroImageUrl || defaultHeroImageUrl}
+              src={resolvedHeroImageUrl}
               alt="Event Hero"
               className="hero-image"
               style={{
@@ -1243,7 +1243,7 @@ export default function PaymentSuccessClient({ transactionId, eventId: eventIdPa
         padding: '80px 0 0 0'
       }}>
         <img
-          src={heroImageUrl || defaultHeroImageUrl}
+          src={resolvedHeroImageUrl}
           alt="Event Hero"
           className="hero-image"
           style={{

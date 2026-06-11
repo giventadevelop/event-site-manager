@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getTenantId, getAppUrl } from '@/lib/env';
+import { getTenantHeroFallbackUrl } from '@/lib/hero/getTenantHeroFallback';
 
 /**
  * Server-side data fetching for checkout page
@@ -56,8 +57,6 @@ export interface CheckoutData {
   discounts: DiscountCode[];
   heroImageUrl: string;
 }
-
-const DEFAULT_HERO_IMAGE = '/images/default_placeholder_hero_image.jpeg';
 
 /**
  * Cached server-side data fetcher
@@ -141,7 +140,7 @@ export const getCheckoutData = cache(async (eventId: string): Promise<CheckoutDa
 
     // Fetch hero image - Priority: Homepage Hero > Regular Hero > Flyer > Featured Image
     // Use proxy route (same as success page) instead of direct backend calls
-    let heroImageUrl = DEFAULT_HERO_IMAGE;
+    let heroImageUrl: string | null = null;
     const baseUrl = getAppUrl();
 
     try {
@@ -172,7 +171,7 @@ export const getCheckoutData = cache(async (eventId: string): Promise<CheckoutDa
       }
 
       // 2. If no homepage hero, try regular hero image
-      if (heroImageUrl === DEFAULT_HERO_IMAGE) {
+      if (!heroImageUrl) {
         const regularHeroUrl = `${baseUrl}/api/proxy/event-medias?eventId.equals=${eventId}&isHeroImage.equals=true`;
         console.log('[CheckoutServerData] 📸 Attempting regular hero image:', regularHeroUrl);
 
@@ -197,7 +196,7 @@ export const getCheckoutData = cache(async (eventId: string): Promise<CheckoutDa
       }
 
       // 3. If no hero image, try flyer
-      if (heroImageUrl === DEFAULT_HERO_IMAGE) {
+      if (!heroImageUrl) {
         const flyerUrl = `${baseUrl}/api/proxy/event-medias?eventId.equals=${eventId}&eventFlyer.equals=true`;
         console.log('[CheckoutServerData] 📸 Attempting flyer:', flyerUrl);
 
@@ -222,7 +221,7 @@ export const getCheckoutData = cache(async (eventId: string): Promise<CheckoutDa
       }
 
       // 4. If no flyer, try featured image
-      if (heroImageUrl === DEFAULT_HERO_IMAGE) {
+      if (!heroImageUrl) {
         const featuredUrl = `${baseUrl}/api/proxy/event-medias?eventId.equals=${eventId}&isFeaturedImage.equals=true`;
         console.log('[CheckoutServerData] 📸 Attempting featured image:', featuredUrl);
 
@@ -246,8 +245,8 @@ export const getCheckoutData = cache(async (eventId: string): Promise<CheckoutDa
         }
       }
 
-      if (heroImageUrl === DEFAULT_HERO_IMAGE) {
-        console.warn('[CheckoutServerData] ⚠️ No hero image found, using default:', DEFAULT_HERO_IMAGE);
+      if (!heroImageUrl) {
+        console.warn('[CheckoutServerData] No event hero image found, using tenant/bundled fallback');
       }
     } catch (error) {
       console.error('[CheckoutServerData] ❌ Error fetching hero image:', error);
@@ -255,19 +254,21 @@ export const getCheckoutData = cache(async (eventId: string): Promise<CheckoutDa
       // Use default image
     }
 
+    const resolvedHeroImageUrl = await getTenantHeroFallbackUrl(heroImageUrl);
+
     console.log('[CheckoutServerData] ✅ Server-side fetch complete:', {
       eventId,
       hasEvent: !!event,
       ticketCount: ticketTypes.length,
       discountCount: discounts.length,
-      heroImageUrl,
+      heroImageUrl: resolvedHeroImageUrl,
     });
 
     return {
       event,
       ticketTypes,
       discounts,
-      heroImageUrl,
+      heroImageUrl: resolvedHeroImageUrl,
     };
   } catch (error) {
     console.error('[CheckoutServerData] Error fetching checkout data:', error);
