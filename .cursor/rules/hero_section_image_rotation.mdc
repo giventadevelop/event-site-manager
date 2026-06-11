@@ -1380,7 +1380,7 @@ if (!filteredEvents || filteredEvents.length === 0) {
 - **Event Utils**: [`src/lib/eventUtils.ts`](mdc:src/lib/eventUtils.ts) - Recurring event handling (`isRecurringEvent`, `getNextOccurrenceDate`)
 - **Home Page**: [`src/app/page.tsx`](mdc:src/app/page.tsx) - Uses `<HeroSection />` component
 - **Per-Image Duration Documentation**: [`documentation/INTEGRATION_PROMPT_HOME_PAGE_HERO_DISPLAY_DURATION.md`](mdc:documentation/INTEGRATION_PROMPT_HOME_PAGE_HERO_DISPLAY_DURATION.md) - Complete specification for per-image duration feature
-- **Documentation**: [`documentation/hero-image-selection-overlay-logic.md`](mdc:documentation/hero-image-selection-overlay-logic.md) - Complete specification
+- **Documentation**: [`documentation/default_hero_images_rotation/hero-image-selection-overlay-logic.md`](mdc:documentation/default_hero_images_rotation/hero-image-selection-overlay-logic.md) - Complete specification
 
 ## **Troubleshooting**
 
@@ -1452,7 +1452,7 @@ if (!filteredEvents || filteredEvents.length === 0) {
 - See [Image Containment Prevention](mdc:.cursor/rules/image_containment_prevention.mdc) for hero image display patterns
 - See [Loading Animation Pattern](mdc:.cursor/rules/loading_animation_pattern.mdc) for loading states (different from rotation)
 - See [`src/components/HeroSection.tsx`](mdc:src/components/HeroSection.tsx) for complete implementation
-- See [`documentation/hero-image-selection-overlay-logic.md`](mdc:documentation/hero-image-selection-overlay-logic.md) for detailed specification
+- See [`documentation/default_hero_images_rotation/hero-image-selection-overlay-logic.md`](mdc:documentation/default_hero_images_rotation/hero-image-selection-overlay-logic.md) for detailed specification
 
 ## **Summary**
 

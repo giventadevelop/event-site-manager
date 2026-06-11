@@ -186,10 +186,35 @@ export async function fetchTenantSettingsByTenantId(tenantId: string): Promise<T
 /**
  * Create a new tenant setting
  */
+function getOnboardingDefaultHeroPayload(tenantId: string): Partial<TenantSettingsFormDTO> {
+  const templateRaw = process.env.DEFAULT_HERO_TEMPLATE_URLS || process.env.AMPLIFY_DEFAULT_HERO_TEMPLATE_URLS || '';
+  const templateUrls = templateRaw
+    .split(',')
+    .map((url) => url.trim())
+    .filter(Boolean)
+    .map((url) => url.replace('{tenantId}', tenantId));
+
+  if (templateUrls.length === 0) {
+    return {};
+  }
+
+  return {
+    defaultHeroImageUrlsJson: JSON.stringify(templateUrls),
+    defaultHeroDisplayMode: 'slideshow',
+    defaultHeroIncludeWithEvents: true,
+  };
+}
+
 export async function createTenantSetting(data: TenantSettingsFormDTO): Promise<TenantSettingsDTO> {
   try {
+    const heroDefaults =
+      data.defaultHeroImageUrlsJson || data.defaultHeroImageUrls?.length
+        ? {}
+        : getOnboardingDefaultHeroPayload(data.tenantId);
+
     const payload = withTenantId({
       ...data,
+      ...heroDefaults,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -493,5 +518,40 @@ export async function uploadEmailHeaderImageClient(
   const result = await response.json();
   return {
     url: result.emailHeaderImageUrl || result.url || '',
+  };
+}
+
+/**
+ * Upload a default homepage hero image (client-side function).
+ * Stores under tenants/{tenantId}/hero-defaults/ on the backend.
+ */
+export async function uploadDefaultHeroImageClient(
+  file: File,
+  tenantIdForUpload?: string
+): Promise<{ url: string }> {
+  const baseUrl = getAppUrl();
+  const formData = new FormData();
+
+  formData.append('file', file);
+
+  const url = `${baseUrl}/api/proxy/tenant-settings/upload/default-hero-image${tenantUploadQuery(tenantIdForUpload)}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error(
+      `[Client] Error uploading default hero image: ${response.status} ${response.statusText}`,
+      errorBody
+    );
+    throw new Error(`Failed to upload default hero image. Status: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return {
+    url: result.defaultHeroImageUrl || result.url || '',
   };
 }

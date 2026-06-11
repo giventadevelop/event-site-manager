@@ -10,6 +10,7 @@ import UniversalPaymentCheckout from '@/components/UniversalPaymentCheckout';
 import { Modal } from '@/components/Modal';
 import { PaymentUseCase } from '@/types';
 import type { CheckoutData } from './CheckoutServerData';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 // CRITICAL FIX: Move PaymentSection outside component to prevent recreation
 const PaymentSection = React.memo(({
@@ -96,6 +97,7 @@ export default function CheckoutClient({ initialData, eventId }: CheckoutClientP
   const [ticketTypes] = useState(initialData.ticketTypes);
   const [availableDiscounts] = useState(initialData.discounts);
   const [heroImageUrl] = useState(initialData.heroImageUrl);
+  const defaultHeroImageUrl = useHeroFallbackUrl(heroImageUrl);
 
   // Debug: Log hero image URL on mount
   useEffect(() => {
@@ -694,8 +696,6 @@ export default function CheckoutClient({ initialData, eventId }: CheckoutClientP
     );
   }, [mounted, eventId, availableDiscounts, discountCode, appliedDiscount, totalAmount, hasTicketsSelected, hasUnavailableTickets, email, emailIsValid, emailError, firstName, lastName, phone, paymentCart, paymentProps, handleInvalidClick, handlePaymentSuccess, handlePaymentError, handleLoadingChange, discountError, discountSuccessMessage, handleApplyDiscount]);
 
-  const defaultHeroImageUrl = '/images/default_placeholder_hero_image.jpeg';
-
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col" style={{ overflowX: 'hidden' }}>
       {/* HERO SECTION */}
@@ -712,7 +712,7 @@ export default function CheckoutClient({ initialData, eventId }: CheckoutClientP
         padding: '80px 0 0 0'
       }}>
         <img
-          src={heroImageUrl || defaultHeroImageUrl}
+          src={defaultHeroImageUrl}
           alt="Event Hero"
           className="hero-image"
           style={{
@@ -726,11 +726,11 @@ export default function CheckoutClient({ initialData, eventId }: CheckoutClientP
             borderRadius: '0'
           }}
           onError={(e) => {
-            console.error('[CheckoutClient] ❌ Hero image failed to load:', heroImageUrl || defaultHeroImageUrl);
+            console.error('[CheckoutClient] Hero image failed to load:', defaultHeroImageUrl);
             console.error('[CheckoutClient] Image error event:', e);
           }}
           onLoad={() => {
-            console.log('[CheckoutClient] ✅ Hero image loaded successfully:', heroImageUrl || defaultHeroImageUrl);
+            console.log('[CheckoutClient] Hero image loaded successfully:', defaultHeroImageUrl);
           }}
         />
         <div className="hero-overlay" style={{ opacity: 0.1, height: '5px', padding: '20' }}></div>

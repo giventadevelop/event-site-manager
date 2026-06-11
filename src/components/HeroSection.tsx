@@ -9,6 +9,11 @@ import { isRecurringEvent, getNextOccurrenceDate } from '@/lib/eventUtils';
 import { isTicketedFundraiserEvent } from '@/lib/donation/utils';
 import { Ticket, ArrowRight, Sparkles, Users, Heart, Play, Pause, ChevronLeft, ChevronRight } from 'lucide-react';
 import GivebutterDonateButton from '@/components/GivebutterDonateButton';
+import { useTenantSettings } from '@/components/TenantSettingsProvider';
+import {
+  BUNDLED_EMERGENCY_HERO_IMAGE,
+  resolveHeroImages,
+} from '@/lib/hero/defaultHeroImages';
 
 // Extended event type
 interface EventWithMediaExtended extends EventWithMedia {
@@ -75,8 +80,10 @@ const DynamicHeroImage: React.FC<{
   const lastScheduledIndexRef = React.useRef<number | null>(null);
 
   const { filteredEvents, isLoading: eventsLoading, error } = useFilteredEvents('hero');
+  const { settings: tenantSettings, loading: tenantSettingsLoading } = useTenantSettings();
 
-  const defaultImage = "/images/hero_section/default_hero_section_second_column_poster.webp";
+  const defaultImage = BUNDLED_EMERGENCY_HERO_IMAGE;
+  const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(new Set());
 
   // Store onEventChange in a ref to avoid dependency issues in the rotation effect
   const onEventChangeRef = React.useRef(onEventChange);
@@ -145,34 +152,40 @@ const DynamicHeroImage: React.FC<{
             return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
           });
 
-          // Add event images and their durations
           processedEvents.forEach((e, index) => {
             if (e.thumbnailUrl) {
-              imageUrls.push(e.thumbnailUrl);
-              // Get duration from event (stored in heroDisplayDurationMs property)
-              const eventDuration = (e as any).heroDisplayDurationMs || 8000; // Default 8 seconds
-              durations.push(eventDuration);
+              const eventDuration = (e as any).heroDisplayDurationMs || 8000;
+              (e as EventWithMediaExtended & { heroDisplayDurationMs: number }).heroDisplayDurationMs = eventDuration;
               console.log(`[HeroSection] Event ${index + 1} duration: ${eventDuration}ms (${eventDuration / 1000}s)`, {
                 eventId: e.id,
                 eventTitle: e.title,
-                durationSeconds: (e as any).heroDisplayDurationMs ? (e as any).heroDisplayDurationMs / 1000 : null,
-                mediaDurationSeconds: e.media?.[0]?.homePageHeroDisplayDurationSeconds
+                durationSeconds: eventDuration / 1000,
+                mediaDurationSeconds: e.media?.[0]?.homePageHeroDisplayDurationSeconds,
               });
             }
           });
         }
 
-        // ALWAYS add default image at the end of the rotation (use default 8 seconds)
-        imageUrls.push(defaultImage);
-        durations.push(8000); // Default image uses default 8 seconds
+        const eventImageUrls = processedEvents
+          .map((e) => e.thumbnailUrl)
+          .filter((url): url is string => Boolean(url));
+
+        const resolved = resolveHeroImages({
+          eventImageUrls,
+          tenantSettings,
+        });
+
+        imageUrls.push(...resolved.imageUrls);
+        durations.push(...resolved.durationsMs);
 
         console.log('[HeroSection] Image rotation initialized:', {
           totalImages: imageUrls.length,
-          eventImages: imageUrls.length - 1,
-          hasDefaultImage: true,
-          durations: durations.map(d => `${d}ms (${d / 1000}s)`)
+          eventImages: processedEvents.length,
+          defaultSlideCount: resolved.defaultSlideCount,
+          durations: durations.map((d) => `${d}ms (${d / 1000}s)`),
         });
 
+        setFailedImageUrls(new Set());
         setUpcomingEvents(processedEvents);
         setDynamicImages(imageUrls);
         setImageDurations(durations); // Set the durations array
@@ -195,10 +208,10 @@ const DynamicHeroImage: React.FC<{
       }
     };
 
-    if (!eventsLoading && !error) {
+    if (!eventsLoading && !error && !tenantSettingsLoading) {
       initializeHeroImages();
     }
-  }, [filteredEvents, eventsLoading, error]);
+  }, [filteredEvents, eventsLoading, error, tenantSettings, tenantSettingsLoading]);
 
   // Update refs whenever state changes to avoid stale closures
   useEffect(() => {
@@ -490,9 +503,20 @@ const DynamicHeroImage: React.FC<{
     };
   }, []);
 
-  const currentImage = dynamicImages[currentImageIndex] || defaultImage;
+  const activeImages = dynamicImages.filter((url) => !failedImageUrls.has(url));
+  const slideshowImages = activeImages.length > 0 ? activeImages : [defaultImage];
+  const safeIndex = Math.min(currentImageIndex, slideshowImages.length - 1);
+  const currentImage = slideshowImages[safeIndex] || defaultImage;
   const showControls = isHovered || isTouched;
-  const hasMultipleImages = dynamicImages.length > 1;
+  const hasMultipleImages = slideshowImages.length > 1;
+
+  const handleHeroImageError = () => {
+    setFailedImageUrls((prev) => {
+      const next = new Set(prev);
+      next.add(currentImage);
+      return next;
+    });
+  };
 
   return (
     <div
@@ -508,6 +532,7 @@ const DynamicHeroImage: React.FC<{
         className={`object-contain hero-image-transition ${isTransitioning ? 'transitioning' : ''}`}
         sizes="100vw"
         priority
+        onError={handleHeroImageError}
       />
 
       {/* Slider Controls - Show on hover or touch */}

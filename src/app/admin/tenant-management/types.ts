@@ -62,6 +62,13 @@ export interface TenantSettingsDTO {
   emailFooterHtmlUrl?: string; // S3 URL for email footer HTML file
   emailHeaderImageUrl?: string; // S3 URL for email header image
   logoImageUrl?: string; // S3 URL for tenant logo image
+  /** Ordered tenant default hero image URLs (parsed from JSON when returned by API). */
+  defaultHeroImageUrls?: string[];
+  /** JSON array string of default hero URLs (backend column). */
+  defaultHeroImageUrlsJson?: string;
+  defaultHeroDisplayMode?: 'slideshow' | 'random' | 'single';
+  /** When true, tenant default slides append after event hero images in the homepage carousel. */
+  defaultHeroIncludeWithEvents?: boolean;
   // Contact and Address Fields
   addressLine1?: string;
   addressLine2?: string;

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { TenantSettingsDTO } from '@/types';
+import { parseTenantDefaultHeroUrls } from '@/lib/hero/defaultHeroImages';
 
 interface TenantSettingsContextType {
   settings: TenantSettingsDTO | null;
@@ -9,6 +10,17 @@ interface TenantSettingsContextType {
   showEventsSection: boolean;
   showTeamSection: boolean;
   showSponsorsSection: boolean;
+}
+
+function normalizeTenantSettings(settings: TenantSettingsDTO): TenantSettingsDTO {
+  const defaultHeroImageUrls = parseTenantDefaultHeroUrls(settings);
+  if (defaultHeroImageUrls.length === 0) {
+    return settings;
+  }
+  return {
+    ...settings,
+    defaultHeroImageUrls,
+  };
 }
 
 const TenantSettingsContext = React.createContext<TenantSettingsContextType>({
@@ -78,7 +90,7 @@ export const TenantSettingsProvider: React.FC<TenantSettingsProviderProps> = ({ 
               showSponsors: tenantSettings.showSponsorsSectionInHomePage
             });
 
-            setSettings(tenantSettings);
+            setSettings(normalizeTenantSettings(tenantSettings));
 
             // Cache the result
             try {

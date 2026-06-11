@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { EventDetailsDTO } from '@/types';
+import { useTenantSettings } from '@/components/TenantSettingsProvider';
+import { BUNDLED_EMERGENCY_HERO_IMAGE, resolveHeroImages } from '@/lib/hero/defaultHeroImages';
 
 // Add EventWithMedia type for local use
 interface EventWithMedia extends EventDetailsDTO {
@@ -20,8 +22,8 @@ const DynamicHeroImage: React.FC = () => {
   const [currentEvent, setCurrentEvent] = useState<EventWithMedia | null>(null);
   const [hasTicketedEvents, setHasTicketedEvents] = useState(false);
 
-  // Default image path
-  const defaultImage = "/images/hero_section/default_hero_section_second_column_poster.webp";
+  const { settings: tenantSettings, loading: tenantSettingsLoading } = useTenantSettings();
+  const defaultImage = BUNDLED_EMERGENCY_HERO_IMAGE;
 
   // Fetch events with media function
   const fetchEventsWithMedia = async (): Promise<EventWithMedia[]> => {
@@ -263,34 +265,29 @@ const DynamicHeroImage: React.FC = () => {
             }
           }
 
-          // Build dynamic images array with multiple events
-          const imageUrls: string[] = [];
           const eventData: EventWithMedia[] = [];
-
-          // Add hero image if it's not the default
-          if (heroImageUrl !== defaultImage) {
-            imageUrls.push(heroImageUrl);
-            if (nextEvent) {
-              eventData.push(nextEvent);
-            }
+          if (nextEvent) {
+            eventData.push(nextEvent);
           }
 
-          // Add more upcoming events with media (up to 3 total)
           const additionalEvents = upcomingEvents
-            .filter(event => event.thumbnailUrl && event.id !== nextEvent?.id)
-            .slice(0, 2); // Take up to 2 more events
+            .filter((event) => event.thumbnailUrl && event.id !== nextEvent?.id)
+            .slice(0, 2);
 
-          additionalEvents.forEach(event => {
-            if (event.thumbnailUrl) {
-              imageUrls.push(event.thumbnailUrl);
-              eventData.push(event);
-            }
+          additionalEvents.forEach((event) => {
+            eventData.push(event);
           });
 
-          // Add fallback to original image
-          imageUrls.push("https://cdn.builder.io/api/v1/image/assets%2Fa70a28525f6f491aaa751610252a199c%2F67c8b636de774dd2bb5d7097f5fcc176?format=webp&width=800");
+          const eventImageUrls = eventData
+            .map((event) => event.thumbnailUrl)
+            .filter((url): url is string => Boolean(url));
 
-          setDynamicImages(imageUrls);
+          const resolved = resolveHeroImages({
+            eventImageUrls,
+            tenantSettings,
+          });
+
+          setDynamicImages(resolved.imageUrls);
 
           // Check if any events have tickets (infer from admissionType or other fields)
           const hasTickets = upcomingEvents.some(event =>
@@ -305,18 +302,25 @@ const DynamicHeroImage: React.FC = () => {
           if (eventData.length > 0) {
             setCurrentEvent(eventData[0]);
           }
+        } else {
+          const resolved = resolveHeroImages({ eventImageUrls: [], tenantSettings });
+          setDynamicImages(resolved.imageUrls);
+          setCurrentEvent(null);
         }
       } catch (error) {
         console.error('Failed to initialize hero images:', error);
         // Fallback to original image
-        setDynamicImages(["https://cdn.builder.io/api/v1/image/assets%2Fa70a28525f6f491aaa751610252a199c%2F67c8b636de774dd2bb5d7097f5fcc176?format=webp&width=800"]);
+        const resolved = resolveHeroImages({ eventImageUrls: [], tenantSettings });
+        setDynamicImages(resolved.imageUrls);
       } finally {
         setIsLoading(false);
       }
     };
 
-    initializeHeroImages();
-  }, []);
+    if (!tenantSettingsLoading) {
+      initializeHeroImages();
+    }
+  }, [tenantSettings, tenantSettingsLoading]);
 
   useEffect(() => {
     // Start with default image for 2 seconds (reduced from 4)

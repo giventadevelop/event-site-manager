@@ -23,7 +23,6 @@
     "generate:api": "node scripts/generate-api.mjs",
     "test:comprehensive": "node TestSprite/sanity-tests/run-comprehensive-sanity-tests-with-testsprite.js",
     "test:public": "node TestSprite/sanity-tests/run-public-pages-tests.js",
-    "test:mosc": "node TestSprite/sanity-tests/run-mosc-pages-tests.js",
     "test:admin": "node TestSprite/admin-tests/comprehensive-admin-test-suite.js",
     "test:admin:dynamic": "node TestSprite/admin-tests/dynamic-event-test-suite.js",
     "test:admin:all": "node TestSprite/admin-tests/run-admin-tests-all.js",

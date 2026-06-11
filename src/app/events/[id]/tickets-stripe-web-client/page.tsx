@@ -10,10 +10,10 @@ import StripeDesktopCheckout from '@/components/StripeDesktopCheckout';
 import { formatInTimeZone } from 'date-fns-tz';
 import { getAppUrl } from '@/lib/env';
 import LocationDisplay from '@/components/LocationDisplay';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 export default function TicketingPage() {
-  // Define default hero image URL before using it in state
-  const defaultHeroImageUrl = '/images/default_placeholder_hero_image.jpeg';
+  const defaultHeroImageUrl = useHeroFallbackUrl();
 
   const params = useParams();
   const router = useRouter();

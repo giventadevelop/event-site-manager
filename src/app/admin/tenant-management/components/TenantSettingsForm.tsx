@@ -6,6 +6,12 @@ import type { TenantSettingsDTO, TenantSettingsFormDTO, TenantOrganizationDTO } 
 import { uploadEmailFooterHtmlClient, uploadTenantLogoClient, uploadEmailHeaderImageClient } from '@/app/admin/tenant-management/settings/ApiServerActions';
 import { patchTenantSetting } from '@/app/admin/tenant-management/settings/ApiServerActions';
 import SaveStatusDialog, { type SaveStatus } from '@/components/SaveStatusDialog';
+import {
+  parseTenantDefaultHeroUrls,
+  serializeDefaultHeroImageUrls,
+  type DefaultHeroDisplayMode,
+} from '@/lib/hero/defaultHeroImages';
+import TenantDefaultHeroManager from '@/app/admin/tenant-management/components/TenantDefaultHeroManager';
 
 interface TenantSettingsFormProps {
   initialData?: TenantSettingsDTO;
@@ -26,7 +32,9 @@ export default function TenantSettingsForm({
   availableOrganizations = [],
   settingsId: propSettingsId
 }: TenantSettingsFormProps) {
-  const [activeTab, setActiveTab] = useState<'general' | 'integrations' | 'limits' | 'customization'>('general');
+  const [activeTab, setActiveTab] = useState<
+    'general' | 'integrations' | 'limits' | 'customization' | 'homepageHero'
+  >('general');
   const [uploadingFooterHtml, setUploadingFooterHtml] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingHeaderImage, setUploadingHeaderImage] = useState(false);
@@ -40,6 +48,12 @@ export default function TenantSettingsForm({
   const [headerImageUploadStatus, setHeaderImageUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [headerImageUploadMessage, setHeaderImageUploadMessage] = useState<string>('');
   const [logoUrlCopyFeedback, setLogoUrlCopyFeedback] = useState<string | null>(null);
+  const [heroUrls, setHeroUrls] = useState<string[]>(() => parseTenantDefaultHeroUrls(initialData));
+
+  useEffect(() => {
+    setHeroUrls(parseTenantDefaultHeroUrls(initialData));
+  }, [initialData?.id, initialData?.defaultHeroImageUrlsJson, initialData?.defaultHeroImageUrls]);
+
   const footerHtmlFileInputRef = useRef<HTMLInputElement>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const headerImageFileInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +100,8 @@ export default function TenantSettingsForm({
       emailFooterHtmlUrl: initialData?.emailFooterHtmlUrl || '',
       emailHeaderImageUrl: initialData?.emailHeaderImageUrl || '',
       logoImageUrl: initialData?.logoImageUrl || '',
+      defaultHeroDisplayMode: initialData?.defaultHeroDisplayMode || 'slideshow',
+      defaultHeroIncludeWithEvents: initialData?.defaultHeroIncludeWithEvents ?? true,
       // Contact and Address Fields
       addressLine1: initialData?.addressLine1 || '',
       addressLine2: initialData?.addressLine2 || '',
@@ -112,6 +128,7 @@ export default function TenantSettingsForm({
   // Handle form submission
   const onFormSubmit = async (data: TenantSettingsFormDTO) => {
     try {
+      data.defaultHeroImageUrlsJson = serializeDefaultHeroImageUrls(heroUrls);
       await onSubmit(data);
     } catch (error) {
       console.error('Form submission error:', error);
@@ -477,7 +494,15 @@ export default function TenantSettingsForm({
       icon: 'paint', 
       color: 'orange',
       svgPath: 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01'
-    }
+    },
+    {
+      id: 'homepageHero',
+      label: 'Homepage Hero',
+      icon: 'image',
+      color: 'teal',
+      svgPath:
+        'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
+    },
   ];
 
   return (
@@ -520,6 +545,17 @@ export default function TenantSettingsForm({
                   iconTextInactive: 'text-purple-400',
                   textActive: 'text-purple-700',
                   textInactive: 'text-purple-500'
+                };
+              } else if (color === 'teal') {
+                return {
+                  active: 'bg-teal-100 text-teal-600 border-teal-500',
+                  inactive: 'bg-teal-50 text-teal-400 border-transparent hover:bg-teal-100 hover:text-teal-500',
+                  iconBgActive: 'bg-teal-100',
+                  iconBgInactive: 'bg-teal-50',
+                  iconTextActive: 'text-teal-500',
+                  iconTextInactive: 'text-teal-400',
+                  textActive: 'text-teal-700',
+                  textInactive: 'text-teal-500',
                 };
               } else {
                 return {
@@ -1262,6 +1298,22 @@ export default function TenantSettingsForm({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Homepage Hero Tab */}
+        {activeTab === 'homepageHero' && (
+          <TenantDefaultHeroManager
+            settingsId={settingsId ?? undefined}
+            tenantIdForUpload={tenantIdForUpload}
+            initialUrls={heroUrls}
+            displayMode={(watch('defaultHeroDisplayMode') as DefaultHeroDisplayMode) || 'slideshow'}
+            includeWithEvents={watch('defaultHeroIncludeWithEvents') ?? true}
+            onUrlsChange={setHeroUrls}
+            onDisplayModeChange={(mode) => setValue('defaultHeroDisplayMode', mode)}
+            onIncludeWithEventsChange={(value) => setValue('defaultHeroIncludeWithEvents', value)}
+            disabled={!settingsId}
+            mode={mode}
+          />
         )}
 
         {/* Customization Tab */}

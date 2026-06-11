@@ -11,6 +11,7 @@ import LocationDisplay from '@/components/LocationDisplay';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { sendTicketEmailAsync } from '@/lib/emailUtils';
 import MobileDebugConsole from '@/components/MobileDebugConsole';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 interface SuccessClientProps {
   session_id: string;
@@ -32,6 +33,7 @@ export default function SuccessClient({ session_id, payment_intent }: SuccessCli
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const heroDisplayUrl = useHeroFallbackUrl(result?.heroImageUrl);
   const [readyToShowNotFound, setReadyToShowNotFound] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState<boolean | null>(null);
   const router = useRouter();
@@ -621,7 +623,7 @@ export default function SuccessClient({ session_id, payment_intent }: SuccessCli
         padding: '80px 0 0 0'
       }}>
         <img
-          src={fetchedHeroImageUrl || "/images/default_placeholder_hero_image.jpeg"}
+          src={heroDisplayUrl}
           alt="Event Hero"
           className="hero-image"
           style={{

@@ -1,6 +1,8 @@
 # Meta-Development Script
 
-This folder contains a **meta-development script** (`dev.js`) and related utilities that manage tasks for an AI-driven or traditional software development workflow. The script revolves around a `tasks.json` file, which holds an up-to-date list of development tasks.
+This folder contains a **meta-development script** (`dev.js`) and related utilities that manage tasks for an AI-driven or traditional software development workflow.
+
+**Maintenance / one-off fixes:** See [`README-fix-scripts.md`](./README-fix-scripts.md) for `fix-*` scripts (MOSC content, metadata, quotes). They are kept here only; no credentials are embedded in those files. The script revolves around a `tasks.json` file, which holds an up-to-date list of development tasks.
 
 ## Overview
 

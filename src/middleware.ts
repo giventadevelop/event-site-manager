@@ -35,6 +35,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/sso-callback(.*)',
   '/auth/signout-redirect(.*)',
+  '/oauth/zoho(.*)',
   '/api/webhooks(.*)',
   '/api/public(.*)',
   '/api/proxy(.*)',

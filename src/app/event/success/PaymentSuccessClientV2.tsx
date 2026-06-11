@@ -11,6 +11,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import LocationDisplay from '@/components/LocationDisplay';
 import { getAppUrl } from '@/lib/env';
 import type { PaymentTransactionDTO, EventTicketTransactionDTO, EventDetailsDTO } from '@/types';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 interface PaymentSuccessClientProps {
   transactionId: string;
@@ -46,6 +47,7 @@ export default function PaymentSuccessClientV2({ transactionId, eventId: eventId
   const [ticketTransaction, setTicketTransaction] = useState<EventTicketTransactionDTO | null>(null);
   const [eventDetails, setEventDetails] = useState<EventDetailsDTO | null>(null);
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
+  const resolvedHeroImageUrl = useHeroFallbackUrl(heroImageUrl);
   const [qrCodeData, setQrCodeData] = useState<{ qrCodeImageUrl: string } | null>(null);
   const [transactionItems, setTransactionItems] = useState<any[]>([]);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -418,8 +420,6 @@ export default function PaymentSuccessClientV2({ transactionId, eventId: eventId
     };
   }, [transactionId, eventIdParam]);
 
-  const defaultHeroImageUrl = '/images/default_placeholder_hero_image.jpeg';
-
   if (loading || polling) {
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -438,7 +438,7 @@ export default function PaymentSuccessClientV2({ transactionId, eventId: eventId
           opacity: 0.7
         }}>
           <img
-            src={heroImageUrl || defaultHeroImageUrl}
+            src={resolvedHeroImageUrl}
             alt="Event Hero"
             className="hero-image"
             style={{
@@ -597,7 +597,7 @@ export default function PaymentSuccessClientV2({ transactionId, eventId: eventId
         padding: '80px 0 0 0'
       }}>
         <img
-          src={heroImageUrl || defaultHeroImageUrl}
+          src={resolvedHeroImageUrl}
           alt="Event Hero"
           className="hero-image"
           style={{

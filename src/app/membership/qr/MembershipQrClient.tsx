@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { PlanFeaturesList } from '@/components/membership/PlanFeaturesList';
 import type { MembershipSubscriptionDTO, MembershipPlanDTO } from '@/types';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 interface MembershipQrClientProps {
   session_id?: string;
@@ -392,7 +393,7 @@ export function MembershipQrClient({ session_id, payment_intent }: MembershipQrC
   }, [session_id, payment_intent]);
 
   // Default hero image URL - same as desktop success page
-  const defaultHeroImageUrl = '/images/default_placeholder_hero_image.jpeg';
+  const defaultHeroImageUrl = useHeroFallbackUrl();
 
   if (loading) {
     return (

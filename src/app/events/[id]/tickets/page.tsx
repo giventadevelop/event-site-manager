@@ -9,6 +9,7 @@ import { StripePaymentRequestButton } from '@/components/StripePaymentRequestBut
 import StripeDesktopCheckout from '@/components/StripeDesktopCheckout';
 import { formatInTimeZone } from 'date-fns-tz';
 import LocationDisplay from '@/components/LocationDisplay';
+import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 export default function TicketingPage() {
   const params = useParams();
@@ -60,7 +61,7 @@ export default function TicketingPage() {
     }
   }, []);
 
-  const defaultHeroImageUrl = '/images/default_placeholder_hero_image.jpeg';
+  const defaultHeroImageUrl = useHeroFallbackUrl();
 
   useEffect(() => {
     async function fetchData() {
