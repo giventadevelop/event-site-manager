@@ -6,7 +6,7 @@
 
 | Field | Value |
 |-------|--------|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Status** | Draft — blocks full tenant-default hero behavior until deployed |
 | **Backend stack** | Spring Boot / JHipster-style REST (existing `tenant_settings` resource) |
 | **Frontend repo** | `event-site-manager` (Next.js) — already consumes these fields when present |
@@ -53,6 +53,7 @@ Expose and persist three new **tenant settings** fields that configure per-tenan
 | `defaultHeroImageUrlsJson` | `string` | No | `null` |
 | `defaultHeroDisplayMode` | `string` | No | `"slideshow"` |
 | `defaultHeroIncludeWithEvents` | `boolean` | No | `true` |
+| `defaultHeroMaxDisplayCount` | `integer` | No | `6` |
 
 Optional convenience (nice-to-have): expose parsed `defaultHeroImageUrls` as `List<String>` on GET only (computed from JSON column). Frontend already parses JSON client-side if only `defaultHeroImageUrlsJson` is returned.
 
@@ -63,7 +64,8 @@ Optional convenience (nice-to-have): expose parsed `defaultHeroImageUrls` as `Li
 | `TenantSettingsProvider` | Loads settings; `parseTenantDefaultHeroUrls()` |
 | `HeroSection.tsx` / charity hero | `resolveHeroImages()` for slideshow |
 | `useHeroFallbackUrl` / `getTenantHeroFallbackUrl` | Single URL fallback on event/checkout pages |
-| `TenantSettingsForm` | Serializes textarea lines → `defaultHeroImageUrlsJson` on save |
+| `TenantDefaultHeroManager` | Enriched `defaultHeroImageUrlsJson` + `defaultHeroMaxDisplayCount` on save/PATCH |
+| `defaultHeroImages.ts` | `resolveTenantDefaultHeroUrlsForDisplay()` — active subset, display cap, random-3 fallback |
 | `scripts/seed-tenant-default-hero-images.js` | PATCH settings by `tenantId` |
 | `createTenantSetting()` | Seeds from `DEFAULT_HERO_TEMPLATE_URLS` env when set |
 
@@ -74,9 +76,10 @@ Optional convenience (nice-to-have): expose parsed `defaultHeroImageUrls` as `Li
   "id": 12,
   "tenantId": "tenant_demo_002",
   "logoImageUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/...",
-  "defaultHeroImageUrlsJson": "[\"https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/tenants/tenant_demo_002/hero-defaults/slide-01.webp\"]",
+  "defaultHeroImageUrlsJson": "[{\"url\":\"https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/tenants/tenant_demo_002/hero-defaults/slide-01.webp\",\"active\":true},{\"url\":\"https://.../slide-02.webp\",\"active\":false}]",
   "defaultHeroDisplayMode": "slideshow",
-  "defaultHeroIncludeWithEvents": true
+  "defaultHeroIncludeWithEvents": true,
+  "defaultHeroMaxDisplayCount": 6
 }
 ```
 
@@ -90,9 +93,10 @@ X-Tenant-ID: tenant_demo_002
 
 {
   "id": 12,
-  "defaultHeroImageUrlsJson": "[\"https://.../slide-01.webp\",\"https://.../slide-02.webp\"]",
+  "defaultHeroImageUrlsJson": "[{\"url\":\"https://.../slide-01.webp\",\"active\":true},{\"url\":\"https://.../slide-02.webp\",\"active\":false}]",
   "defaultHeroDisplayMode": "random",
-  "defaultHeroIncludeWithEvents": false
+  "defaultHeroIncludeWithEvents": false,
+  "defaultHeroMaxDisplayCount": 4
 }
 ```
 
@@ -113,7 +117,23 @@ private String defaultHeroDisplayMode;
 
 @Column(name = "default_hero_include_with_events")
 private Boolean defaultHeroIncludeWithEvents;
+
+@Column(name = "default_hero_max_display_count")
+private Integer defaultHeroMaxDisplayCount;
 ```
+
+### 4.1a JSON validation (v1.1)
+
+When `defaultHeroImageUrlsJson` is present:
+
+- Parse as JSON array.
+- **Legacy:** all elements are strings (HTTPS URLs) — accept unchanged.
+- **Enriched:** objects with required `url` (HTTPS string) and optional `active` (boolean, default false if omitted).
+- Max **20** library entries.
+- Max **10** entries with `active: true`.
+- Reject if more than 10 active or invalid URLs.
+
+`defaultHeroMaxDisplayCount`: integer **1–6** inclusive; default **6** when null on read.
 
 ### 4.2 Liquibase / Flyway
 

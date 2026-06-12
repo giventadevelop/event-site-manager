@@ -6,7 +6,7 @@
 
 | Field | Value |
 |-------|--------|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Status** | Draft — required for frontend hero resolver |
 | **Scope** | PostgreSQL schema on `tenant_settings` only |
 | **Out of scope** | New tables, S3 upload logic, homepage event media schema |
@@ -17,7 +17,7 @@
 
 The frontend multi-tenant hero system stores **per-tenant default homepage hero image URLs** on `tenant_settings`. Event hero media (`event_media.is_home_page_hero_image`) remains the primary source; these columns fill gaps when no upcoming event heroes exist or when configured to append slides after event images.
 
-This PRD defines **only database changes**: three nullable columns on `public.tenant_settings`, migration scripts, defaults, and verification queries.
+This PRD defines **only database changes**: nullable columns on `public.tenant_settings`, migration scripts, defaults, and verification queries. **v1.1** adds `default_hero_max_display_count` and documents enriched JSON for per-slide `active` flags.
 
 ---
 
@@ -25,13 +25,15 @@ This PRD defines **only database changes**: three nullable columns on `public.te
 
 | Need | Database support |
 |------|------------------|
-| Multiple default slides per tenant | JSON array in `default_hero_image_urls_json` |
+| Multiple default slides per tenant (library) | JSON in `default_hero_image_urls_json` — plain URL array (legacy) or `[{ "url", "active" }]` (v1.1) |
+| Mark up to 10 slides active for slideshow | `active: true` in enriched JSON (max 10 per app validation) |
+| Cap how many active slides rotate at once | `default_hero_max_display_count` (1–6, default 6) |
 | Slideshow vs random vs single | `default_hero_display_mode` |
 | Append defaults when events exist | `default_hero_include_with_events` |
 | Per-tenant branding without redeploy | Rows scoped by existing `tenant_id` |
 | Onboarding new satellite tenant | Seed row with template URLs after S3 copy |
 
-**Frontend contract (read-only for DB design):** `src/types/index.ts` and `src/app/admin/tenant-management/types.ts` expect API fields `defaultHeroImageUrlsJson`, `defaultHeroDisplayMode`, `defaultHeroIncludeWithEvents`.
+**Frontend contract (read-only for DB design):** `src/types/index.ts` and `src/app/admin/tenant-management/types.ts` expect API fields `defaultHeroImageUrlsJson`, `defaultHeroDisplayMode`, `defaultHeroIncludeWithEvents`, `defaultHeroMaxDisplayCount`.
 
 ---
 
@@ -49,9 +51,10 @@ This PRD defines **only database changes**: three nullable columns on `public.te
 
 | Column (DB) | Type | Nullable | Default | Notes |
 |-------------|------|----------|---------|-------|
-| `default_hero_image_urls_json` | `TEXT` | YES | `NULL` | JSON array of HTTPS URLs, ordered for slideshow |
+| `default_hero_image_urls_json` | `TEXT` | YES | `NULL` | Legacy: `["https://..."]`. v1.1: `[{"url":"https://...","active":true}]` — library order; `active` opt-in (max 10 true) |
 | `default_hero_display_mode` | `VARCHAR(32)` | YES | `'slideshow'` | Allowed: `slideshow`, `random`, `single` |
 | `default_hero_include_with_events` | `BOOLEAN` | YES | `TRUE` | When true, tenant defaults may trail event hero slides (frontend behavior) |
+| `default_hero_max_display_count` | `INTEGER` | YES | `6` | How many **active** slides rotate on homepage (1–6). Frontend random-3 when zero active does not use this column. |
 
 **Naming:** Snake case in PostgreSQL; Jackson maps to camelCase in API (`defaultHeroImageUrlsJson`, etc.).
 
@@ -76,8 +79,15 @@ ALTER TABLE public.tenant_settings
     ADD COLUMN IF NOT EXISTS default_hero_include_with_events BOOLEAN NULL
         DEFAULT TRUE;
 
+ALTER TABLE public.tenant_settings
+    ADD COLUMN IF NOT EXISTS default_hero_max_display_count INTEGER NULL
+        DEFAULT 6;
+
 COMMENT ON COLUMN public.tenant_settings.default_hero_image_urls_json IS
-    'JSON array of HTTPS URLs for tenant default homepage hero images, e.g. ["https://.../slide-01.webp"]. Order defines slideshow sequence.';
+    'JSON library of tenant default homepage hero images. Legacy: ["https://.../slide-01.webp"]. v1.1: [{"url":"https://...","active":true}]. Order = drag order; active=false = opt-out of slideshow pool.';
+
+COMMENT ON COLUMN public.tenant_settings.default_hero_max_display_count IS
+    'Max number of active default hero slides shown in homepage rotation (1-6). Default 6.';
 
 COMMENT ON COLUMN public.tenant_settings.default_hero_display_mode IS
     'How tenant default hero URLs are used when no event heroes or as trailing slides: slideshow | random | single.';
@@ -95,7 +105,25 @@ ALTER TABLE public.tenant_settings
         default_hero_display_mode IS NULL
         OR default_hero_display_mode IN ('slideshow', 'random', 'single')
     );
+
+ALTER TABLE public.tenant_settings
+    ADD CONSTRAINT chk_tenant_settings_default_hero_max_display_count
+    CHECK (
+        default_hero_max_display_count IS NULL
+        OR (default_hero_max_display_count >= 1 AND default_hero_max_display_count <= 6)
+    );
 ```
+
+### 4.3a Enriched JSON example (v1.1)
+
+```json
+[
+  {"url": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/tenants/tenant_demo_002/hero-defaults/slide-01.webp", "active": true},
+  {"url": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/tenants/tenant_demo_002/hero-defaults/slide-02.webp", "active": false}
+]
+```
+
+Application layer (not DB): max **20** library entries; max **10** with `"active": true`.
 
 ### 4.4 Rollback script
 

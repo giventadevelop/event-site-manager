@@ -6,8 +6,8 @@
 
 | Field | Value |
 |-------|--------|
-| **Version** | 1.0 |
-| **Status** | Ready for implementation (assumes backend `tenant_settings` fields + upload endpoint deployed) |
+| **Version** | 1.2 |
+| **Status** | Phase 2c shipped; **Phase 2d (admin guidelines dialog)** specified below — frontend-only, no backend/DB changes |
 | **Scope** | Admin UX in **Tenant Management → Settings** for per-`tenantId` rotating default hero images |
 | **Repo** | `event-site-manager` (Next.js App Router) |
 
@@ -21,6 +21,10 @@ Admins need a first-class workflow to attach **multiple rotating homepage hero i
 
 **Phase 2 (this PRD):** Dedicated **Homepage Hero** admin experience with **drag-and-drop multi-file upload**, single-file add, reorder, remove, live preview, and optional first-time **setup walkthrough** — patterned after event **media upload-multiple** and tenant **logo / email header** upload flows.
 
+**Phase 2c (this PRD v1.1):** **Opt-in active selection** — library of up to 20 images, up to **10** marked active, separate **homepage display count** (1–6, default **6**), and **random-3 fallback** from the library when zero slides are marked active.
+
+**Phase 2d (this PRD v1.2):** **In-tab guidelines & assistance** — `?` help icon beside the Homepage Hero section title (same interaction pattern as `EventFormHelpTooltip` on the event form). Opens a scrollable dialog with step-by-step upload, active-selection, display, and fallback rules. **No new API fields, migrations, or backend work.**
+
 ---
 
 ## 2. Problem statement
@@ -32,6 +36,8 @@ Admins need a first-class workflow to attach **multiple rotating homepage hero i
 | No reorder except editing textarea order | Drag-and-drop slide order with numbered thumbnails |
 | No progress feedback for multiple files | Per-file and batch upload progress (like event media) |
 | Super-admin editing another tenant must remember `tenantId` for S3 paths | Upload uses row `tenantId` via `?tenantId=` on proxy (same as logo upload) |
+| Every uploaded image always rotates on homepage | **Library** (up to 20) vs **active** subset (up to 10) vs **display cap** (default 6) |
+| No way to run slideshow without picking slides | **Random 3** from library when zero slides marked active |
 
 ---
 
@@ -84,9 +90,10 @@ Dismiss with “Don’t show again” stored in `localStorage` key `tenantHeroWa
 
 ### 5.1 Slide list (source of truth in UI)
 
-- Maintain ordered list `heroSlides: { id: string; url: string; fileName?: string }[]` in component state.
-- Initialize from `parseTenantDefaultHeroUrls(initialData)` on load.
-- On form submit (or immediate PATCH after upload — see 5.4), serialize with `serializeDefaultHeroImageUrls(urls)` → `defaultHeroImageUrlsJson`.
+- Maintain ordered list `heroSlides: { id: string; url: string; active: boolean; fileName?: string }[]` in component state.
+- Initialize from `parseTenantDefaultHeroSlides(initialData)` on load (see [defaultHeroImages.ts](../../src/lib/hero/defaultHeroImages.ts)).
+- On form submit (or immediate PATCH after upload — see 5.4), serialize with `serializeDefaultHeroSlides(slides)` → `defaultHeroImageUrlsJson`.
+- **Legacy** plain URL arrays (`["https://..."]`) are treated as all-active until admin saves enriched JSON from this UI.
 
 ### 5.2 Multi-file upload (required)
 
@@ -122,13 +129,13 @@ Body: file=<binary>
 ### 5.3 Single-file upload (required)
 
 - Same drop zone and file input support **one** file (subset of multi).
-- After success, **append** URL to end of `heroSlides` (do not replace entire list).
+- After success, **append** URL to end of `heroSlides` with **`active: false`** (opt-in; not auto-selected for slideshow).
 
 ### 5.4 Persist timing
 
 | Option | Recommendation |
 |--------|----------------|
-| A — Upload then auto-PATCH | **Preferred:** After each successful upload (or after batch completes), call `patchTenantSetting(settingsId, { defaultHeroImageUrlsJson })` so S3 URLs survive refresh without clicking main Save |
+| A — Upload then auto-PATCH | **Preferred:** After each successful upload (or after batch completes), call `patchTenantSetting(settingsId, { defaultHeroImageUrlsJson, defaultHeroMaxDisplayCount? })` so S3 URLs survive refresh without clicking main Save |
 | B — Defer to form Save | Acceptable for MVP if A adds complexity; document that user must Save |
 
 Match **logo / email header** behavior: those PATCH immediately after upload. **Hero should do the same.**
@@ -139,9 +146,44 @@ Match **logo / email header** behavior: those PATCH immediately after upload. **
 |--------|-----|
 | Reorder | Drag handle on each thumbnail card; update array order |
 | Remove | Red trash icon per slide; confirm if &gt; 0 slides; PATCH updated JSON |
-| Slide number | Badge `1`, `2`, `3` on thumbnails (slideshow order) |
+| Slide number | Badge `1`, `2`, `3` on **active** thumbnails only (order among active slides) |
 
 **Library:** Use native HTML5 drag-and-drop or lightweight existing project pattern; avoid new heavy dependencies unless already in repo.
+
+### 5.5a Active selection (Phase 2c — required)
+
+| Rule | Value |
+|------|--------|
+| Max library size | **20** images |
+| Max marked **active** | **10** at one time |
+| Default on new upload | **`active: false`** (opt-in) |
+| Manual URL merge | Append with **`active: false`** |
+
+| Action | UX |
+|--------|-----|
+| Toggle active | Per-thumbnail **Active** control (green = in slideshow pool; dimmed + “Inactive” when off) |
+| Cap enforcement | Block 11th active toggle with inline error: “Maximum 10 active slides” |
+| Zero active info | Callout: “No slides marked active — homepage will show **3 random** images from your library.” |
+| Counters | `Library: N/20` · `Active: N/10` · `Rotating: min(active, display count)` or `Random 3 from library` |
+
+**Homepage resolver** (not admin-only): see §5.5b.
+
+### 5.5b Homepage display count and random fallback (Phase 2c — required)
+
+| Setting | Field | Range | Default |
+|---------|-------|-------|---------|
+| Images in homepage rotation | `defaultHeroMaxDisplayCount` | **1–6** | **6** |
+
+**Runtime rules** (`resolveTenantDefaultHeroUrlsForDisplay` in `defaultHeroImages.ts`):
+
+| Condition | Homepage tenant-default URLs |
+|-----------|------------------------------|
+| Legacy plain URL JSON | All URLs (unchanged until admin saves enriched JSON) |
+| ≥1 slide `active: true` | First **N** active slides in drag order, where `N = min(activeCount, defaultHeroMaxDisplayCount, 6)` |
+| 0 active, library non-empty | **3 random** URLs from full library (or fewer if library &lt; 3) |
+| Empty library | Bundled emergency image |
+
+Then apply `defaultHeroDisplayMode` (`slideshow` / `random` / `single`) on that URL set.
 
 ### 5.6 Display settings (retain)
 
@@ -149,11 +191,12 @@ Match **logo / email header** behavior: those PATCH immediately after upload. **
 |-------|---------|
 | `defaultHeroDisplayMode` | Select: slideshow / random / single |
 | `defaultHeroIncludeWithEvents` | Checkbox with helper text linking to [hero-image-selection-overlay-logic.md](./hero-image-selection-overlay-logic.md) |
+| `defaultHeroMaxDisplayCount` | Select **1–6** (default **6**): “Images in homepage rotation” when slides are marked active |
 
 ### 5.7 Live preview
 
 - **Thumbnail strip:** object-cover cards (existing 128×80 pattern), `onError` hide broken image.
-- **Hero preview panel:** Single large preview using first slide (or rotating mini-slideshow every 4s when mode = slideshow and ≥2 slides). Use `object-contain` and dark `#1a0a2e` letterbox background per hero CSS rules.
+- **Hero preview panel:** Use `resolveTenantDefaultHeroUrlsForPreview()` — same rules as homepage (active subset, display cap, or random-3). Label “Preview: 3 random from library” when zero active. Rotating mini-slideshow every 4s when mode = slideshow and ≥2 preview URLs. Use `object-contain` and dark `#1a0a2e` letterbox background per hero CSS rules.
 
 ### 5.8 Advanced: paste URLs (retain as collapsible)
 
@@ -168,6 +211,46 @@ Collapsible **“Add URLs manually”** section:
 |------|--------|
 | `edit` + `settingsId` | Full upload enabled |
 | `create` | Disable upload; show info: “Save settings first, then upload hero images on edit.” Same as logo upload when `!settingsId`. |
+
+### 5.11 Admin guidelines & assistance dialog (Phase 2d — required, frontend-only)
+
+Admins need on-demand help without leaving Tenant Settings. Mirror the **event form** pattern: [`EventFormHelpTooltip.tsx`](../../src/components/EventFormHelpTooltip.tsx) (`FaQuestionCircle`, click to open, portal dialog, Escape / click-outside to close).
+
+| Requirement | Detail |
+|-------------|--------|
+| Placement | Inline with **“Default Homepage Hero Images”** heading (`h3` row: title + help icon) |
+| Trigger | Blue `FaQuestionCircle` button (`w-5 h-5`, `title` / `aria-label`: “Default hero images guidelines and assistance”) |
+| Interaction | **Click** toggles dialog (primary); optional hover-open with delay is acceptable if copied from `EventFormHelpTooltip` |
+| Content source | **Preferred:** `public/documentation/default_hero_images_rotation/DEFAULT_HERO_IMAGES_ADMIN_GUIDELINES.html` fetched at open (satellite apps copy the same `public/` path + component). **Fallback:** `customContent` React node with identical copy for offline/dev |
+| Dialog chrome | Gradient header (teal to match Homepage Hero tab), title **“Default Hero Images — Guidelines & Assistance”**, close `X` button |
+| Backend / DB | **None** — documentation and UI only; uses existing `defaultHeroImageUrlsJson`, `defaultHeroDisplayMode`, `defaultHeroIncludeWithEvents`, `defaultHeroMaxDisplayCount` |
+
+**Dialog sections (step-by-step, in order):**
+
+1. **What this controls** — Tenant default homepage hero when no upcoming event hero media exists; optional trailing slides when “Include with events” is on.
+2. **Before you upload (create mode)** — Save tenant settings first; return to **Edit** to enable uploads (same as logo upload).
+3. **Upload rules** — Drag-and-drop or browse; PNG/JPG/JPEG/WEBP/GIF; max **10 MB** per file; recommended **2000×800** (5:2 landscape); max **20** images in library; uploads auto-save enriched JSON when `settingsId` exists.
+4. **Library vs active** — Library holds all uploaded slides; only **Active** slides participate in homepage selection; **new uploads default to Inactive** (opt-in).
+5. **Mark slides active** — Toggle per thumbnail; max **10** active at once; drag to reorder (order matters for active subset).
+6. **Homepage display count** — Select **1–6** (default **6**): max active slides shown when ≥1 slide is active (`min(active, display count)`).
+7. **Zero active fallback** — If no slides are marked active but library is non-empty, homepage shows **3 random** images from the library on each resolve.
+8. **Display mode** — `slideshow` (rotate all selected URLs), `random` (one per page load), `single` (first URL only) — applied **after** active/random-3 resolution.
+9. **Include with events** — When checked, tenant default slides append after upcoming event hero images.
+10. **Homepage fallback chain** — Event hero media → tenant defaults (rules above) → bundled `/images/hero_section/hero_images/fallback/default-hero.webp`.
+11. **Legacy data** — Plain URL JSON arrays (`["https://..."]`) keep showing **all** URLs on the homepage until an admin saves from this UI (migrates to enriched `[{ url, active }]`).
+12. **Manual URLs (advanced)** — HTTPS one per line; merged as **inactive**; dedupe by URL.
+13. **Verify** — Save settings → open homepage in new tab; test with/without upcoming events.
+
+**Satellite / second-repo porting checklist:**
+
+| Asset | Path |
+|-------|------|
+| Help HTML (static) | `public/documentation/default_hero_images_rotation/DEFAULT_HERO_IMAGES_ADMIN_GUIDELINES.html` |
+| Reusable help UI | `src/components/admin/AdminHelpDialog.tsx` (extract/generalize from `EventFormHelpTooltip`) **or** reuse `EventFormHelpTooltip` with `customContent` / `documentationUrl` props |
+| Integration | `TenantDefaultHeroManager.tsx` — icon beside section title |
+| PRD (this file) | Copy §5.11 + §8.4 to satellite repo docs |
+
+**Explicit non-scope (Phase 2d):** No changes to Spring `tenant-settings` API, DB columns, upload endpoint, or `DEFAULT_HERO_IMAGES_DATABASE_PRD.md` beyond cross-reference.
 
 ### 5.10 Tenant scoping (super-admin)
 
@@ -204,7 +287,10 @@ Append `tenantUploadQuery(tenantIdForUpload)` on all upload fetches.
 | `src/app/admin/tenant-management/components/TenantSettingsForm.tsx` | Add `homepageHero` tab; mount manager; remove hero block from Customization |
 | `src/app/admin/tenant-management/settings/ApiServerActions.ts` | Add `uploadDefaultHeroImageClient` |
 | `src/pages/api/proxy/tenant-settings/upload/default-hero-image.ts` | **New** — proxy to backend |
-| `src/lib/hero/defaultHeroImages.ts` | No change required (already has parse/serialize) |
+| `src/lib/hero/defaultHeroImages.ts` | **Update:** `parseTenantDefaultHeroSlides`, `serializeDefaultHeroSlides`, `resolveTenantDefaultHeroUrlsForDisplay`, constants `MAX_ACTIVE_SLIDES`, `RANDOM_FALLBACK_COUNT`, etc. |
+| `src/components/admin/AdminHelpDialog.tsx` | **New (Phase 2d)** — generalized help dialog (from `EventFormHelpTooltip` pattern): `title`, `documentationUrl`, optional `customContent` |
+| `public/documentation/default_hero_images_rotation/DEFAULT_HERO_IMAGES_ADMIN_GUIDELINES.html` | **New (Phase 2d)** — step-by-step admin guidelines HTML (served statically; copy to satellite `public/`) |
+| `TenantDefaultHeroManager.tsx` | **Update (Phase 2d)** — `?` icon + `AdminHelpDialog` beside section heading |
 
 ### 7.2 Component API sketch
 
@@ -212,17 +298,20 @@ Append `tenantUploadQuery(tenantIdForUpload)` on all upload fetches.
 interface TenantDefaultHeroManagerProps {
   settingsId?: number;
   tenantIdForUpload?: string;
-  initialUrls?: string[];
+  initialSlides?: DefaultHeroSlide[];
   displayMode: 'slideshow' | 'random' | 'single';
   includeWithEvents: boolean;
-  onUrlsChange: (urls: string[]) => void;
+  maxDisplayCount: number;
+  onSlidesChange: (slides: DefaultHeroSlide[]) => void;
   onDisplayModeChange: (mode: 'slideshow' | 'random' | 'single') => void;
   onIncludeWithEventsChange: (value: boolean) => void;
+  onMaxDisplayCountChange: (count: number) => void;
   disabled?: boolean;
+  mode: 'create' | 'edit';
 }
 ```
 
-Parent `TenantSettingsForm` keeps react-hook-form registration for mode/checkbox; manager calls `onUrlsChange` so submit still sets `defaultHeroImageUrlsJson`.
+Parent `TenantSettingsForm` keeps react-hook-form registration for mode, checkbox, and `defaultHeroMaxDisplayCount`; manager calls `onSlidesChange` so submit sets enriched `defaultHeroImageUrlsJson`.
 
 ### 7.3 Upload flow (sequence)
 
@@ -274,23 +363,32 @@ sequenceDiagram
 
 ### 8.1 Layout (top to bottom)
 
-1. **Page title:** “Default Homepage Hero Images”
+1. **Page title row:** “Default Homepage Hero Images” + **`?` guidelines icon** (opens assistance dialog — §5.11)
 2. **Walkthrough callout** (conditional, dismissible)
 3. **Info box:** Explains fallback chain — event heroes → tenant defaults → `/images/hero_section/hero_images/fallback/default-hero.webp`
 4. **Upload zone** (full width, dashed border)
    - Copy: “Upload one or more images. Drag and drop or click to browse.”
    - Accepted: PNG, JPG, JPEG, WEBP, GIF
-5. **Slide grid** (responsive `grid-cols-2 md:grid-cols-4 gap-4`)
-   - Thumbnail, order badge, drag handle, delete button
-6. **Display mode** + **Include with events** (two-column on md+)
-7. **Live preview** panel
-8. **Advanced** — collapsed “Add URLs manually”
+5. **Status counters** — Library N/20 · Active N/10 · Rotating / Random-3
+6. **Slide grid** (responsive `grid-cols-2 md:grid-cols-4 gap-4`)
+   - Thumbnail, active toggle, active-order badge, drag handle, delete button; inactive slides dimmed
+7. **Display mode** + **Include with events** + **Homepage display count (1–6)** (responsive grid on md+)
+8. **Live preview** panel (uses resolver preview helper)
+9. **Advanced** — collapsed “Add URLs manually”
 
 ### 8.2 Styling
 
 - Follow admin action button pattern for primary actions (green upload CTA optional).
 - Icon buttons for delete: `w-10 h-10` inline SVG per icon standards (no react-icons for action buttons in new code).
 - Tab styling: match existing tab nav in `TenantSettingsForm` (teal palette, unique vs blue/green/purple/orange).
+
+### 8.4 Guidelines dialog (Phase 2d)
+
+- **Icon:** `FaQuestionCircle`, `text-teal-600 hover:text-teal-800` (align with Homepage Hero tab accent).
+- **Dialog:** `fixed` portal, `z-[9999]`, max width `min(90vw, 800px)`, max height `min(80vh, 600px)`, scrollable body.
+- **Header:** Teal gradient (`from-teal-500 to-teal-600`), yellow-tinted title text (match event-form help header pattern).
+- **Body:** Render fetched HTML **or** structured `<ol>` / callout boxes mirroring §5.11 sections.
+- **Accessibility:** `aria-expanded` on icon; Escape closes; focus trap optional (match existing tooltip).
 
 ### 8.3 Empty state
 
@@ -319,8 +417,9 @@ No changes required to `HeroSection.tsx` if `defaultHeroImageUrlsJson` is PATCHe
 |-------|-------------|------------|
 | **2a** | Proxy route + `uploadDefaultHeroImageClient` + sequential multi-upload + PATCH | Backend upload endpoint |
 | **2b** | `TenantDefaultHeroManager` + Homepage Hero tab; remove Customization duplicate | 2a |
-| **2c** | Reorder + walkthrough callout | 2b |
-| **2d** (optional) | Backend batch upload endpoint; switch client to single request | Backend |
+| **2c** | Active toggles, display count, random-3 fallback, enriched JSON | 2b (`defaultHeroMaxDisplayCount` optional on API until backend column ships; client defaults to 6) |
+| **2d** | **Guidelines `?` dialog** + static HTML doc; no backend/DB | 2c |
+| **2e** (optional) | Backend batch upload endpoint; switch client to single request | Backend |
 
 ---
 
@@ -336,6 +435,14 @@ No changes required to `HeroSection.tsx` if `defaultHeroImageUrlsJson` is PATCHe
 - [ ] Invalid file type/size shows inline error without breaking form.
 - [ ] Manual URL paste (advanced) still works for ops with pre-uploaded S3 assets.
 - [ ] Customization tab no longer contains duplicate hero URL textarea.
+- [ ] New uploads are **inactive** by default; admin toggles active (max **10**).
+- [ ] **Homepage display count** (1–6, default 6) saves with tenant settings.
+- [ ] With **zero** active slides, homepage shows **3 random** images from library.
+- [ ] With active slides, homepage uses active subset capped by display count.
+- [ ] Legacy plain URL JSON unchanged until admin saves enriched format.
+- [ ] **`?` guidelines icon** beside section title opens assistance dialog with upload, active, display, and fallback rules (§5.11).
+- [ ] Guidelines dialog closes via **X**, **Escape**, and click-outside; no backend calls when opening help.
+- [ ] Static guidelines HTML loads from `public/documentation/default_hero_images_rotation/DEFAULT_HERO_IMAGES_ADMIN_GUIDELINES.html` (or equivalent `customContent` fallback).
 
 ---
 
@@ -343,13 +450,19 @@ No changes required to `HeroSection.tsx` if `defaultHeroImageUrlsJson` is PATCHe
 
 ### Manual
 
-1. Edit settings for `tenant_demo_002` → Homepage Hero → upload 3 WEBP files → reload → 3 thumbnails.
-2. Reorder slides → save → confirm JSON order via GET `/api/proxy/tenant-settings/{id}`.
-3. Delete middle slide → homepage shows remaining order.
-4. Set mode **random** → refresh homepage multiple times (visual check).
-5. Enable upcoming event with `isHomePageHeroImage` + **include with events** → both event and default slides in rotation.
-6. Upload 11 MB file → validation error.
-7. Create new settings → upload disabled until save + re-open edit.
+1. Edit settings for `tenant_demo_002` → Homepage Hero → upload 3 WEBP files → reload → 3 thumbnails, all **inactive**; homepage shows **3 random** from library.
+2. Mark 4 slides active (any 4) → homepage uses min(4, display count).
+3. Try 11th active → validation error.
+4. Set display count to 4 with 8 active → homepage rotates first 4 **active** in order.
+5. Deactivate all → homepage returns to random 3.
+6. Reorder slides → save → confirm enriched JSON via GET `/api/proxy/tenant-settings/{id}`.
+7. Delete middle slide → homepage reflects removal.
+8. Set mode **random** → refresh homepage multiple times (visual check).
+9. Enable upcoming event with `isHomePageHeroImage` + **include with events** → both event and default slides in rotation.
+10. Upload 11 MB file → validation error.
+11. Create new settings → upload disabled until save + re-open edit.
+12. Legacy tenant with plain `["url1","url2"]` → all URLs in slideshow until enriched save.
+13. Click **`?`** next to “Default Homepage Hero Images” → dialog shows all §5.11 sections; scroll works on small viewport.
 
 ### Regression
 
@@ -377,3 +490,6 @@ No changes required to `HeroSection.tsx` if `defaultHeroImageUrlsJson` is PATCHe
 | Hero resolver | `src/lib/hero/defaultHeroImages.ts` |
 | Current form (Phase 1) | `src/app/admin/tenant-management/components/TenantSettingsForm.tsx` |
 | Seed script | `scripts/seed-tenant-default-hero-images.js` |
+| Admin guidelines HTML (Phase 2d) | `public/documentation/default_hero_images_rotation/DEFAULT_HERO_IMAGES_ADMIN_GUIDELINES.html` |
+| Event form help pattern | `src/components/EventFormHelpTooltip.tsx` |
+| Help dialog component (Phase 2d) | `src/components/admin/AdminHelpDialog.tsx` |
