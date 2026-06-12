@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Default Hero Images — Admin Guidelines</title>
+  <style>
+    .admin-help-content {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .admin-help-content h2 {
+      color: #0d9488;
+      margin-top: 28px;
+      margin-bottom: 12px;
+      border-left: 4px solid #14b8a6;
+      padding-left: 12px;
+      font-size: 1.15rem;
+    }
+    .admin-help-content h2:first-child { margin-top: 0; }
+    .admin-help-content p { margin: 8px 0; }
+    .admin-help-content ul, .admin-help-content ol { margin: 8px 0 8px 20px; }
+    .admin-help-content li { margin: 4px 0; }
+    .admin-help-content code {
+      background-color: #e8f4f8;
+      color: #0d3b66;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', Consolas, monospace;
+      font-size: 0.9em;
+    }
+    .admin-help-content .rule-box {
+      background-color: #e8f4f8;
+      border-left: 4px solid #0d9488;
+      padding: 12px 14px;
+      margin: 12px 0;
+      border-radius: 4px;
+    }
+    .admin-help-content .warning-box {
+      background-color: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 14px;
+      margin: 12px 0;
+      border-radius: 4px;
+    }
+    .admin-help-content .info-box {
+      background-color: #ecfdf5;
+      border-left: 4px solid #10b981;
+      padding: 12px 14px;
+      margin: 12px 0;
+      border-radius: 4px;
+    }
+    .admin-help-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 0.95rem;
+    }
+    .admin-help-content th {
+      background: linear-gradient(180deg, #0d9488 0%, #0f766e 100%);
+      color: #fff;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .admin-help-content td {
+      border: 1px solid #d1d5db;
+      padding: 10px 12px;
+    }
+    .admin-help-content tr:nth-child(even) td { background-color: #f9fafb; }
+    .admin-help-content .fallback-chain {
+      background-color: #e8f4f8;
+      border: 1px solid #99f6e4;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin: 12px 0;
+    }
+    .admin-help-content .fallback-chain ol {
+      margin: 0;
+      padding-left: 22px;
+    }
+    .admin-help-content strong { color: #0f766e; }
+  </style>
+</head>
+<body>
+<div class="admin-help-content">
+
+<h2>1. What this controls</h2>
+<p>
+  Tenant <strong>default homepage hero images</strong> appear when there is no upcoming event with hero media,
+  or as <strong>trailing slides</strong> when <em>Include with events</em> is enabled.
+  Settings live on the <strong>Homepage Hero</strong> tab in Tenant Settings.
+</p>
+
+<h2>2. Before you upload (create mode)</h2>
+<div class="warning-box">
+  <p><strong>Save tenant settings first.</strong> On a <em>new</em> tenant settings record, uploads are disabled until you save once and return to <strong>Edit</strong> — the same pattern as logo upload.</p>
+</div>
+
+<h2>3. Upload rules</h2>
+<ul>
+  <li>Drag-and-drop or click <strong>Browse</strong> to add images.</li>
+  <li>Formats: <code>PNG</code>, <code>JPG</code>, <code>JPEG</code>, <code>WEBP</code>, <code>GIF</code>.</li>
+  <li>Max file size: <strong>10 MB</strong> per file.</li>
+  <li>Recommended dimensions: <strong>2000×800</strong> (5:2 landscape).</li>
+  <li>Max library size: <strong>20</strong> images total.</li>
+  <li>When a <code>settingsId</code> exists, successful uploads auto-save enriched JSON to tenant settings.</li>
+</ul>
+
+<table>
+  <thead>
+    <tr><th>Limit</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Library (all uploaded slides)</td><td>20 max</td></tr>
+    <tr><td>Active slides (homepage pool)</td><td>10 max</td></tr>
+    <tr><td>Display count (shown when ≥1 active)</td><td>1–6 (default 6)</td></tr>
+    <tr><td>Zero-active fallback</td><td>3 random from library</td></tr>
+    <tr><td>File size</td><td>10 MB</td></tr>
+    <tr><td>Recommended size</td><td>2000×800 px</td></tr>
+  </tbody>
+</table>
+
+<h2>4. Library vs active</h2>
+<p>
+  The <strong>library</strong> holds every uploaded slide. Only slides marked <strong>Active</strong> participate in homepage selection.
+  <strong>New uploads default to Inactive</strong> — you must opt in each slide before it can appear on the homepage.
+</p>
+
+<h2>5. Mark slides active</h2>
+<ul>
+  <li>Use the <strong>Active / Inactive</strong> toggle on each thumbnail.</li>
+  <li>Maximum <strong>10</strong> active slides at once.</li>
+  <li>Drag thumbnails to reorder — order matters for the active subset and slideshow mode.</li>
+</ul>
+
+<h2>6. Homepage display count</h2>
+<p>
+  Select <strong>1–6</strong> (default <strong>6</strong>). When at least one slide is active, the homepage shows
+  <code>min(active count, display count)</code> slides from the active pool (in order).
+</p>
+
+<h2>7. Zero active fallback</h2>
+<div class="rule-box">
+  <p>
+    If <strong>no</strong> slides are marked active but the library is non-empty, the homepage picks
+    <strong>3 random</strong> images from the full library on each page resolve (refresh may show different slides).
+  </p>
+</div>
+
+<h2>8. Display mode</h2>
+<p>Applied <strong>after</strong> active / random-3 resolution:</p>
+<ul>
+  <li><strong>Slideshow</strong> — rotate through all selected URLs.</li>
+  <li><strong>Random</strong> — one URL per page load.</li>
+  <li><strong>Single</strong> — first URL only.</li>
+</ul>
+
+<h2>9. Include with events</h2>
+<p>
+  When checked, tenant default slides <strong>append after</strong> upcoming event hero images on the homepage.
+  When unchecked, defaults only appear when no event hero media exists.
+</p>
+
+<h2>10. Homepage fallback chain</h2>
+<div class="fallback-chain">
+  <p><strong>Resolution order (first match wins):</strong></p>
+  <ol>
+    <li>Upcoming <strong>event hero media</strong> (if any)</li>
+    <li><strong>Tenant default</strong> slides (active rules, display count, random-3, display mode)</li>
+    <li>Bundled fallback image:
+      <code>/images/hero_section/hero_images/fallback/default-hero.webp</code>
+    </li>
+  </ol>
+</div>
+
+<h2>11. Legacy data</h2>
+<p>
+  Plain URL JSON arrays (e.g. <code>["https://..."]</code>) continue to show <strong>all</strong> URLs on the homepage
+  until an admin saves from this UI — which migrates to enriched <code>[{ "url", "active" }]</code> format.
+</p>
+
+<h2>12. Manual URLs (advanced)</h2>
+<p>
+  Paste HTTPS URLs one per line. They are merged as <strong>inactive</strong> slides and deduplicated by URL.
+  Mark them active individually if you want them on the homepage.
+</p>
+
+<h2>13. Verify on the homepage</h2>
+<div class="info-box">
+  <ol>
+    <li>Click <strong>Save</strong> on tenant settings.</li>
+    <li>Open the public homepage in a new tab.</li>
+    <li>Test with and without upcoming events (and with <em>Include with events</em> on/off).</li>
+    <li>Confirm rotation, display count, and fallback behavior match your expectations.</li>
+  </ol>
+</div>
+
+</div>
+</body>
+</html>

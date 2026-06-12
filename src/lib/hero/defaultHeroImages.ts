@@ -6,11 +6,23 @@ export const BUNDLED_EMERGENCY_HERO_IMAGE =
 
 export type DefaultHeroDisplayMode = 'slideshow' | 'random' | 'single';
 
+export interface DefaultHeroSlide {
+  url: string;
+  active?: boolean;
+  fileName?: string;
+}
+
 export interface TenantHeroConfig {
   urls: string[];
   displayMode: DefaultHeroDisplayMode;
   includeWithEvents: boolean;
 }
+
+export const MAX_LIBRARY_SLIDES = 20;
+export const MAX_ACTIVE_SLIDES = 10;
+export const DEFAULT_MAX_DISPLAY_COUNT = 6;
+export const MAX_DISPLAY_COUNT = 6;
+export const RANDOM_FALLBACK_COUNT = 3;
 
 const DEFAULT_DISPLAY_MODE: DefaultHeroDisplayMode = 'slideshow';
 const DEFAULT_INCLUDE_WITH_EVENTS = true;
@@ -29,10 +41,91 @@ function uniqueUrls(urls: string[]): string[] {
   });
 }
 
-/**
- * Parse tenant default hero URLs from settings.
- * Backend may return `defaultHeroImageUrls` as an array or `defaultHeroImageUrlsJson` as a JSON string.
- */
+export function isLegacyHeroSettings(
+  jsonField?: string | null,
+  imageUrls?: string[] | null
+): boolean {
+  if (Array.isArray(imageUrls) && imageUrls.length > 0) return true;
+  if (!jsonField || !jsonField.trim()) return true;
+  try {
+    const parsed = JSON.parse(jsonField);
+    if (!Array.isArray(parsed) || parsed.length === 0) return true;
+    return parsed.every((item) => typeof item === 'string');
+  } catch {
+    return true;
+  }
+}
+
+export function clampHeroMaxDisplayCount(count?: number | null): number {
+  if (count == null || Number.isNaN(Number(count))) return DEFAULT_MAX_DISPLAY_COUNT;
+  return Math.min(MAX_DISPLAY_COUNT, Math.max(1, Math.floor(Number(count))));
+}
+
+export function parseTenantDefaultHeroSlides(
+  settings?: Pick<TenantSettingsDTO, 'defaultHeroImageUrls' | 'defaultHeroImageUrlsJson'> | null
+): DefaultHeroSlide[] {
+  if (!settings) return [];
+
+  if (Array.isArray(settings.defaultHeroImageUrls) && settings.defaultHeroImageUrls.length > 0) {
+    return uniqueUrls(settings.defaultHeroImageUrls.filter(isNonEmptyUrl)).map((url) => ({
+      url,
+      active: true,
+    }));
+  }
+
+  const jsonField = settings.defaultHeroImageUrlsJson;
+  if (typeof jsonField === 'string' && jsonField.trim()) {
+    try {
+      const parsed = JSON.parse(jsonField);
+      if (Array.isArray(parsed)) {
+        if (parsed.length === 0) return [];
+        if (typeof parsed[0] === 'string') {
+          return uniqueUrls(parsed.filter(isNonEmptyUrl)).map((url) => ({ url, active: true }));
+        }
+        const slides: DefaultHeroSlide[] = [];
+        const seen = new Set<string>();
+        for (const item of parsed) {
+          if (item && typeof item === 'object' && isNonEmptyUrl((item as DefaultHeroSlide).url)) {
+            const url = String((item as DefaultHeroSlide).url).trim();
+            if (seen.has(url)) continue;
+            seen.add(url);
+            slides.push({
+              url,
+              active: Boolean((item as DefaultHeroSlide).active),
+              fileName:
+                typeof (item as DefaultHeroSlide).fileName === 'string'
+                  ? (item as DefaultHeroSlide).fileName
+                  : undefined,
+            });
+          }
+        }
+        return slides;
+      }
+    } catch {
+      return uniqueUrls(
+        jsonField
+          .split(',')
+          .map((s) => s.trim())
+          .filter(isNonEmptyUrl)
+      ).map((url) => ({ url, active: true }));
+    }
+  }
+
+  return [];
+}
+
+export function serializeDefaultHeroSlides(slides: DefaultHeroSlide[]): string {
+  return JSON.stringify(
+    slides
+      .filter((s) => isNonEmptyUrl(s.url))
+      .map((s) => ({
+        url: s.url.trim(),
+        active: Boolean(s.active),
+        ...(s.fileName ? { fileName: s.fileName } : {}),
+      }))
+  );
+}
+
 export function parseTenantDefaultHeroUrls(
   settings?: Pick<TenantSettingsDTO, 'defaultHeroImageUrls' | 'defaultHeroImageUrlsJson'> | null
 ): string[] {
@@ -47,12 +140,17 @@ export function parseTenantDefaultHeroUrls(
     try {
       const parsed = JSON.parse(jsonField);
       if (Array.isArray(parsed)) {
+        if (parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
+          return parseTenantDefaultHeroSlides(settings).map((s) => s.url);
+        }
         return uniqueUrls(parsed.filter(isNonEmptyUrl));
       }
     } catch {
-      // Fall through — treat as comma-separated list
       return uniqueUrls(
-        jsonField.split(',').map((s) => s.trim()).filter(isNonEmptyUrl)
+        jsonField
+          .split(',')
+          .map((s) => s.trim())
+          .filter(isNonEmptyUrl)
       );
     }
   }
@@ -60,21 +158,80 @@ export function parseTenantDefaultHeroUrls(
   return [];
 }
 
+export function pickRandomSlidesFromLibrary(slides: DefaultHeroSlide[], count: number): string[] {
+  const library = slides.filter((s) => isNonEmptyUrl(s.url)).map((s) => s.url.trim());
+  if (library.length === 0) return [];
+
+  const pool = [...library];
+  const picked: string[] = [];
+  const n = Math.min(count, pool.length);
+
+  for (let i = 0; i < n; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    picked.push(pool[idx]);
+    pool.splice(idx, 1);
+  }
+
+  return picked;
+}
+
+export function resolveTenantDefaultHeroUrlsForDisplay(
+  settings?: Pick<
+    TenantSettingsDTO,
+    'defaultHeroImageUrls' | 'defaultHeroImageUrlsJson' | 'defaultHeroMaxDisplayCount'
+  > | null
+): string[] {
+  if (
+    isLegacyHeroSettings(settings?.defaultHeroImageUrlsJson, settings?.defaultHeroImageUrls ?? undefined)
+  ) {
+    return parseTenantDefaultHeroUrls(settings);
+  }
+
+  const slides = parseTenantDefaultHeroSlides(settings);
+  if (slides.length === 0) return [];
+
+  const maxDisplay = clampHeroMaxDisplayCount(settings?.defaultHeroMaxDisplayCount);
+  const activeUrls = slides.filter((s) => s.active && isNonEmptyUrl(s.url)).map((s) => s.url.trim());
+
+  if (activeUrls.length > 0) {
+    return activeUrls.slice(0, maxDisplay);
+  }
+
+  return pickRandomSlidesFromLibrary(slides, RANDOM_FALLBACK_COUNT);
+}
+
+export function resolveTenantDefaultHeroUrlsForPreview(
+  slides: DefaultHeroSlide[],
+  maxDisplayCount?: number | null
+): string[] {
+  if (slides.length === 0) return [];
+
+  const maxDisplay = clampHeroMaxDisplayCount(maxDisplayCount);
+  const activeUrls = slides.filter((s) => s.active && isNonEmptyUrl(s.url)).map((s) => s.url.trim());
+
+  if (activeUrls.length > 0) {
+    return activeUrls.slice(0, maxDisplay);
+  }
+
+  return pickRandomSlidesFromLibrary(slides, RANDOM_FALLBACK_COUNT);
+}
+
 export function getTenantHeroConfig(
   settings?: Pick<
     TenantSettingsDTO,
-    'defaultHeroImageUrls' | 'defaultHeroImageUrlsJson' | 'defaultHeroDisplayMode' | 'defaultHeroIncludeWithEvents'
+    | 'defaultHeroImageUrls'
+    | 'defaultHeroImageUrlsJson'
+    | 'defaultHeroDisplayMode'
+    | 'defaultHeroIncludeWithEvents'
+    | 'defaultHeroMaxDisplayCount'
   > | null
 ): TenantHeroConfig {
-  const urls = parseTenantDefaultHeroUrls(settings);
+  const urls = resolveTenantDefaultHeroUrlsForDisplay(settings);
   const displayMode = settings?.defaultHeroDisplayMode ?? DEFAULT_DISPLAY_MODE;
   const includeWithEvents = settings?.defaultHeroIncludeWithEvents ?? DEFAULT_INCLUDE_WITH_EVENTS;
   return { urls, displayMode, includeWithEvents };
 }
 
-/**
- * Apply display mode to a tenant default URL pool (used when there are no event hero images).
- */
 export function applyTenantDisplayMode(
   urls: string[],
   mode: DefaultHeroDisplayMode = DEFAULT_DISPLAY_MODE
@@ -92,22 +249,22 @@ export interface ResolveHeroImagesInput {
   eventImageUrls?: string[];
   tenantSettings?: Pick<
     TenantSettingsDTO,
-    'defaultHeroImageUrls' | 'defaultHeroImageUrlsJson' | 'defaultHeroDisplayMode' | 'defaultHeroIncludeWithEvents'
+    | 'defaultHeroImageUrls'
+    | 'defaultHeroImageUrlsJson'
+    | 'defaultHeroDisplayMode'
+    | 'defaultHeroIncludeWithEvents'
+    | 'defaultHeroMaxDisplayCount'
   > | null;
 }
 
 export interface ResolveHeroImagesResult {
   imageUrls: string[];
   durationsMs: number[];
-  /** True when the last slide(s) are tenant/bundled defaults (no linked event). */
   defaultSlideCount: number;
 }
 
 const DEFAULT_SLIDE_DURATION_MS = 8000;
 
-/**
- * Resolve homepage hero slideshow URLs: event media → tenant defaults → bundled emergency.
- */
 export function resolveHeroImages(input: ResolveHeroImagesInput): ResolveHeroImagesResult {
   const eventUrls = uniqueUrls((input.eventImageUrls ?? []).filter(isNonEmptyUrl));
   const { urls: tenantUrls, displayMode, includeWithEvents } = getTenantHeroConfig(input.tenantSettings);
@@ -139,19 +296,19 @@ export function resolveHeroImages(input: ResolveHeroImagesInput): ResolveHeroIma
     defaultSlideCount = 1;
   }
 
-  const durationsMs = imageUrls.map((_, index) => {
-    const isDefaultSlide = index >= imageUrls.length - defaultSlideCount;
-    return isDefaultSlide ? DEFAULT_SLIDE_DURATION_MS : DEFAULT_SLIDE_DURATION_MS;
-  });
+  const durationsMs = imageUrls.map(() => DEFAULT_SLIDE_DURATION_MS);
 
   return { imageUrls, durationsMs, defaultSlideCount };
 }
 
-/**
- * Single URL fallback for event pages, checkout, success screens, etc.
- */
 export function resolveSingleHeroFallbackUrl(
-  tenantSettings?: Pick<TenantSettingsDTO, 'defaultHeroImageUrls' | 'defaultHeroImageUrlsJson' | 'defaultHeroDisplayMode'> | null,
+  tenantSettings?: Pick<
+    TenantSettingsDTO,
+    | 'defaultHeroImageUrls'
+    | 'defaultHeroImageUrlsJson'
+    | 'defaultHeroDisplayMode'
+    | 'defaultHeroMaxDisplayCount'
+  > | null,
   preferredEventUrl?: string | null
 ): string {
   if (isNonEmptyUrl(preferredEventUrl)) return preferredEventUrl.trim();
@@ -165,7 +322,7 @@ export function resolveSingleHeroFallbackUrl(
   return BUNDLED_EMERGENCY_HERO_IMAGE;
 }
 
-/** Serialize tenant default URLs for backend JSON column. */
+/** @deprecated Use serializeDefaultHeroSlides for enriched JSON. */
 export function serializeDefaultHeroImageUrls(urls: string[]): string {
   return JSON.stringify(uniqueUrls(urls.filter(isNonEmptyUrl)));
 }

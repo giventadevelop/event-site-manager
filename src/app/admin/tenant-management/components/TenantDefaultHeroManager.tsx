@@ -3,41 +3,55 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import SaveStatusDialog, { type SaveStatus } from '@/components/SaveStatusDialog';
-import type { DefaultHeroDisplayMode } from '@/lib/hero/defaultHeroImages';
-import { serializeDefaultHeroImageUrls } from '@/lib/hero/defaultHeroImages';
+import type { DefaultHeroDisplayMode, DefaultHeroSlide } from '@/lib/hero/defaultHeroImages';
+import {
+  DEFAULT_MAX_DISPLAY_COUNT,
+  MAX_ACTIVE_SLIDES,
+  MAX_DISPLAY_COUNT,
+  MAX_LIBRARY_SLIDES,
+  clampHeroMaxDisplayCount,
+  resolveTenantDefaultHeroUrlsForPreview,
+  serializeDefaultHeroSlides,
+} from '@/lib/hero/defaultHeroImages';
 import {
   patchTenantSetting,
   uploadDefaultHeroImageClient,
 } from '@/app/admin/tenant-management/settings/ApiServerActions';
+import AdminHelpDialog from '@/components/admin/AdminHelpDialog';
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const MAX_SLIDES = 20;
+
 const PREVIEW_ROTATE_MS = 4000;
 
-interface HeroSlide {
+interface HeroSlide extends DefaultHeroSlide {
   id: string;
-  url: string;
-  fileName?: string;
 }
 
 export interface TenantDefaultHeroManagerProps {
   settingsId?: number;
   tenantIdForUpload?: string;
-  initialUrls?: string[];
+  initialSlides?: DefaultHeroSlide[];
+  maxDisplayCount?: number;
   displayMode: DefaultHeroDisplayMode;
   includeWithEvents: boolean;
-  onUrlsChange: (urls: string[]) => void;
+  onSlidesChange: (slides: DefaultHeroSlide[]) => void;
+  onMaxDisplayCountChange: (count: number) => void;
   onDisplayModeChange: (mode: DefaultHeroDisplayMode) => void;
   onIncludeWithEventsChange: (value: boolean) => void;
   disabled?: boolean;
   mode: 'create' | 'edit';
 }
 
-function urlsToSlides(urls: string[]): HeroSlide[] {
-  return urls.map((url, index) => ({
-    id: `slide-${index}-${url.slice(-24)}`,
-    url,
+function slidesToState(slides: DefaultHeroSlide[]): HeroSlide[] {
+  return slides.map((slide, index) => ({
+    ...slide,
+    id: `slide-${index}-${slide.url.slice(-24)}`,
+    active: Boolean(slide.active),
   }));
+}
+
+function toDefaultSlides(slides: HeroSlide[]): DefaultHeroSlide[] {
+  return slides.map(({ url, active, fileName }) => ({ url, active: Boolean(active), fileName }));
 }
 
 function validateImageFile(file: File): string | null {
@@ -53,16 +67,18 @@ function validateImageFile(file: File): string | null {
 export default function TenantDefaultHeroManager({
   settingsId,
   tenantIdForUpload,
-  initialUrls = [],
+  initialSlides = [],
+  maxDisplayCount = DEFAULT_MAX_DISPLAY_COUNT,
   displayMode,
   includeWithEvents,
-  onUrlsChange,
+  onSlidesChange,
+  onMaxDisplayCountChange,
   onDisplayModeChange,
   onIncludeWithEventsChange,
   disabled = false,
   mode,
 }: TenantDefaultHeroManagerProps) {
-  const [slides, setSlides] = useState<HeroSlide[]>(() => urlsToSlides(initialUrls));
+  const [slides, setSlides] = useState<HeroSlide[]>(() => slidesToState(initialSlides));
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
@@ -84,37 +100,43 @@ export default function TenantDefaultHeroManager({
   const uploadDisabled = disabled || !settingsId || mode === 'create';
 
   useEffect(() => {
-    const next = urlsToSlides(initialUrls);
+    const next = slidesToState(initialSlides);
     slidesRef.current = next;
     setSlides(next);
-  }, [initialUrls.join('|')]);
+  }, [JSON.stringify(initialSlides)]);
 
   useEffect(() => {
-    if (settingsId && initialUrls.length === 0 && mode === 'edit') {
+    if (settingsId && initialSlides.length === 0 && mode === 'edit') {
       const key = `tenantHeroWalkthroughDismissed:${settingsId}`;
       setShowWalkthrough(typeof window !== 'undefined' && !localStorage.getItem(key));
     } else {
       setShowWalkthrough(false);
     }
-  }, [settingsId, initialUrls.length, mode]);
+  }, [settingsId, initialSlides.length, mode]);
 
   useEffect(() => {
-    if (displayMode !== 'slideshow' || slides.length < 2) {
+    const pool = resolveTenantDefaultHeroUrlsForPreview(toDefaultSlides(slides), maxDisplayCount);
+    const rotateCount = pool.length > 0 ? pool.length : slides.length > 0 ? 1 : 0;
+    if (displayMode !== 'slideshow' || rotateCount < 2) {
       setPreviewIndex(0);
       return;
     }
     const timer = setInterval(() => {
-      setPreviewIndex((i) => (i + 1) % slides.length);
+      setPreviewIndex((i) => (i + 1) % rotateCount);
     }, PREVIEW_ROTATE_MS);
     return () => clearInterval(timer);
-  }, [displayMode, slides.length]);
+  }, [displayMode, slides, maxDisplayCount]);
 
-  const persistUrls = useCallback(
-    async (urls: string[]) => {
+  const persistSlides = useCallback(
+    async (nextSlides: HeroSlide[], nextMaxDisplay?: number) => {
       if (!settingsId) return;
-      await patchTenantSetting(settingsId, {
-        defaultHeroImageUrlsJson: serializeDefaultHeroImageUrls(urls),
-      });
+      const payload: Record<string, unknown> = {
+        defaultHeroImageUrlsJson: serializeDefaultHeroSlides(nextSlides),
+      };
+      if (nextMaxDisplay != null) {
+        payload.defaultHeroMaxDisplayCount = clampHeroMaxDisplayCount(nextMaxDisplay);
+      }
+      await patchTenantSetting(settingsId, payload);
     },
     [settingsId]
   );
@@ -122,15 +144,15 @@ export default function TenantDefaultHeroManager({
   const updateSlides = useCallback(
     (next: HeroSlide[], persist = false) => {
       setSlides(next);
-      const urls = next.map((s) => s.url);
-      onUrlsChange(urls);
+      const defaultSlides = toDefaultSlides(next);
+      onSlidesChange(defaultSlides);
       if (persist && settingsId) {
-        void persistUrls(urls).catch((err: Error) => {
-          setUploadError(err.message || 'Failed to save hero image order.');
+        void persistSlides(next).catch((err: Error) => {
+          setUploadError(err.message || 'Failed to save hero slides.');
         });
       }
     },
-    [onUrlsChange, persistUrls, settingsId]
+    [onSlidesChange, persistSlides, settingsId]
   );
 
   const processFiles = async (fileList: FileList | File[]) => {
@@ -140,8 +162,8 @@ export default function TenantDefaultHeroManager({
     if (files.length === 0) return;
 
     const currentCount = slidesRef.current.length;
-    if (currentCount + files.length > MAX_SLIDES) {
-      setUploadError(`Maximum ${MAX_SLIDES} hero slides allowed. Remove some slides before uploading more.`);
+    if (currentCount + files.length > MAX_LIBRARY_SLIDES) {
+      setUploadError(`Maximum ${MAX_LIBRARY_SLIDES} hero slides allowed. Remove some slides before uploading more.`);
       return;
     }
 
@@ -175,12 +197,13 @@ export default function TenantDefaultHeroManager({
           id: `slide-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 9)}`,
           url: result.url,
           fileName: file.name,
+          active: false,
         });
         uploaded += 1;
       }
 
       updateSlides(newSlides, false);
-      await persistUrls(newSlides.map((s) => s.url));
+      await persistSlides(newSlides);
 
       setUploadDialogStatus('success');
       setUploadDialogTitle('Uploaded Successfully!');
@@ -245,7 +268,7 @@ export default function TenantDefaultHeroManager({
     updateSlides(next, false);
     if (settingsId) {
       try {
-        await persistUrls(next.map((s) => s.url));
+        await persistSlides(next);
       } catch (err: unknown) {
         setUploadError(err instanceof Error ? err.message : 'Failed to remove slide.');
       }
@@ -270,13 +293,12 @@ export default function TenantDefaultHeroManager({
     current.splice(toIndex, 0, moved);
     slidesRef.current = current;
     setSlides(current);
-    onUrlsChange(current.map((s) => s.url));
+    onSlidesChange(toDefaultSlides(current));
   };
 
   const handleSlideDragEnd = () => {
     if (dragSlideId && settingsId) {
-      const urls = slidesRef.current.map((s) => s.url);
-      void persistUrls(urls).catch((err: Error) => {
+void persistSlides(slidesRef.current).catch((err: Error) => {
         setUploadError(err.message || 'Failed to save slide order.');
       });
     }
@@ -297,10 +319,11 @@ export default function TenantDefaultHeroManager({
     const existing = new Set(slides.map((s) => s.url));
     const merged = [...slides];
     for (const url of parsed) {
-      if (!existing.has(url) && merged.length < MAX_SLIDES) {
+      if (!existing.has(url) && merged.length < MAX_LIBRARY_SLIDES) {
         merged.push({
           id: `slide-manual-${Date.now()}-${merged.length}`,
           url,
+          active: false,
         });
         existing.add(url);
       }
@@ -318,17 +341,61 @@ export default function TenantDefaultHeroManager({
     setShowWalkthrough(false);
   };
 
+  const activeCount = slides.filter((s) => s.active).length;
+  const previewPool = resolveTenantDefaultHeroUrlsForPreview(toDefaultSlides(slides), maxDisplayCount);
+  const previewSlides =
+    previewPool.length > 0
+      ? previewPool
+      : slides.length > 0
+        ? [slides[0].url]
+        : [];
+
   const previewUrl =
-    slides.length > 0
-      ? displayMode === 'slideshow' && slides.length >= 2
-        ? slides[previewIndex]?.url
-        : slides[0]?.url
+    previewSlides.length > 0
+      ? displayMode === 'slideshow' && previewSlides.length >= 2
+        ? previewSlides[previewIndex % previewSlides.length]
+        : previewSlides[0]
       : null;
+
+  const handleToggleActive = (slideId: string) => {
+    const current = slidesRef.current;
+    const target = current.find((s) => s.id === slideId);
+    if (!target) return;
+
+    const activating = !target.active;
+    const currentActiveCount = current.filter((s) => s.active).length;
+    if (activating && currentActiveCount >= MAX_ACTIVE_SLIDES) {
+      setUploadError(`Maximum ${MAX_ACTIVE_SLIDES} slides can be marked active for the homepage.`);
+      return;
+    }
+
+    setUploadError(null);
+    const next = current.map((s) => (s.id === slideId ? { ...s, active: activating } : s));
+    updateSlides(next, true);
+  };
+
+  const handleMaxDisplayChange = (value: number) => {
+    const clamped = clampHeroMaxDisplayCount(value);
+    onMaxDisplayCountChange(clamped);
+    if (settingsId) {
+      void persistSlides(slidesRef.current, clamped).catch((err: Error) => {
+        setUploadError(err.message || 'Failed to save display count.');
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900">Default Homepage Hero Images</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-medium text-gray-900">Default Homepage Hero Images</h3>
+          <AdminHelpDialog
+            title="Default Hero Images — Guidelines & Assistance"
+            ariaLabel="Default hero images guidelines and assistance"
+            documentationUrl="/documentation/default_hero_images_rotation/DEFAULT_HERO_IMAGES_ADMIN_GUIDELINES.html"
+            accent="teal"
+          />
+        </div>
         <p className="text-sm text-gray-500 mt-1">
           Shown when no upcoming event hero media exists, or as trailing slides when enabled below.
         </p>
@@ -341,6 +408,7 @@ export default function TenantDefaultHeroManager({
               <p className="font-semibold text-teal-900 mb-2">Quick setup (3 steps)</p>
               <ol className="list-decimal pl-5 text-sm text-teal-800 space-y-1">
                 <li>Upload one or more hero slides (drag and drop or browse).</li>
+                <li>Mark slides <strong>Active</strong> for the homepage (max 10). Set rotation count (1–6).</li>
                 <li>Choose display mode: slideshow, random, or single.</li>
                 <li>Click <strong>Update Settings</strong> at the bottom, or uploads auto-save.</li>
               </ol>
@@ -463,9 +531,18 @@ export default function TenantDefaultHeroManager({
 
       {slides.length > 0 && (
         <div>
-          <p className="text-sm font-medium text-gray-700 mb-3">
-            Slides ({slides.length}/{MAX_SLIDES}) — drag to reorder
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <p className="text-sm font-medium text-gray-700">
+              Library ({slides.length}/{MAX_LIBRARY_SLIDES}) — drag to reorder
+            </p>
+            <p className="text-sm text-gray-600">
+              Active for homepage: <span className="font-semibold text-teal-700">{activeCount}</span>/
+              {MAX_ACTIVE_SLIDES}
+              {activeCount === 0 && slides.length > 0 && (
+                <span className="text-amber-700 ml-2">(homepage will show 3 random from library)</span>
+              )}
+            </p>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {slides.map((slide, index) => (
               <div
@@ -490,6 +567,22 @@ export default function TenantDefaultHeroManager({
                   <span className="absolute top-1 left-1 bg-black/60 text-white text-xs font-semibold px-2 py-0.5 rounded">
                     {index + 1}
                   </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleActive(slide.id);
+                    }}
+                    className={`absolute bottom-1 left-1 text-xs font-semibold px-2 py-0.5 rounded transition-colors ${
+                      slide.active
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                    title={slide.active ? 'Mark inactive for homepage' : 'Mark active for homepage'}
+                    aria-label={slide.active ? 'Mark slide inactive for homepage' : 'Mark slide active for homepage'}
+                  >
+                    {slide.active ? 'Active' : 'Inactive'}
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -529,6 +622,31 @@ export default function TenantDefaultHeroManager({
           </div>
         </div>
       )}
+
+
+      <div>
+        <label htmlFor="defaultHeroMaxDisplayCount" className="block text-sm font-medium text-gray-700 mb-2">
+          Images in homepage rotation (when slides are active)
+        </label>
+        <select
+          id="defaultHeroMaxDisplayCount"
+          value={clampHeroMaxDisplayCount(maxDisplayCount)}
+          onChange={(e) => handleMaxDisplayChange(Number(e.target.value))}
+          className="mt-1 block w-full max-w-xs border border-gray-400 rounded-xl focus:border-teal-500 focus:ring-teal-500 px-4 py-3 text-base"
+          title="Maximum active slides shown on homepage"
+          aria-label="Maximum active slides shown on homepage"
+        >
+          {Array.from({ length: MAX_DISPLAY_COUNT }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>
+              {n} image{n === 1 ? '' : 's'}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-500">
+          Uses the first N active slides in list order (max {MAX_DISPLAY_COUNT}). Separate from how many you mark active (
+          max {MAX_ACTIVE_SLIDES}).
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>

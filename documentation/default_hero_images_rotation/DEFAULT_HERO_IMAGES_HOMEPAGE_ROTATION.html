@@ -409,7 +409,8 @@
     /              \
   Yes              No
    |                |
-   |                +--> Tenant defaultHeroImageUrls (from settings)
+   |                +--> resolveTenantDefaultHeroUrlsForDisplay(settings)
+   |         (legacy: all URLs | enriched: active subset or random-3)
    |                           |
    |                      Pool empty?
    |                       /        \
@@ -444,7 +445,15 @@
             </tr>
             <tr>
                 <td><code>parseTenantDefaultHeroUrls()</code></td>
-                <td>Reads <code>defaultHeroImageUrls</code> array or <code>defaultHeroImageUrlsJson</code> string from tenant settings</td>
+                <td>Legacy flat URL list from <code>defaultHeroImageUrls</code> or plain string array JSON</td>
+            </tr>
+            <tr>
+                <td><code>parseTenantDefaultHeroSlides()</code> / <code>serializeDefaultHeroSlides()</code></td>
+                <td>Enriched admin JSON: <code>[{ "url", "active" }]</code> — library up to 20, max 10 active</td>
+            </tr>
+            <tr>
+                <td><code>resolveTenantDefaultHeroUrlsForDisplay()</code></td>
+                <td>Homepage pool before display mode: legacy = all URLs; enriched = first N active (N &le; <code>defaultHeroMaxDisplayCount</code>, default 6) or <strong>3 random</strong> from library when zero active</td>
             </tr>
             <tr>
                 <td><code>resolveHeroImages()</code></td>
@@ -464,7 +473,8 @@
     <div class="parameters-list">
         <p><strong>Tenant settings fields (frontend DTO)</strong></p>
         <ul>
-            <li><code>defaultHeroImageUrlsJson</code> — JSON array of HTTPS URLs (ordered for slideshow)</li>
+            <li><code>defaultHeroImageUrlsJson</code> — legacy: <code>["https://..."]</code>; enriched: <code>[{"url":"...","active":true|false}]</code></li>
+            <li><code>defaultHeroMaxDisplayCount</code> — integer 1–6 (default 6): max active slides on homepage when ≥1 slide is marked active</li>
             <li><code>defaultHeroDisplayMode</code> — <code>slideshow</code> | <code>random</code> | <code>single</code></li>
             <li><code>defaultHeroIncludeWithEvents</code> — when <code>true</code>, append tenant default slides after event hero images (legacy behavior, now explicit)</li>
         </ul>

@@ -69,6 +69,8 @@ export interface TenantSettingsDTO {
   defaultHeroDisplayMode?: 'slideshow' | 'random' | 'single';
   /** When true, tenant default slides append after event hero images in the homepage carousel. */
   defaultHeroIncludeWithEvents?: boolean;
+  /** Max tenant default slides on homepage when slides are marked active (1-6). */
+  defaultHeroMaxDisplayCount?: number;
   // Contact and Address Fields
   addressLine1?: string;
   addressLine2?: string;

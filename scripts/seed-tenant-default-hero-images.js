@@ -100,6 +100,7 @@ async function main() {
     defaultHeroImageUrlsJson: JSON.stringify(urls),
     defaultHeroDisplayMode: DISPLAY_MODE,
     defaultHeroIncludeWithEvents: INCLUDE_WITH_EVENTS,
+    defaultHeroMaxDisplayCount: 6,
     updatedAt: new Date().toISOString(),
   };
 

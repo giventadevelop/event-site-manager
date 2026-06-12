@@ -7,9 +7,12 @@ import { uploadEmailFooterHtmlClient, uploadTenantLogoClient, uploadEmailHeaderI
 import { patchTenantSetting } from '@/app/admin/tenant-management/settings/ApiServerActions';
 import SaveStatusDialog, { type SaveStatus } from '@/components/SaveStatusDialog';
 import {
-  parseTenantDefaultHeroUrls,
-  serializeDefaultHeroImageUrls,
+  DEFAULT_MAX_DISPLAY_COUNT,
+  clampHeroMaxDisplayCount,
+  parseTenantDefaultHeroSlides,
+  serializeDefaultHeroSlides,
   type DefaultHeroDisplayMode,
+  type DefaultHeroSlide,
 } from '@/lib/hero/defaultHeroImages';
 import TenantDefaultHeroManager from '@/app/admin/tenant-management/components/TenantDefaultHeroManager';
 
@@ -48,10 +51,12 @@ export default function TenantSettingsForm({
   const [headerImageUploadStatus, setHeaderImageUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [headerImageUploadMessage, setHeaderImageUploadMessage] = useState<string>('');
   const [logoUrlCopyFeedback, setLogoUrlCopyFeedback] = useState<string | null>(null);
-  const [heroUrls, setHeroUrls] = useState<string[]>(() => parseTenantDefaultHeroUrls(initialData));
+  const [heroSlides, setHeroSlides] = useState<DefaultHeroSlide[]>(() =>
+    parseTenantDefaultHeroSlides(initialData)
+  );
 
   useEffect(() => {
-    setHeroUrls(parseTenantDefaultHeroUrls(initialData));
+    setHeroSlides(parseTenantDefaultHeroSlides(initialData));
   }, [initialData?.id, initialData?.defaultHeroImageUrlsJson, initialData?.defaultHeroImageUrls]);
 
   const footerHtmlFileInputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +107,9 @@ export default function TenantSettingsForm({
       logoImageUrl: initialData?.logoImageUrl || '',
       defaultHeroDisplayMode: initialData?.defaultHeroDisplayMode || 'slideshow',
       defaultHeroIncludeWithEvents: initialData?.defaultHeroIncludeWithEvents ?? true,
+      defaultHeroMaxDisplayCount: clampHeroMaxDisplayCount(
+        initialData?.defaultHeroMaxDisplayCount ?? DEFAULT_MAX_DISPLAY_COUNT
+      ),
       // Contact and Address Fields
       addressLine1: initialData?.addressLine1 || '',
       addressLine2: initialData?.addressLine2 || '',
@@ -128,7 +136,10 @@ export default function TenantSettingsForm({
   // Handle form submission
   const onFormSubmit = async (data: TenantSettingsFormDTO) => {
     try {
-      data.defaultHeroImageUrlsJson = serializeDefaultHeroImageUrls(heroUrls);
+      data.defaultHeroImageUrlsJson = serializeDefaultHeroSlides(heroSlides);
+      data.defaultHeroMaxDisplayCount = clampHeroMaxDisplayCount(
+        data.defaultHeroMaxDisplayCount ?? DEFAULT_MAX_DISPLAY_COUNT
+      );
       await onSubmit(data);
     } catch (error) {
       console.error('Form submission error:', error);
@@ -1305,10 +1316,14 @@ export default function TenantSettingsForm({
           <TenantDefaultHeroManager
             settingsId={settingsId ?? undefined}
             tenantIdForUpload={tenantIdForUpload}
-            initialUrls={heroUrls}
+            initialSlides={heroSlides}
+            maxDisplayCount={watch('defaultHeroMaxDisplayCount') ?? DEFAULT_MAX_DISPLAY_COUNT}
             displayMode={(watch('defaultHeroDisplayMode') as DefaultHeroDisplayMode) || 'slideshow'}
             includeWithEvents={watch('defaultHeroIncludeWithEvents') ?? true}
-            onUrlsChange={setHeroUrls}
+            onSlidesChange={setHeroSlides}
+            onMaxDisplayCountChange={(count) =>
+              setValue('defaultHeroMaxDisplayCount', clampHeroMaxDisplayCount(count))
+            }
             onDisplayModeChange={(mode) => setValue('defaultHeroDisplayMode', mode)}
             onIncludeWithEventsChange={(value) => setValue('defaultHeroIncludeWithEvents', value)}
             disabled={!settingsId}
