@@ -573,6 +573,14 @@ export interface TenantOrganizationDTO {
   monthlyFeeUsd?: number;
   stripeCustomerId?: string;
   isActive?: boolean;
+  description?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  stateProvince?: string | null;
+  zipCode?: string | null;
+  country?: string | null;
+  websiteUrl?: string | null;
   createdAt: string; // date-time
   updatedAt: string; // date-time
 }
@@ -614,12 +622,21 @@ export interface TenantSettingsDTO {
   defaultHeroIncludeWithEvents?: boolean;
   /** Max tenant default slides on homepage when slides are marked active (1-6). */
   defaultHeroMaxDisplayCount?: number;
-  // Contact and Address Fields
+  // Contact and operational fields (email, phone remain on settings)
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
+  description?: string | null;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   addressLine1?: string;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   addressLine2?: string;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
+  city?: string | null;
   phoneNumber?: string;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   zipCode?: string;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   country?: string;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   stateProvince?: string;
   email?: string;
   createdAt: string; // date-time

@@ -185,21 +185,7 @@ export default async function EditTenantOrganizationPage({ params }: PageProps) 
           <TenantOrganizationForm
             mode="edit"
             onSubmit={handleSubmit}
-            initialData={{
-              organizationName: organization?.organizationName || '',
-              tenantId: organization?.tenantId || '',
-              description: organization?.description || '',
-              contactEmail: organization?.contactEmail || '',
-              contactPhone: organization?.contactPhone || '',
-              website: organization?.website || '',
-              address: organization?.address || '',
-              primaryColor: organization?.primaryColor || '#3B82F6',
-              secondaryColor: organization?.secondaryColor || '#1E40AF',
-              logoUrl: organization?.logoUrl || '',
-              subscriptionStatus: organization?.subscriptionStatus || 'TRIAL',
-              subscriptionPlan: organization?.subscriptionPlan || 'BASIC',
-              isActive: organization?.isActive ?? true
-            }}
+            initialData={organization ?? undefined}
           />
         </div>
       </div>

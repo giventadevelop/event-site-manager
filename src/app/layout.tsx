@@ -16,6 +16,7 @@ import { getAppUrl, getRequestOriginFromHeaders } from "@/lib/env";
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
 import { getAllowedRedirectOrigins, isKnownSatelliteHost } from "@/lib/satelliteConfig";
 import { getMergedSatelliteConfigs } from "@/lib/satelliteConfigRuntime";
+import { fetchFooterContactPropsServer } from "@/app/ApiServerActions";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -350,6 +351,12 @@ export default async function RootLayout({
 
   console.log('[Layout] 🔍 Final admin status:', { isTenantAdmin, isPublicRoute, pathname });
 
+  const skipMainLayoutChrome =
+    pathname.startsWith('/mosc-old') || pathname.startsWith('/mosc');
+  const footerContact = skipMainLayoutChrome
+    ? null
+    : await fetchFooterContactPropsServer();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -369,7 +376,7 @@ export default async function RootLayout({
             <TenantSettingsProvider>
               <ConditionalLayout
                 header={<Header hideMenuItems={false} isTenantAdmin={isTenantAdmin} />}
-                footer={<Footer />}
+                footer={<Footer contact={footerContact ?? undefined} />}
               >
                 {children}
               </ConditionalLayout>

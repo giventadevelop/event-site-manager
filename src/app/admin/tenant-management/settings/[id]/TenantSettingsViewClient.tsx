@@ -219,6 +219,21 @@ export default function TenantSettingsViewClient({ settings, settingsId, organiz
                 {settings?.defaultEventCapacity || 'Not set'}
               </dd>
             </div>
+            {organization?.id && (
+              <div className="sm:col-span-2">
+                <dt className="text-sm font-medium text-gray-500">Organization identity</dt>
+                <dd className="mt-1 text-sm text-gray-600">
+                  Description, address, and website are on the{' '}
+                  <Link
+                    href={`/admin/tenant-management/organizations/${organization.id}`}
+                    className="text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    tenant organization
+                  </Link>{' '}
+                  record.
+                </dd>
+              </div>
+            )}
             {settings?.email && (
               <div>
                 <dt className="text-sm font-medium text-gray-500">Email</dt>
@@ -229,16 +244,6 @@ export default function TenantSettingsViewClient({ settings, settingsId, organiz
               <div>
                 <dt className="text-sm font-medium text-gray-500">Phone Number</dt>
                 <dd className="mt-1 text-sm text-gray-900">{settings.phoneNumber}</dd>
-              </div>
-            )}
-            {settings?.addressLine1 && (
-              <div className="sm:col-span-2">
-                <dt className="text-sm font-medium text-gray-500">Address</dt>
-                <dd className="mt-1 text-sm text-gray-900">
-                  {[settings.addressLine1, settings.addressLine2, settings.stateProvince, settings.zipCode, settings.country]
-                    .filter(Boolean)
-                    .join(', ')}
-                </dd>
               </div>
             )}
             <div>

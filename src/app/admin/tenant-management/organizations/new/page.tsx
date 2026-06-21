@@ -81,7 +81,7 @@ export default function NewTenantOrganizationPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Create New Organization</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Add a new tenant organization to the system
+          Add a new tenant organization to the system. Tenant IDs are auto-generated from your name prefix plus the next sequence number (e.g. ford_motors_1).
         </p>
       </div>
 
@@ -97,17 +97,23 @@ export default function NewTenantOrganizationPage() {
             initialData={{
               organizationName: '',
               tenantId: '',
+              domain: '',
               description: '',
               contactEmail: '',
               contactPhone: '',
-              website: '',
-              address: '',
+              addressLine1: '',
+              addressLine2: '',
+              city: '',
+              stateProvince: '',
+              zipCode: '',
+              country: '',
+              websiteUrl: '',
               primaryColor: '#3B82F6',
               secondaryColor: '#1E40AF',
               logoUrl: '',
               subscriptionStatus: 'TRIAL',
               subscriptionPlan: 'BASIC',
-              isActive: true
+              isActive: true,
             }}
           />
         </div>

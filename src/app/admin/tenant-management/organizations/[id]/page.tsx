@@ -3,8 +3,11 @@ import { notFound } from 'next/navigation';
 import { fetchTenantOrganization } from '@/app/admin/tenant-management/organizations/ApiServerActions';
 import { fetchTenantSettingsByTenantId } from '@/app/admin/tenant-management/settings/ApiServerActions';
 import Link from 'next/link';
-import { FaArrowLeft, FaEdit, FaTrash, FaCog, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { FaArrowLeft, FaEdit, FaCog, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import { TenantOrganizationDTO, TenantSettingsDTO } from '@/app/admin/tenant-management/types';
+import { extractTenantIdSequence, getTenantIdPrefix } from '@/lib/tenantIdGeneration';
+import { formatOrganizationAddress } from '@/lib/formatOrganizationAddress';
+import { resolveTenantOrganizationIdentity } from '@/lib/resolveTenantOrganizationIdentity';
 
 interface PageProps {
   params: { id: string };
@@ -85,6 +88,18 @@ export default async function TenantOrganizationViewPage({ params }: PageProps) 
     );
   }
 
+  const tenantIdSequence = organization?.tenantId
+    ? extractTenantIdSequence(organization.tenantId)
+    : null;
+  const tenantIdPrefix = organization?.tenantId
+    ? getTenantIdPrefix(organization.tenantId)
+    : null;
+
+  const identity = organization
+    ? resolveTenantOrganizationIdentity(organization, settings)
+    : null;
+  const formattedAddress = formatOrganizationAddress(identity);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb Navigation */}
@@ -160,8 +175,8 @@ export default async function TenantOrganizationViewPage({ params }: PageProps) 
                 {organization?.isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
-            <p className="text-sm text-gray-600">
-              {organization?.description || 'No description provided'}
+            <p className="text-sm text-gray-600 whitespace-pre-wrap">
+              {identity?.description || 'No description provided'}
             </p>
           </div>
           <div className="flex gap-3">
@@ -193,6 +208,42 @@ export default async function TenantOrganizationViewPage({ params }: PageProps) 
         </div>
       </div>
 
+      {/* Tenant / database identifiers */}
+      <div className="mb-8 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            Database ID
+          </div>
+          <div className="font-mono font-bold text-indigo-800 text-lg">
+            {organization?.id != null ? `#${organization.id}` : '—'}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            Tenant ID
+          </div>
+          <div className="font-mono font-bold text-blue-800 text-sm break-all">
+            {organization?.tenantId || '—'}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            ID Sequence
+          </div>
+          <div className="font-mono font-bold text-blue-700 text-lg">
+            {tenantIdSequence !== null ? tenantIdSequence : 'Not parsed'}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            Tenant ID Prefix
+          </div>
+          <div className="font-mono font-semibold text-gray-800 text-sm break-all">
+            {tenantIdPrefix || 'Not parsed'}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Organization Details */}
         <div className="lg:col-span-2">
@@ -206,18 +257,48 @@ export default async function TenantOrganizationViewPage({ params }: PageProps) 
               <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
                 <div>
                   <dt className="text-sm font-medium text-gray-500">
-                    Organization Name
+                    Database ID (PK)
                   </dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {organization?.organizationName}
+                  <dd className="mt-1">
+                    <span className="inline-block font-mono font-semibold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 text-sm">
+                      {organization?.id != null ? organization.id : 'Not available'}
+                    </span>
                   </dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">
                     Tenant ID
                   </dt>
+                  <dd className="mt-1">
+                    <span className="inline-block font-mono font-semibold text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-sm break-all">
+                      {organization?.tenantId}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">
+                    Tenant ID Sequence
+                  </dt>
+                  <dd className="mt-1">
+                    <span className="inline-block font-mono font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-sm">
+                      {tenantIdSequence !== null ? tenantIdSequence : 'Not parsed'}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">
+                    Tenant ID Prefix
+                  </dt>
                   <dd className="mt-1 text-sm text-gray-900 font-mono">
-                    {organization?.tenantId}
+                    {tenantIdPrefix || 'Not parsed'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">
+                    Organization Name
+                  </dt>
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {organization?.organizationName}
                   </dd>
                 </div>
                 <div>
@@ -238,29 +319,29 @@ export default async function TenantOrganizationViewPage({ params }: PageProps) 
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">
-                    Website
+                    Website URL
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    {organization?.website ? (
+                    {identity?.websiteUrl ? (
                       <a
-                        href={organization.website}
+                        href={identity.websiteUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-500"
                       >
-                        {organization.website}
+                        {identity.websiteUrl}
                       </a>
                     ) : (
                       'Not provided'
                     )}
                   </dd>
                 </div>
-                <div>
+                <div className="sm:col-span-2">
                   <dt className="text-sm font-medium text-gray-500">
                     Address
                   </dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {organization?.address || 'Not provided'}
+                  <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                    {formattedAddress ?? 'Not provided'}
                   </dd>
                 </div>
                 <div>

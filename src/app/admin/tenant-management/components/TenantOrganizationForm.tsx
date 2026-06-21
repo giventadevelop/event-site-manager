@@ -1,14 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
 import { FaSave, FaBan, FaUpload, FaEye } from 'react-icons/fa';
 import type { TenantOrganizationDTO, TenantOrganizationFormDTO } from '@/app/admin/tenant-management/types';
+import {
+  getTenantIdPrefixValidationError,
+  normalizeTenantIdPrefix,
+  sanitizeTenantIdPrefixInput,
+  suggestTenantIdPrefixFromName,
+  TENANT_ID_PREFIX_MAX_LENGTH,
+  isValidGeneratedTenantId,
+  formatTenantIdSequence,
+  TENANT_ID_FIRST_SEQUENCE,
+} from '@/lib/tenantIdGeneration';
+import { getTenantDomainFormatError, normalizeTenantDomain } from '@/lib/tenantDomainValidation';
+import { getWebsiteUrlFormatError, normalizeWebsiteUrl } from '@/lib/websiteUrlValidation';
+import { previewNextTenantIdServer } from '@/app/admin/tenant-management/organizations/tenantIdServerActions';
+import { isTenantOrganizationDomainAvailableServer } from '@/app/admin/tenant-management/organizations/domainServerActions';
+import AddressFieldsSection from '@/components/admin/AddressFieldsSection';
+import DescriptionTextareaField from '@/components/admin/DescriptionTextareaField';
 
 interface TenantOrganizationFormProps {
   initialData?: TenantOrganizationDTO;
   onSubmit: (data: TenantOrganizationFormDTO) => Promise<void>;
-  onCancel: () => void;
+  onCancel?: () => void;
   loading?: boolean;
   mode: 'create' | 'edit';
 }
@@ -20,8 +37,19 @@ export default function TenantOrganizationForm({
   loading = false,
   mode
 }: TenantOrganizationFormProps) {
+  const router = useRouter();
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [tenantIdPrefix, setTenantIdPrefix] = useState('');
+  const [tenantSequencePreview, setTenantSequencePreview] = useState<string>(
+    formatTenantIdSequence(TENANT_ID_FIRST_SEQUENCE),
+  );
+  const [tenantIdPreviewLoading, setTenantIdPreviewLoading] = useState(mode === 'create');
+  const [tenantIdPreviewError, setTenantIdPreviewError] = useState<string | null>(null);
+  const [formSubmitError, setFormSubmitError] = useState<string | null>(null);
+  const [domainAvailabilityError, setDomainAvailabilityError] = useState<string | null>(null);
+  const [domainChecking, setDomainChecking] = useState(false);
+  const prefixDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     register,
@@ -46,12 +74,35 @@ export default function TenantOrganizationForm({
       subscriptionEndDate: initialData?.subscriptionEndDate || '',
       monthlyFeeUsd: initialData?.monthlyFeeUsd || 0,
       stripeCustomerId: initialData?.stripeCustomerId || '',
-      isActive: initialData?.isActive ?? true
+      isActive: initialData?.isActive ?? true,
+      description: initialData?.description || '',
+      addressLine1: initialData?.addressLine1 || '',
+      addressLine2: initialData?.addressLine2 || '',
+      city: initialData?.city || '',
+      stateProvince: initialData?.stateProvince || '',
+      zipCode: initialData?.zipCode || '',
+      country: initialData?.country || '',
+      websiteUrl: initialData?.websiteUrl || '',
     }
   });
 
   // Watch form values for real-time updates
   const watchedValues = watch();
+
+  const domainField = register('domain', {
+    required: 'Website / domain is required',
+    validate: (value) => {
+      const formatError = getTenantDomainFormatError(value || '');
+      return formatError || true;
+    },
+  });
+
+  const websiteUrlField = register('websiteUrl', {
+    validate: (value) => {
+      const formatError = getWebsiteUrlFormatError(value || '');
+      return formatError || true;
+    },
+  });
 
   // Set logo preview when initial data changes
   useEffect(() => {
@@ -59,6 +110,98 @@ export default function TenantOrganizationForm({
       setLogoPreview(initialData.logoUrl);
     }
   }, [initialData]);
+
+  const refreshTenantIdPreview = useCallback(async (rawPrefix: string) => {
+    if (mode !== 'create') return;
+
+    const normalized = normalizeTenantIdPrefix(rawPrefix);
+    const prefixError = getTenantIdPrefixValidationError(rawPrefix);
+    if (!normalized || prefixError) {
+      setTenantSequencePreview(formatTenantIdSequence(TENANT_ID_FIRST_SEQUENCE));
+      setValue('tenantId', '');
+      setTenantIdPreviewError(prefixError);
+      setTenantIdPreviewLoading(false);
+      return;
+    }
+
+    setTenantIdPreviewLoading(true);
+    setTenantIdPreviewError(null);
+    try {
+      const preview = await previewNextTenantIdServer(normalized);
+      if (!preview) {
+        setTenantIdPreviewError('Could not generate tenant ID. Check the prefix and try again.');
+        setValue('tenantId', '');
+        return;
+      }
+      setTenantSequencePreview(preview.formattedSequence);
+      setValue('tenantId', preview.tenantId, { shouldValidate: true });
+    } catch (error) {
+      console.error('[TenantOrganizationForm] Failed to preview tenant ID:', error);
+      setTenantIdPreviewError('Could not load the next tenant number. Try again.');
+    } finally {
+      setTenantIdPreviewLoading(false);
+    }
+  }, [mode, setValue]);
+
+  useEffect(() => {
+    if (mode !== 'create') return;
+
+    if (prefixDebounceRef.current) {
+      clearTimeout(prefixDebounceRef.current);
+    }
+
+    prefixDebounceRef.current = setTimeout(() => {
+      void refreshTenantIdPreview(tenantIdPrefix);
+    }, tenantIdPrefix.trim() ? 350 : 0);
+
+    return () => {
+      if (prefixDebounceRef.current) {
+        clearTimeout(prefixDebounceRef.current);
+      }
+    };
+  }, [tenantIdPrefix, mode, refreshTenantIdPreview]);
+
+  const validateDomainAvailability = useCallback(
+    async (rawDomain: string): Promise<string | null> => {
+      const formatError = getTenantDomainFormatError(rawDomain);
+      if (formatError) {
+        return formatError;
+      }
+
+      setDomainChecking(true);
+      try {
+        const result = await isTenantOrganizationDomainAvailableServer(
+          rawDomain,
+          mode === 'edit' ? initialData?.id : undefined,
+        );
+        if (!result.available) {
+          return result.message || 'This domain is already registered.';
+        }
+        return null;
+      } finally {
+        setDomainChecking(false);
+      }
+    },
+    [initialData?.id, mode],
+  );
+
+  const handleDomainBlur = async (rawDomain: string) => {
+    const normalized = normalizeTenantDomain(rawDomain);
+    if (normalized !== rawDomain.trim()) {
+      setValue('domain', normalized, { shouldValidate: true });
+    }
+    const error = await validateDomainAvailability(normalized || rawDomain);
+    setDomainAvailabilityError(error);
+  };
+
+  const handleWebsiteUrlBlur = (rawUrl: string) => {
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return;
+    const normalized = normalizeWebsiteUrl(trimmed);
+    if (normalized !== trimmed) {
+      setValue('websiteUrl', normalized, { shouldValidate: true });
+    }
+  };
 
   // Handle logo file upload
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,17 +218,49 @@ export default function TenantOrganizationForm({
 
   // Handle form submission
   const onFormSubmit = async (data: TenantOrganizationFormDTO) => {
+    setFormSubmitError(null);
     try {
-      // TODO: Handle logo file upload to storage service
-      // For now, we'll just use the existing logoUrl or empty string
+      let submitData = { ...data };
+
+      if (mode === 'create') {
+        const prefixError = getTenantIdPrefixValidationError(tenantIdPrefix);
+        if (prefixError) {
+          setTenantIdPreviewError(prefixError);
+          return;
+        }
+        const normalizedPrefix = normalizeTenantIdPrefix(tenantIdPrefix);
+        const preview = await previewNextTenantIdServer(normalizedPrefix);
+        if (!preview) {
+          setTenantIdPreviewError('Could not generate tenant ID. Try again.');
+          return;
+        }
+        submitData = { ...submitData, tenantId: preview.tenantId };
+        setValue('tenantId', preview.tenantId);
+      }
+
+      const normalizedDomain = normalizeTenantDomain(submitData.domain || '');
+      const domainError = await validateDomainAvailability(normalizedDomain);
+      if (domainError) {
+        setDomainAvailabilityError(domainError);
+        setFormSubmitError(domainError);
+        return;
+      }
+
       const formData = {
-        ...data,
-        logoUrl: logoPreview || data.logoUrl || ''
+        ...submitData,
+        domain: normalizedDomain,
+        websiteUrl: submitData.websiteUrl?.trim()
+          ? normalizeWebsiteUrl(submitData.websiteUrl)
+          : '',
+        logoUrl: logoPreview || submitData.logoUrl || '',
       };
 
       await onSubmit(formData);
     } catch (error) {
       console.error('Form submission error:', error);
+      setFormSubmitError(
+        error instanceof Error ? error.message : 'Failed to save organization. Please try again.',
+      );
     }
   };
 
@@ -125,34 +300,119 @@ export default function TenantOrganizationForm({
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+      <form
+        onSubmit={handleSubmit(onFormSubmit, (formErrors) => {
+          if (mode === 'create' && formErrors.tenantId) {
+            setTenantIdPreviewError(
+              formErrors.tenantId.message ?? 'Fix tenant ID before saving.',
+            );
+          }
+        })}
+        className="space-y-6"
+      >
+        {formSubmitError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+            {formSubmitError}
+          </div>
+        )}
         {/* Basic Information */}
         <div className="border-b border-gray-200 pb-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tenant ID *
-              </label>
-              <input
-                type="text"
-                {...register('tenantId', {
-                  required: 'Tenant ID is required',
-                  pattern: {
-                    value: /^[a-zA-Z0-9_-]+$/,
-                    message: 'Tenant ID can only contain letters, numbers, hyphens, and underscores'
-                  }
-                })}
-                className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
-                placeholder="e.g., tenant_demo_001"
-              />
-              {errors.tenantId && (
-                <p className="mt-1 text-sm text-red-600">{errors.tenantId.message}</p>
-              )}
-            </div>
+            {mode === 'create' ? (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tenant ID *
+                </label>
+                <p className="text-sm text-gray-500 mb-3">
+                  Enter a short slug for the organization (letters, numbers, and underscores only; must end with a letter;
+                  max {TENANT_ID_PREFIX_MAX_LENGTH} characters). The system appends the next sequence number. Example:{' '}
+                  <span className="font-mono">ford_motors_1</span>.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="tenantIdPrefix" className="block text-xs font-medium text-gray-600 mb-1">
+                      Name prefix (you supply)
+                    </label>
+                    <input
+                      id="tenantIdPrefix"
+                      type="text"
+                      value={tenantIdPrefix}
+                      onChange={(e) => setTenantIdPrefix(sanitizeTenantIdPrefixInput(e.target.value))}
+                      onBlur={() => {
+                        const trimmed = tenantIdPrefix.replace(/^_+|_+$/g, '');
+                        if (trimmed !== tenantIdPrefix) {
+                          setTenantIdPrefix(trimmed);
+                        }
+                      }}
+                      maxLength={25}
+                      className={`mt-1 block w-full border rounded-xl focus:ring-blue-500 px-4 py-3 text-base font-mono ${
+                        tenantIdPreviewError
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                          : 'border-gray-400 focus:border-blue-500'
+                      }`}
+                      placeholder="e.g., ford_motors"
+                      autoComplete="off"
+                      aria-invalid={tenantIdPreviewError ? true : undefined}
+                      aria-describedby={tenantIdPreviewError ? 'tenantIdPrefix-error' : undefined}
+                    />
+                    {tenantIdPreviewError && (
+                      <p id="tenantIdPrefix-error" className="mt-1 text-sm text-red-600">
+                        {tenantIdPreviewError}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label htmlFor="tenantSequenceNumber" className="block text-xs font-medium text-gray-600 mb-1">
+                      Sequence number (auto-generated)
+                    </label>
+                    <input
+                      id="tenantSequenceNumber"
+                      type="text"
+                      readOnly
+                      value={tenantIdPreviewLoading ? 'Loading…' : tenantSequencePreview}
+                      className="mt-1 block w-full border border-gray-300 rounded-xl bg-gray-50 text-gray-700 px-4 py-3 text-base font-mono"
+                      aria-live="polite"
+                    />
+                  </div>
+                </div>
+                <input
+                  type="hidden"
+                  {...register('tenantId', {
+                    required: 'Tenant ID is required',
+                    validate: (value) =>
+                      isValidGeneratedTenantId(value || '')
+                        ? true
+                        : 'Tenant ID must be prefix plus a numeric suffix (e.g. ford_motors_1)',
+                  })}
+                />
+                <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+                  <p className="text-sm text-blue-800">
+                    <span className="font-semibold">Generated Tenant ID:</span>{' '}
+                    <span className="font-mono">{watchedValues.tenantId || '—'}</span>
+                  </p>
+                </div>
+                {errors.tenantId && (
+                  <p className="mt-1 text-sm text-red-600">{errors.tenantId.message}</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tenant ID
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  {...register('tenantId')}
+                  className="mt-1 block w-full border border-gray-300 rounded-xl bg-gray-50 text-gray-700 px-4 py-3 text-base font-mono"
+                />
+                <p className="mt-1 text-xs text-gray-500">Tenant ID cannot be changed after creation.</p>
+              </div>
+            )}
 
-            <div>
+            <div className={mode === 'create' ? 'md:col-span-2' : ''}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Organization Name *
               </label>
@@ -163,10 +423,15 @@ export default function TenantOrganizationForm({
                   maxLength: {
                     value: 255,
                     message: 'Organization name must be less than 255 characters'
-                  }
+                  },
+                  onChange: (e) => {
+                    if (mode === 'create' && !tenantIdPrefix.trim()) {
+                      setTenantIdPrefix(suggestTenantIdPrefixFromName(e.target.value));
+                    }
+                  },
                 })}
                 className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
-                placeholder="e.g., Malayalees US Organization"
+                placeholder="e.g., Ford Motors"
               />
               {errors.organizationName && (
                 <p className="mt-1 text-sm text-red-600">{errors.organizationName.message}</p>
@@ -175,22 +440,34 @@ export default function TenantOrganizationForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Domain
+                Website / Domain *
               </label>
               <input
                 type="text"
-                {...register('domain', {
-                  pattern: {
-                    value: /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.?[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*$/,
-                    message: 'Please enter a valid domain name'
-                  }
-                })}
+                {...domainField}
+                onChange={(e) => {
+                  domainField.onChange(e);
+                  setDomainAvailabilityError(null);
+                }}
+                onBlur={(e) => {
+                  domainField.onBlur(e);
+                  void handleDomainBlur(e.target.value);
+                }}
                 className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
                 placeholder="e.g., malayalees-us.org"
               />
+              {domainChecking && (
+                <p className="mt-1 text-sm text-blue-600">Checking domain availability…</p>
+              )}
               {errors.domain && (
                 <p className="mt-1 text-sm text-red-600">{errors.domain.message}</p>
               )}
+              {!errors.domain && domainAvailabilityError && (
+                <p className="mt-1 text-sm text-red-600">{domainAvailabilityError}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Must be unique across all organizations. Protocol (https://) and www are optional.
+              </p>
             </div>
 
             <div>
@@ -233,6 +510,48 @@ export default function TenantOrganizationForm({
                 <p className="mt-1 text-sm text-red-600">{errors.contactPhone.message}</p>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Description */}
+        <div className="border-b border-gray-200 pb-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Description</h3>
+          <DescriptionTextareaField
+            register={register}
+            currentLength={(watchedValues.description || '').length}
+            error={errors.description}
+          />
+        </div>
+
+        {/* Address Information */}
+        <div className="border-b border-gray-200 pb-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Address Information</h3>
+          <AddressFieldsSection register={register} errors={errors} />
+        </div>
+
+        {/* Website URL (optional) */}
+        <div className="border-b border-gray-200 pb-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Website</h3>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Website URL
+            </label>
+            <input
+              type="url"
+              {...websiteUrlField}
+              onBlur={(e) => {
+                websiteUrlField.onBlur(e);
+                handleWebsiteUrlBlur(e.target.value);
+              }}
+              className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
+              placeholder="https://www.example.org"
+            />
+            {errors.websiteUrl && (
+              <p className="mt-1 text-sm text-red-600">{errors.websiteUrl.message}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              Optional public website link (separate from the required domain field above).
+            </p>
           </div>
         </div>
 
@@ -423,7 +742,7 @@ export default function TenantOrganizationForm({
         <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={() => (onCancel ? onCancel() : router.push('/admin/tenant-management/organizations'))}
             className="flex-shrink-0 h-14 rounded-xl bg-red-100 hover:bg-red-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"
             title="Cancel"
             aria-label="Cancel"

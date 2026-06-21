@@ -450,6 +450,10 @@ export function createProxyHandler({ injectTenantId = false, allowedMethods = ['
           const responseContentType = apiRes.headers.get('content-type') || '';
           const text = await apiRes.text();
 
+          if (apiRes.status >= 500 && text) {
+            console.error('[ProxyHandler] Backend 5xx response body:', text.slice(0, 2000));
+          }
+
           // If response is empty or not JSON, return appropriate error
           if (!text || text.trim() === '') {
             if (apiRes.status === 404) {

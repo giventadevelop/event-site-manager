@@ -15,6 +15,8 @@ import {
   type DefaultHeroSlide,
 } from '@/lib/hero/defaultHeroImages';
 import TenantDefaultHeroManager from '@/app/admin/tenant-management/components/TenantDefaultHeroManager';
+import TenantOrganizationSearchSelect from '@/app/admin/tenant-management/components/TenantOrganizationSearchSelect';
+import Link from 'next/link';
 
 interface TenantSettingsFormProps {
   initialData?: TenantSettingsDTO;
@@ -110,13 +112,7 @@ export default function TenantSettingsForm({
       defaultHeroMaxDisplayCount: clampHeroMaxDisplayCount(
         initialData?.defaultHeroMaxDisplayCount ?? DEFAULT_MAX_DISPLAY_COUNT
       ),
-      // Contact and Address Fields
-      addressLine1: initialData?.addressLine1 || '',
-      addressLine2: initialData?.addressLine2 || '',
       phoneNumber: initialData?.phoneNumber || '',
-      zipCode: initialData?.zipCode || '',
-      country: initialData?.country || '',
-      stateProvince: initialData?.stateProvince || '',
       email: initialData?.email || ''
     }
   });
@@ -143,6 +139,7 @@ export default function TenantSettingsForm({
       await onSubmit(data);
     } catch (error) {
       console.error('Form submission error:', error);
+      throw error;
     }
   };
 
@@ -610,26 +607,32 @@ export default function TenantSettingsForm({
           <div className="space-y-6">
             <h3 className="text-lg font-medium text-gray-900">General Settings</h3>
 
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              Organization description, address, and website URL are managed under{' '}
+              <Link
+                href="/admin/tenant-management/organizations"
+                className="font-semibold text-blue-700 underline hover:text-blue-900"
+              >
+                Tenant Organizations → Edit
+              </Link>
+              .
+            </div>
+
             {/* Tenant Selection (for create mode) */}
             {mode === 'create' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tenant Organization *
-                </label>
-                <select
+                <input
+                  type="hidden"
                   {...register('tenantId', { required: 'Please select a tenant organization' })}
-                  className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
-                >
-                  <option value="">Select Tenant Organization</option>
-                  {availableOrganizations.map((org) => (
-                    <option key={org.id} value={org.tenantId}>
-                      {org.organizationName} ({org.tenantId})
-                    </option>
-                  ))}
-                </select>
-                {errors.tenantId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.tenantId.message}</p>
-                )}
+                />
+                <TenantOrganizationSearchSelect
+                  value={watch('tenantId') || ''}
+                  onChange={(tenantId) =>
+                    setValue('tenantId', tenantId, { shouldValidate: true, shouldDirty: true })
+                  }
+                  initialOrganizations={availableOrganizations}
+                  error={errors.tenantId?.message}
+                />
               </div>
             )}
 
@@ -674,113 +677,6 @@ export default function TenantSettingsForm({
                 />
                 {errors.phoneNumber && (
                   <p className="mt-1 text-sm text-red-600">{errors.phoneNumber.message}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Address Information Section */}
-            <div className="space-y-4">
-              <h4 className="text-md font-medium text-gray-900">Address Information</h4>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address Line 1
-                </label>
-                <input
-                  type="text"
-                  {...register('addressLine1', {
-                    maxLength: {
-                      value: 255,
-                      message: 'Address line 1 must be 255 characters or less'
-                    }
-                  })}
-                  className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
-                  placeholder="123 Main Street"
-                />
-                {errors.addressLine1 && (
-                  <p className="mt-1 text-sm text-red-600">{errors.addressLine1.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address Line 2
-                </label>
-                <input
-                  type="text"
-                  {...register('addressLine2', {
-                    maxLength: {
-                      value: 255,
-                      message: 'Address line 2 must be 255 characters or less'
-                    }
-                  })}
-                  className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
-                  placeholder="Suite 100 (optional)"
-                />
-                {errors.addressLine2 && (
-                  <p className="mt-1 text-sm text-red-600">{errors.addressLine2.message}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City / State / Province
-                  </label>
-                  <input
-                    type="text"
-                    {...register('stateProvince', {
-                      maxLength: {
-                        value: 100,
-                        message: 'State/Province must be 100 characters or less'
-                      }
-                    })}
-                    className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
-                    placeholder="California"
-                  />
-                  {errors.stateProvince && (
-                    <p className="mt-1 text-sm text-red-600">{errors.stateProvince.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Zip / Postal Code
-                  </label>
-                  <input
-                    type="text"
-                    {...register('zipCode', {
-                      maxLength: {
-                        value: 20,
-                        message: 'Zip code must be 20 characters or less'
-                      }
-                    })}
-                    className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
-                    placeholder="90210"
-                  />
-                  {errors.zipCode && (
-                    <p className="mt-1 text-sm text-red-600">{errors.zipCode.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Country
-                </label>
-                <input
-                  type="text"
-                  {...register('country', {
-                    maxLength: {
-                      value: 100,
-                      message: 'Country must be 100 characters or less'
-                    }
-                  })}
-                  className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
-                  placeholder="United States"
-                />
-                {errors.country && (
-                  <p className="mt-1 text-sm text-red-600">{errors.country.message}</p>
                 )}
               </div>
             </div>
@@ -1667,28 +1563,46 @@ export default function TenantSettingsForm({
         )}
 
         {/* Form Actions */}
-        <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+        <div className="flex flex-row flex-wrap justify-end gap-3 sm:gap-4 pt-6 border-t border-gray-200">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-shrink-0 w-14 h-14 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+            disabled={isSubmitting || loading}
+            className="flex-shrink-0 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-3 px-6 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             title="Cancel"
             aria-label="Cancel"
           >
-            <svg className="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-200 flex items-center justify-center">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <span className="font-semibold text-blue-700">Cancel</span>
           </button>
           <button
             type="submit"
             disabled={isSubmitting || loading}
-            className="flex-shrink-0 w-14 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-            title={isSubmitting || loading ? 'Saving...' : mode === 'create' ? 'Create Settings' : 'Update Settings'}
-            aria-label={isSubmitting || loading ? 'Saving...' : mode === 'create' ? 'Create Settings' : 'Update Settings'}
+            className="flex-shrink-0 h-14 rounded-xl bg-green-100 hover:bg-green-200 flex items-center justify-center gap-3 px-6 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            title={isSubmitting || loading ? 'Saving...' : 'Save'}
+            aria-label={isSubmitting || loading ? 'Saving...' : 'Save'}
           >
-            <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-200 flex items-center justify-center">
+              {isSubmitting || loading ? (
+                <svg className="animate-spin w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className="font-semibold text-green-700">{isSubmitting || loading ? 'Saving...' : 'Save'}</span>
           </button>
         </div>
       </form>

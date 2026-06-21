@@ -80,13 +80,8 @@ export default function TenantSettingsEditClient({
           emailFooterHtmlUrl: settings?.emailFooterHtmlUrl || '',
           emailHeaderImageUrl: settings?.emailHeaderImageUrl || '',
           logoImageUrl: settings?.logoImageUrl || '',
-          // Contact and Address Fields
-          addressLine1: settings?.addressLine1 || '',
-          addressLine2: settings?.addressLine2 || '',
+          // Contact fields (operational — identity lives on tenant organization)
           phoneNumber: settings?.phoneNumber || '',
-          zipCode: settings?.zipCode || '',
-          country: settings?.country || '',
-          stateProvince: settings?.stateProvince || '',
           email: settings?.email || ''
         }}
       />

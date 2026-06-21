@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Architecture guide for NEXT_PUBLIC_TENANT_ID on the primary event-site-manager.com admin deployment vs satellite tenant domains.">
+    <title>Platform Admin Tenant ID — Architecture Guide</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px 20px 48px;
+        }
+        h1 {
+            font-size: 2.1em;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 12px;
+            margin-bottom: 8px;
+            color: #1a1a2e;
+        }
+        h2 {
+            font-size: 1.55em;
+            border-left: 4px solid #0066cc;
+            padding-left: 14px;
+            margin-top: 32px;
+            margin-bottom: 14px;
+            color: #1a1a2e;
+        }
+        h3 { font-size: 1.2em; margin-top: 18px; margin-bottom: 10px; color: #333; }
+        p, li { margin-bottom: 10px; }
+        ul, ol { margin: 10px 0 14px 24px; }
+        a { color: #0066cc; font-weight: 500; }
+        a:hover { text-decoration: underline; }
+        .doc-meta { color: #555; font-size: 0.95em; margin-bottom: 20px; }
+        .lead {
+            background: linear-gradient(135deg, #e8f4f8 0%, #d1e7f0 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 18px 20px;
+            margin: 20px 0;
+        }
+        .toc {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border: 1px solid #b8d4e3;
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px 25px;
+            margin: 25px 0;
+        }
+        .toc h2 { border-left: none; padding-left: 0; margin-top: 0; font-size: 1.4em; color: #0066cc; }
+        .toc ul { margin-bottom: 0; }
+        .section-container {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 22px 0;
+            box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+        }
+        .section-container.usage {
+            background: linear-gradient(135deg, #f0e6ff 0%, #e6ccff 100%);
+            border-left-color: #9c27b0;
+        }
+        .section-container.parameters {
+            background: linear-gradient(135deg, #fff5e6 0%, #ffe6cc 100%);
+            border-left-color: #ff9800;
+        }
+        .section-container.output {
+            background: linear-gradient(135deg, #e6ffe6 0%, #ccffcc 100%);
+            border-left-color: #28a745;
+        }
+        .section-header {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: white;
+            padding: 12px 20px;
+            margin: -20px -20px 18px -20px;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .section-header.usage {
+            background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+        }
+        .section-header.parameters {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+        .section-header.output {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            font-size: 0.92em;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+        thead th {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: #fff;
+            text-align: left;
+            padding: 12px 14px;
+        }
+        tbody td {
+            padding: 11px 14px;
+            border-bottom: 1px solid #e0e8f0;
+            vertical-align: top;
+        }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr:hover { background-color: #e3f2fd; transition: background-color 0.2s ease; }
+        tbody td code {
+            background: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 7px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.88em;
+        }
+        code {
+            background: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 7px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.88em;
+        }
+        pre {
+            background: #e8f4f8;
+            color: #0d3b66;
+            border: 1px solid #b8d4e3;
+            padding: 14px;
+            border-radius: 6px;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+        .code-highlight {
+            background: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 7px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            padding: 14px 16px;
+            border-radius: 6px;
+            margin: 16px 0;
+        }
+        .info-box code, .warning-box code {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            border: 1px solid #b8d4e3;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 14px 16px;
+            border-radius: 6px;
+            margin: 16px 0;
+        }
+        .arch-diagram {
+            background: #e8f4f8;
+            border: 1px solid #b8d4e3;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.82em;
+            line-height: 1.5;
+            color: #0d3b66;
+            overflow-x: auto;
+        }
+        .summary-table td:first-child { font-weight: 600; width: 38%; }
+    </style>
+</head>
+<body>
+
+    <h1>Platform Admin Tenant ID — Architecture Guide</h1>
+    <p class="doc-meta">
+        <strong>Project:</strong> <code>event-site-manager</code> &nbsp;|&nbsp;
+        <strong>Version:</strong> 1.0 &nbsp;|&nbsp;
+        <strong>Date:</strong> June 19, 2026<br>
+        <strong>Related:</strong>
+        <a href="TENANT_ID_NAMING_CONVENTION.html">Tenant ID Naming Convention</a> &nbsp;|&nbsp;
+        <a href="auto_tenant_id_generation/generic_enhancement_prd.html">Auto Tenant ID Generation</a> &nbsp;|&nbsp;
+        <a href="../satellite_configuration/SATELLITE_CONFIG_RUNTIME_ARCHITECTURE.html">Satellite Config Architecture</a> &nbsp;|&nbsp;
+        <a href="../clerk_authentication_v7_upgrade/CLERK_V7_MIGRATION_AND_AUTH_FIX.html">Clerk Auth (v7)</a>
+    </p>
+
+    <div class="lead">
+        <p>
+            The same Next.js application is deployed as the <strong>primary</strong> domain (<code>www.event-site-manager.com</code>)
+            and as <strong>satellite</strong> domains (e.g. <code>www.mosc-temp.com</code>). Each deployment must set
+            <code class="code-highlight">NEXT_PUBLIC_TENANT_ID</code> in environment variables. This document explains whether the
+            primary admin deployment needs a tenant ID, where it is used, and whether
+            <code class="code-highlight">event_site_manager_admin_1</code> (or an existing ID such as
+            <code class="code-highlight">event_site_manager_admin_00001</code>) is an appropriate value.
+        </p>
+        <p style="margin-top: 10px; margin-bottom: 0;">
+            <strong>ID format standard:</strong>
+            <a href="TENANT_ID_NAMING_CONVENTION.html">TENANT_ID_NAMING_CONVENTION.html</a>
+            — new organizations use <code class="code-highlight">{prefix}_{sequence}</code> with minimum 1-digit suffix (<code>1</code>, <code>2</code>, …).
+        </p>
+    </div>
+
+    <nav class="toc" aria-label="Table of contents">
+        <h2>Table of Contents</h2>
+        <ul>
+            <li><a href="#architecture">1. Architecture overview</a></li>
+            <li><a href="#need-tenant-id">2. Do you need NEXT_PUBLIC_TENANT_ID on the primary app?</a></li>
+            <li><a href="#where-used">3. Where the env tenant ID is used</a></li>
+            <li><a href="#platform-vs-satellite">4. Platform admin vs satellite deployments</a></li>
+            <li><a href="#recommended-id">5. Using event_site_manager_admin_00001</a></li>
+            <li><a href="#env-example">6. Recommended .env configuration</a></li>
+            <li><a href="#caveats">7. Caveats and pitfalls</a></li>
+            <li><a href="#summary">8. Summary</a></li>
+        </ul>
+    </nav>
+
+    <h2 id="architecture">1. Architecture overview</h2>
+    <p>
+        One codebase serves two deployment roles. Clerk treats <strong>event-site-manager.com</strong> as the primary domain
+        (sign-in, sign-up, session source). Satellite domains redirect users to the primary for authentication, then sync
+        the session back. Both deployments talk to the same backend API.
+    </p>
+
+    <div class="arch-diagram">
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  PRIMARY — www.event-site-manager.com                                       │
+│  • Clerk sign-in / sign-up (auth host)                                      │
+│  • Platform admin: Tenant Management, satellite domains, cross-tenant ops   │
+│  • NEXT_PUBLIC_ALL_TENANTS_ADMIN=true (recommended)                         │
+│  • NEXT_PUBLIC_TENANT_ID = platform "home" tenant (see below)             │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │ Clerk session sync
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SATELLITE — e.g. www.mosc-temp.com                                         │
+│  • Public site: events, gallery, checkout, membership                       │
+│  • Data scoped to ONE customer tenant                                       │
+│  • NEXT_PUBLIC_TENANT_ID = that customer's tenant_id                        │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  Shared backend API   │
+                    │  (tenant_organization,│
+                    │   tenant_settings,    │
+                    │   events, profiles…)  │
+                    └───────────────────────┘
+    </div>
+
+    <table>
+        <thead>
+            <tr><th>Deployment</th><th>Typical role</th><th>NEXT_PUBLIC_TENANT_ID</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>event-site-manager.com</code> (primary)</td>
+                <td>Clerk auth host + platform admin (manage all tenants)</td>
+                <td>A <strong>platform</strong> tenant ID — logical “home” tenant for this deployment</td>
+            </tr>
+            <tr>
+                <td><code>mosc-temp.com</code> (satellite)</td>
+                <td>One customer’s public-facing site</td>
+                <td>That customer’s tenant ID (e.g. <code>mosc_org_00002</code>)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="need-tenant-id">2. Do you need NEXT_PUBLIC_TENANT_ID on the primary app?</h2>
+
+    <div class="section-container output">
+        <div class="section-header output">Short answer</div>
+        <p><strong>Yes.</strong> The application still requires <code>NEXT_PUBLIC_TENANT_ID</code> (or <code>AMPLIFY_NEXT_PUBLIC_TENANT_ID</code> in AWS Amplify). The helper <code class="code-highlight">getTenantId()</code> in <code class="script-name">src/lib/env.ts</code> throws if it is not set.</p>
+        <p>Even when the primary deployment is used mainly for admin and authentication, many code paths read the env tenant ID as the <strong>default tenant context</strong> for API calls and feature modules.</p>
+    </div>
+
+    <p>
+        <strong>Tenant Management</strong> (<code>/admin/tenant-management/*</code>) is largely <strong>tenant-agnostic</strong>:
+        it lists and creates organizations across all tenants. The env tenant ID is <em>not</em> used as the filter for those
+        admin lists. Instead, admin server actions use optional tenant scoping (<code>appendTenantIfPresent</code> /
+        <code>effectiveTenantId</code>) and JWT + <code>X-Tenant-ID</code> for backend context.
+    </p>
+
+    <h2 id="where-used">3. Where the env tenant ID is used</h2>
+
+    <table>
+        <thead>
+            <tr><th>Area</th><th>How NEXT_PUBLIC_TENANT_ID is used</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Backend API (<code>fetchWithJwtRetry</code>)</td>
+                <td>Default <code>X-Tenant-ID</code> header when callers do not override it (<code class="script-name">src/lib/proxyHandler.ts</code>)</td>
+            </tr>
+            <tr>
+                <td>User profiles</td>
+                <td>Default <code>tenantId</code> on create/update (sign-in, profile page, webhooks)</td>
+            </tr>
+            <tr>
+                <td>Payments / Stripe</td>
+                <td>Webhook and checkout handlers validate metadata against <code>getTenantId()</code></td>
+            </tr>
+            <tr>
+                <td>Public features</td>
+                <td>Events, gallery, hero images, membership — scoped to env tenant when those routes are used on that deployment</td>
+            </tr>
+            <tr>
+                <td>Some admin modules</td>
+                <td>Uploads, sales analytics, ticket operations still call <code>getTenantId()</code> directly</td>
+            </tr>
+            <tr>
+                <td>Tenant Management (cross-tenant)</td>
+                <td><strong>Not</strong> used as list filter; manages all <code>tenant_organization</code> rows</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="info-box">
+        <p>
+            <strong>Platform admin flag:</strong> Set <code class="code-highlight">NEXT_PUBLIC_ALL_TENANTS_ADMIN=true</code>
+            (and <code>AMPLIFY_NEXT_PUBLIC_ALL_TENANTS_ADMIN=true</code> in Amplify) on the primary deployment. This matches
+            the intended “hub” that manages all tenants. Proxy list routes are tenant-agnostic; the env tenant remains the
+            <strong>default</strong> for API context and any code that calls <code>getTenantId()</code> directly.
+        </p>
+    </div>
+
+    <h2 id="platform-vs-satellite">4. Platform admin vs satellite deployments</h2>
+
+    <div class="section-container usage">
+        <div class="section-header usage">Deployment comparison</div>
+        <table>
+            <thead>
+                <tr><th>Setting</th><th>Primary (platform)</th><th>Satellite (customer)</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>NEXT_PUBLIC_TENANT_ID</code></td>
+                    <td>Platform home tenant (e.g. <code>event_site_manager_admin_00001</code>)</td>
+                    <td>Customer tenant ID from <code>tenant_organization</code></td>
+                </tr>
+                <tr>
+                    <td><code>NEXT_PUBLIC_ALL_TENANTS_ADMIN</code></td>
+                    <td><code>true</code> (recommended)</td>
+                    <td><code>false</code> or unset</td>
+                </tr>
+                <tr>
+                    <td><code>NEXT_PUBLIC_PRIMARY_DOMAIN</code></td>
+                    <td><code>www.event-site-manager.com</code></td>
+                    <td>N/A (satellite uses Clerk satellite config)</td>
+                </tr>
+                <tr>
+                    <td><code>NEXT_PUBLIC_CLERK_IS_SATELLITE</code></td>
+                    <td><code>false</code> / unset</td>
+                    <td><code>true</code></td>
+                </tr>
+                <tr>
+                    <td>Admin: Tenant Management</td>
+                    <td>Primary use case</td>
+                    <td>Usually not the main purpose</td>
+                </tr>
+                <tr>
+                    <td>Public homepage / events</td>
+                    <td>Optional (platform branding or minimal)</td>
+                    <td>Primary customer experience</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2 id="recommended-id">5. Using event_site_manager_admin_00001</h2>
+
+    <div class="section-container output">
+        <div class="section-header output">Verdict</div>
+        <p>
+            <strong>Yes — it is OK</strong> to set
+            <code class="code-highlight">NEXT_PUBLIC_TENANT_ID=event_site_manager_admin_00001</code>
+            for the primary deployment, provided you treat it as the <strong>platform’s own tenant record</strong> in the database,
+            not as a special value that works without backend data.
+        </p>
+    </div>
+
+    <h3>Required setup checklist</h3>
+    <ol>
+        <li>
+            <strong>Create the organization in the database</strong> via
+            <strong>Admin → Tenant Management → Organizations → New Organization</strong>.
+            Use prefix <code>event_site_manager_admin</code> so the generated ID is
+            <code>event_site_manager_admin_00001</code> (or create explicitly if sequence differs).
+            See <a href="../tenant_management/auto_tenant_id_generation/frontend_enhancements_prd.html">Auto Tenant ID Generation</a>.
+        </li>
+        <li>
+            <strong>Point environment variables</strong> at that ID (local <code>.env.local</code> and Amplify for the primary app).
+        </li>
+        <li>
+            <strong>Platform admin users:</strong> Ensure your Clerk user has a <code>user_profile</code> with
+            <code>user_role = 'ADMIN'</code> (or <code>SUPER_ADMIN</code>). Aligning
+            <code>tenant_id</code> with <code>event_site_manager_admin_00001</code> is recommended for consistency, though
+            layout admin lookup is currently by <code>userId</code> without env tenant filter.
+        </li>
+        <li>
+            <strong>Optional:</strong> Create <strong>Tenant Settings</strong> for that organization if the primary domain
+            homepage needs branding, hero images, or other tenant-scoped defaults.
+        </li>
+    </ol>
+
+    <h2 id="env-example">6. Recommended .env configuration</h2>
+
+    <div class="section-container parameters">
+        <div class="section-header parameters">Primary deployment (event-site-manager.com)</div>
+        <pre># Platform admin hub — cross-tenant management
+NEXT_PUBLIC_ALL_TENANTS_ADMIN=true
+AMPLIFY_NEXT_PUBLIC_ALL_TENANTS_ADMIN=true
+
+# Platform "home" tenant — must exist in tenant_organization
+NEXT_PUBLIC_TENANT_ID=event_site_manager_admin_00001
+AMPLIFY_NEXT_PUBLIC_TENANT_ID=event_site_manager_admin_00001
+
+NEXT_PUBLIC_PRIMARY_DOMAIN=www.event-site-manager.com
+NEXT_PUBLIC_APP_URL=https://www.event-site-manager.com
+NEXT_PUBLIC_API_BASE_URL=https://your-backend-api.example.com</pre>
+    </div>
+
+    <div class="section-container parameters">
+        <div class="section-header parameters">Satellite deployment (example: mosc-temp.com)</div>
+        <pre># Customer site — do NOT use the platform admin tenant ID
+NEXT_PUBLIC_TENANT_ID=mosc_customer_prefix_00002
+AMPLIFY_NEXT_PUBLIC_TENANT_ID=mosc_customer_prefix_00002
+
+NEXT_PUBLIC_CLERK_IS_SATELLITE=true
+NEXT_PUBLIC_CLERK_DOMAIN=mosc-temp.com
+NEXT_PUBLIC_APP_URL=https://www.mosc-temp.com</pre>
+    </div>
+
+    <h2 id="caveats">7. Caveats and pitfalls</h2>
+
+    <div class="warning-box">
+        <p><strong>Public homepage on the primary domain</strong></p>
+        <p>
+            Events, gallery, and hero content load for whatever <code>NEXT_PUBLIC_TENANT_ID</code> is set. If
+            event-site-manager.com is auth + admin only, public data may be empty or irrelevant unless you configure
+            the platform org’s tenant settings and content.
+        </p>
+    </div>
+
+    <div class="warning-box">
+        <p><strong>Stripe and payments</strong></p>
+        <p>
+            If the primary deployment processes payments, <code>NEXT_PUBLIC_PAYMENT_METHOD_DOMAIN_ID</code> and webhook
+            handlers expect payment metadata <code>tenantId</code> to match <code>getTenantId()</code>. Use the platform
+            tenant ID consistently in Stripe metadata for that deployment.
+        </p>
+    </div>
+
+    <div class="warning-box">
+        <p><strong>Do not reuse the platform ID on satellites</strong></p>
+        <p>
+            Each satellite Amplify app must use <strong>its customer’s</strong> tenant ID. Only the primary platform
+            deployment should use <code>event_site_manager_admin_00001</code> (or your chosen platform org ID).
+        </p>
+    </div>
+
+    <div class="info-box">
+        <p><strong>Replacing tenant_demo_002</strong></p>
+        <p>
+            Local or legacy values like <code>tenant_demo_002</code> are fine for development. For production on the
+            primary app, switching to a clearly named platform tenant such as
+            <code>event_site_manager_admin_00001</code> improves clarity and matches the auto-generated ID convention.
+        </p>
+    </div>
+
+    <h2 id="summary">8. Summary</h2>
+
+    <table class="summary-table">
+        <thead>
+            <tr><th>Question</th><th>Answer</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Need tenant ID on primary/admin app?</td>
+                <td><strong>Yes</strong> — required by <code>getTenantId()</code> and many features</td>
+            </tr>
+            <tr>
+                <td>Used for Tenant Management admin lists?</td>
+                <td><strong>Indirectly</strong> — cross-tenant admin; env tenant is default API context, not list scope</td>
+            </tr>
+            <tr>
+                <td>OK to use <code>event_site_manager_admin_00001</code>?</td>
+                <td><strong>Yes</strong> — if the row exists in <code>tenant_organization</code> and env matches</td>
+            </tr>
+            <tr>
+                <td>Replace <code>tenant_demo_002</code>?</td>
+                <td><strong>Reasonable</strong> for production primary when demo ID was scaffolding only</td>
+            </tr>
+            <tr>
+                <td>Satellite domains</td>
+                <td>Each keeps <strong>its own</strong> customer <code>NEXT_PUBLIC_TENANT_ID</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="section-container">
+        <div class="section-header">Key code references</div>
+        <ul>
+            <li><code class="code-highlight">src/lib/env.ts</code> — <code>getTenantId()</code>, <code>isAllTenantsAdmin()</code>, <code>appendTenantIfPresent()</code></li>
+            <li><code class="code-highlight">src/lib/proxyHandler.ts</code> — <code>X-Tenant-ID</code> on <code>fetchWithJwtRetry</code></li>
+            <li><code class="code-highlight">src/app/layout.tsx</code> — Clerk primary vs satellite, admin profile lookup</li>
+            <li><code class="code-highlight">src/app/admin/tenant-management/</code> — cross-tenant organization and settings management</li>
+        </ul>
+    </div>
+
+    <p class="doc-meta" style="margin-top: 32px;">
+        <strong>Document path:</strong> <code>documentation/html-documentation-styling/PLATFORM_ADMIN_TENANT_ID_ARCHITECTURE.html</code>
+    </p>
+
+</body>
+</html>

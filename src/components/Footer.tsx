@@ -2,8 +2,36 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Facebook, Twitter, Linkedin, Youtube, ArrowUp, Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Twitter, Linkedin, Youtube, ArrowUp, Mail, Phone, MapPin, Globe } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import type { FooterContactProps } from "@/lib/footerContactTypes";
+
+const DEFAULT_CONTACT: FooterContactProps = {
+  formattedAddress: "123 Charity Lane\nHope City, HC 12345\nUnited States",
+  phoneNumber: "+1 (555) 123-4567",
+  email: "contact@charityorg.com",
+  websiteUrl: null,
+  description: null,
+};
+
+function formatTelHref(phone: string): string {
+  const digits = phone.replace(/[^\d+]/g, "");
+  return digits.startsWith("+") ? `tel:${digits}` : `tel:${digits.replace(/\D/g, "")}`;
+}
+
+function AddressLines({ address }: { address: string }) {
+  const lines = address.split("\n").filter(Boolean);
+  return (
+    <>
+      {lines.map((line, index) => (
+        <React.Fragment key={`${line}-${index}`}>
+          {line}
+          {index < lines.length - 1 && <br />}
+        </React.Fragment>
+      ))}
+    </>
+  );
+}
 
 // Back-to-top button component with comprehensive styling
 const BackToTopButton = () => {
@@ -60,7 +88,24 @@ const BackToTopButton = () => {
   );
 };
 
-const Footer = () => {
+const Footer = ({ contact }: { contact?: Partial<FooterContactProps> }) => {
+  const usePlaceholderContact = contact === undefined;
+  const resolved: FooterContactProps = {
+    formattedAddress: usePlaceholderContact
+      ? DEFAULT_CONTACT.formattedAddress
+      : (contact.formattedAddress ?? null),
+    phoneNumber: usePlaceholderContact
+      ? DEFAULT_CONTACT.phoneNumber
+      : (contact.phoneNumber ?? null),
+    email: usePlaceholderContact ? DEFAULT_CONTACT.email : (contact.email ?? null),
+    websiteUrl: usePlaceholderContact
+      ? DEFAULT_CONTACT.websiteUrl
+      : (contact.websiteUrl ?? null),
+    description: usePlaceholderContact
+      ? DEFAULT_CONTACT.description
+      : (contact.description ?? null),
+  };
+
   return (
     <footer className="bg-gray-900 text-gray-300 footer-edge-to-edge mt-20" data-testid="main-footer" role="contentinfo">
       {/* Main Footer Content */}
@@ -164,45 +209,59 @@ const Footer = () => {
                 <div className="flex items-start space-x-3">
                   <MapPin size={18} className="text-blue-400 mt-1 flex-shrink-0" strokeWidth={2} />
                   <p className="text-gray-400 font-inter text-sm leading-relaxed">
-                    123 Charity Lane<br />
-                    Hope City, HC 12345<br />
-                    United States
+                    {resolved.formattedAddress ? (
+                      <AddressLines address={resolved.formattedAddress} />
+                    ) : (
+                      "Address not available"
+                    )}
                   </p>
                 </div>
 
+                {resolved.phoneNumber && (
                 <div className="flex items-center space-x-3">
                   <Phone size={18} className="text-blue-400 flex-shrink-0" strokeWidth={2} />
                   <div className="space-y-1">
                     <p>
                       <a
-                        href="tel:+15551234567"
+                        href={formatTelHref(resolved.phoneNumber)}
                         className="text-gray-300 hover:text-white font-inter text-sm transition-colors duration-300 focus:outline-none focus:text-white"
                       >
-                        +1 (555) 123-4567
-                      </a>
-                    </p>
-                    <p>
-                      <a
-                        href="tel:+18005551234"
-                        className="text-gray-300 hover:text-white font-inter text-sm transition-colors duration-300 focus:outline-none focus:text-white"
-                      >
-                        1-800-555-1234 (Toll Free)
+                        {resolved.phoneNumber}
                       </a>
                     </p>
                   </div>
                 </div>
+                )}
 
+                {resolved.email && (
                 <div className="flex items-center space-x-3">
                   <Mail size={18} className="text-blue-400 flex-shrink-0" strokeWidth={2} />
                   <p>
                     <a
-                      href="mailto:contact@charityorg.com"
+                      href={`mailto:${resolved.email}`}
                       className="text-blue-400 hover:text-blue-300 font-inter text-sm transition-colors duration-300 focus:outline-none focus:text-blue-300"
                     >
-                      contact@charityorg.com
+                      {resolved.email}
                     </a>
                   </p>
                 </div>
+                )}
+
+                {resolved.websiteUrl && (
+                <div className="flex items-center space-x-3">
+                  <Globe size={18} className="text-blue-400 flex-shrink-0" strokeWidth={2} />
+                  <p>
+                    <a
+                      href={resolved.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 font-inter text-sm transition-colors duration-300 focus:outline-none focus:text-blue-300"
+                    >
+                      {resolved.websiteUrl.replace(/^https?:\/\//, "")}
+                    </a>
+                  </p>
+                </div>
+                )}
               </div>
             </div>
 

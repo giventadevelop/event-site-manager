@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { FaPlus, FaSearch, FaSort } from 'react-icons/fa';
 import type { TenantOrganizationDTO, TenantOrganizationFilters, PaginationParams } from '@/app/admin/tenant-management/types';
+import TenantOrganizationDetailsTooltip from '@/app/admin/tenant-management/components/TenantOrganizationDetailsTooltip';
 
 interface TenantOrganizationListProps {
   initialData?: TenantOrganizationDTO[];
@@ -36,6 +37,13 @@ export default function TenantOrganizationList({
 
   // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  // Hover details tooltip (media page pattern)
+  const [activeTooltipOrg, setActiveTooltipOrg] = useState<TenantOrganizationDTO | null>(null);
+  const [tooltipAnchorRect, setTooltipAnchorRect] = useState<DOMRect | null>(null);
+  const [tooltipSerialNumber, setTooltipSerialNumber] = useState<number | undefined>(undefined);
+  const [isTooltipClosed, setIsTooltipClosed] = useState(false);
+  const pageTopRef = useRef<HTMLDivElement>(null);
 
   // Load data function
   const loadData = async () => {
@@ -147,6 +155,36 @@ export default function TenantOrganizationList({
     }
   };
 
+  const handlePreviewCellMouseEnter = (
+    org: TenantOrganizationDTO,
+    e: React.MouseEvent<HTMLTableCellElement>,
+    serialNumber: number,
+  ) => {
+    if (isTooltipClosed) return;
+    setTooltipAnchorRect(e.currentTarget.getBoundingClientRect());
+    setActiveTooltipOrg(org);
+    setTooltipSerialNumber(serialNumber);
+  };
+
+  const handlePreviewCellMouseLeave = () => {
+    // Tooltip stays open until user clicks × (media page pattern)
+  };
+
+  const handleCloseTooltip = () => {
+    setActiveTooltipOrg(null);
+    setTooltipAnchorRect(null);
+    setTooltipSerialNumber(undefined);
+    setIsTooltipClosed(true);
+
+    if (pageTopRef.current) {
+      pageTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    setTimeout(() => setIsTooltipClosed(false), 1500);
+  };
+
   // Calculate pagination
   const totalPages = Math.ceil(totalCount / pageSize);
   const hasPrevPage = currentPage > 0;
@@ -170,7 +208,7 @@ export default function TenantOrganizationList({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 sm:p-4 md:p-6">
+    <div ref={pageTopRef} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 sm:p-4 md:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white text-center sm:text-left">Tenant Organizations</h2>
@@ -197,7 +235,7 @@ export default function TenantOrganizationList({
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
-                placeholder="Search by organization name or domain..."
+                placeholder="Search by organization name, tenant ID, or domain..."
                 value={filters.search || ''}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-xs sm:text-sm"
@@ -233,6 +271,19 @@ export default function TenantOrganizationList({
         </div>
       )}
 
+      <div
+        className={`mb-4 text-sm border rounded-lg px-4 py-3 ${
+          isTooltipClosed ? 'text-orange-700 bg-orange-50 border-orange-200' : 'text-blue-700 bg-blue-50 border-blue-200'
+        }`}
+      >
+        <p>
+          <span className="font-semibold">{isTooltipClosed ? '⏳' : '💡'} Tip:</span>{' '}
+          {isTooltipClosed
+            ? 'Tooltips temporarily disabled. Wait a moment before hovering again.'
+            : 'Mouse over Organization Name or Tenant ID to preview all details. Click × to close the dialog.'}
+        </p>
+      </div>
+
       {/* Table */}
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
         <div className="user-table-scroll-container">
@@ -257,7 +308,13 @@ export default function TenantOrganizationList({
                   </div>
                 </th>
                 <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
-                  Domain
+                  Tenant ID
+                </th>
+                <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
+                  Website / Domain
+                </th>
+                <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
+                  Actions
                 </th>
                 <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
                   Contact Email
@@ -271,11 +328,8 @@ export default function TenantOrganizationList({
                     <FaSort className="text-xs" />
                   </div>
                 </th>
-                <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
-                  Active
-                </th>
                 <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-300 dark:border-gray-600">
-                  Actions
+                  Active
                 </th>
               </tr>
             </thead>
@@ -291,44 +345,26 @@ export default function TenantOrganizationList({
                     onClick={(e) => e.stopPropagation()}
                   />
                 </td>
-                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-600">
+                <td
+                  className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-600 cursor-help"
+                  onMouseEnter={(e) => handlePreviewCellMouseEnter(org, e, startItem + index)}
+                  onMouseLeave={handlePreviewCellMouseLeave}
+                  title="Hover to preview organization details"
+                >
                   {org.organizationName}
+                </td>
+                <td
+                  className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-mono border-r border-gray-200 dark:border-gray-600 cursor-help"
+                  onMouseEnter={(e) => handlePreviewCellMouseEnter(org, e, startItem + index)}
+                  onMouseLeave={handlePreviewCellMouseLeave}
+                  title="Hover to preview organization details"
+                >
+                  {org.tenantId}
                 </td>
                 <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-600">
                   {org.domain || '-'}
                 </td>
-                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-600">
-                  {org.contactEmail}
-                </td>
-                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${org.subscriptionStatus === 'ACTIVE'
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    : org.subscriptionStatus === 'SUSPENDED'
-                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                    }`}>
-                    {org.subscriptionStatus || 'Unknown'}
-                  </span>
-                </td>
-                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600">
-                  <button
-                    onClick={() => handleToggleStatus(org.id!, org.isActive || false)}
-                    className={`flex items-center gap-1 sm:gap-2 ${org.isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'
-                      }`}
-                  >
-                    {org.isActive ? (
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17 7H7a5 5 0 000 10h10a5 5 0 000-10zm0 8a3 3 0 110-6 3 3 0 010 6z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17 7H7a5 5 0 000 10h10a5 5 0 000-10zM7 15a3 3 0 110-6 3 3 0 010 6z" />
-                      </svg>
-                    )}
-                    <span className="text-xs sm:text-sm">{org.isActive ? 'Active' : 'Inactive'}</span>
-                  </button>
-                </td>
-                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
+                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium border-r border-gray-200 dark:border-gray-600">
                   <div className="flex gap-1 sm:gap-2">
                     <Link
                       href={`/admin/tenant-management/organizations/${org.id}`}
@@ -364,11 +400,42 @@ export default function TenantOrganizationList({
                     </button>
                   </div>
                 </td>
+                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-600">
+                  {org.contactEmail}
+                </td>
+                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${org.subscriptionStatus === 'ACTIVE'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    : org.subscriptionStatus === 'SUSPENDED'
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
+                    {org.subscriptionStatus || 'Unknown'}
+                  </span>
+                </td>
+                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap">
+                  <button
+                    onClick={() => handleToggleStatus(org.id!, org.isActive || false)}
+                    className={`flex items-center gap-1 sm:gap-2 ${org.isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                  >
+                    {org.isActive ? (
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17 7H7a5 5 0 000 10h10a5 5 0 000-10zm0 8a3 3 0 110-6 3 3 0 010 6z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17 7H7a5 5 0 000 10h10a5 5 0 000-10zM7 15a3 3 0 110-6 3 3 0 010 6z" />
+                      </svg>
+                    )}
+                    <span className="text-xs sm:text-sm">{org.isActive ? 'Active' : 'Inactive'}</span>
+                  </button>
+                </td>
               </tr>
             ))}
             {organizations.length === 0 && !loading && (
               <tr>
-                <td className="px-2 sm:px-4 lg:px-6 py-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center" colSpan={7}>
+                <td className="px-2 sm:px-4 lg:px-6 py-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center" colSpan={8}>
                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 border-2 border-orange-300 rounded-lg shadow-sm">
                     <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -383,6 +450,15 @@ export default function TenantOrganizationList({
         </table>
         </div>
       </div>
+
+      <TenantOrganizationDetailsTooltip
+        organization={activeTooltipOrg}
+        anchorRect={tooltipAnchorRect}
+        serialNumber={tooltipSerialNumber}
+        onClose={handleCloseTooltip}
+        onTooltipMouseEnter={() => undefined}
+        onTooltipMouseLeave={() => undefined}
+      />
 
       {/* Pagination Controls - Always visible, matching admin page style */}
       <div className="mt-8">
