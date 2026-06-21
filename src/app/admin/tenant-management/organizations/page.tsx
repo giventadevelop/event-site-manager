@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import TenantOrganizationList from '@/app/admin/tenant-management/components/TenantOrganizationList';
 import AdminNavigation from '@/components/AdminNavigation';
+import SatelliteDomainsGuidance from '@/components/admin/SatelliteDomainsGuidance';
 import Link from 'next/link';
 
 export default async function TenantOrganizationsPage() {
@@ -15,10 +16,18 @@ export default async function TenantOrganizationsPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 sm:p-4 md:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Tenant Organizations</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+                  Tenant Organizations
+                </h1>
+                <SatelliteDomainsGuidance showHelp showBanner={false} />
+              </div>
               <p className="text-gray-600 dark:text-gray-400 mt-1 text-xs sm:text-sm">
                 Manage tenant organizations and their configurations.
               </p>
+              <div className="mt-4">
+                <SatelliteDomainsGuidance showHelp={false} showBanner context="organizations" />
+              </div>
             </div>
           </div>
 

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Satellite Domains — Admin Guidelines</title>
+  <style>
+    .admin-help-content {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .admin-help-content h2 {
+      color: #4338ca;
+      margin-top: 28px;
+      margin-bottom: 12px;
+      border-left: 4px solid #6366f1;
+      padding-left: 12px;
+      font-size: 1.15rem;
+    }
+    .admin-help-content h2:first-child { margin-top: 0; }
+    .admin-help-content p { margin: 8px 0; }
+    .admin-help-content ul, .admin-help-content ol { margin: 8px 0 8px 20px; }
+    .admin-help-content li { margin: 4px 0; }
+    .admin-help-content code {
+      background-color: #e8f4f8;
+      color: #0d3b66;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', Consolas, monospace;
+      font-size: 0.9em;
+    }
+    .admin-help-content .rule-box {
+      background-color: #eef2ff;
+      border-left: 4px solid #6366f1;
+      padding: 12px 14px;
+      margin: 12px 0;
+      border-radius: 4px;
+    }
+    .admin-help-content .warning-box {
+      background-color: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 14px;
+      margin: 12px 0;
+      border-radius: 4px;
+    }
+    .admin-help-content .info-box {
+      background-color: #ecfdf5;
+      border-left: 4px solid #10b981;
+      padding: 12px 14px;
+      margin: 12px 0;
+      border-radius: 4px;
+    }
+    .admin-help-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 0.95rem;
+    }
+    .admin-help-content th {
+      background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
+      color: #fff;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .admin-help-content td {
+      border: 1px solid #d1d5db;
+      padding: 10px 12px;
+    }
+    .admin-help-content tr:nth-child(even) td { background-color: #f9fafb; }
+    .admin-help-content a {
+      color: #4338ca;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-help-content">
+    <h2>What are satellite domains?</h2>
+    <p>
+      A <strong>satellite domain</strong> is a tenant&apos;s custom public URL (for example
+      <code>https://www.mosc-temp.com</code>) that runs the same application as your
+      <strong>primary domain</strong> (for example <code>https://www.event-site-manager.com</code>).
+      Each satellite is linked to a <strong>Tenant ID</strong> so the site loads the correct organization,
+      settings, events, and branding.
+    </p>
+
+    <div class="rule-box">
+      <strong>Login &amp; sign-up require a satellite domain record.</strong>
+      Users who visit a custom domain must sign in through Clerk&apos;s satellite authentication flow.
+      The app redirects them to the primary domain for sign-in, then back to the satellite after success.
+      If the hostname is not registered under <strong>Admin → Satellite Domains</strong>, sign-in and
+      sign-out on that custom URL will not work correctly.
+    </div>
+
+    <h2>Recommended setup workflow</h2>
+    <ol>
+      <li>
+        <strong>Create a tenant organization</strong> (<a href="/admin/tenant-management/organizations">Admin → Organizations</a>).
+        Note the organization&apos;s <code>tenantId</code> — this is the key used everywhere else.
+      </li>
+      <li>
+        <strong>Create tenant settings</strong> (<a href="/admin/tenant-management/settings">Admin → Tenant Settings</a>)
+        and link them to that organization. Set logo, contact info, and feature flags. The
+        <code>tenantId</code> on settings must match the organization.
+      </li>
+      <li>
+        <strong>Register the satellite domain</strong> at
+        <a href="/admin/satellite-domains">Admin → Satellite Domains</a>:
+        <ul>
+          <li><strong>Satellite Key</strong> — short identifier (e.g. <code>mosc-temp</code>)</li>
+          <li><strong>Domain URL</strong> — full URL with scheme (e.g. <code>https://www.mosc-temp.com</code>)</li>
+          <li><strong>Hostname</strong> — host only (e.g. <code>www.mosc-temp.com</code>)</li>
+          <li><strong>Tenant ID</strong> — must match tenant settings / organization</li>
+          <li><strong>Enabled</strong> — turn on when DNS and Clerk are ready</li>
+        </ul>
+      </li>
+      <li>
+        <strong>Configure DNS</strong> (AWS Amplify custom domain or CNAME) so the hostname points to your deployed app.
+      </li>
+      <li>
+        <strong>Configure Clerk</strong> — add the hostname as a satellite domain in the Clerk Dashboard
+        (Production). The primary domain must remain deployed; satellite auth depends on it.
+      </li>
+      <li>
+        <strong>Optional branding</strong> — on the satellite form, logo and theme fields can mirror tenant settings;
+        entering the Tenant ID loads the logo from tenant settings as a reference.
+      </li>
+    </ol>
+
+    <h2>Field reference (Satellite Domains admin)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>tenantId</code></td>
+          <td>Must match Tenant Settings and Organization. Wrong ID = wrong tenant data and broken auth context.</td>
+        </tr>
+        <tr>
+          <td><code>hostname</code></td>
+          <td>Used to detect satellite vs primary at runtime (sign-in redirect, branding, tenant resolution).</td>
+        </tr>
+        <tr>
+          <td><code>domain</code></td>
+          <td>Full public URL; used in links and Clerk configuration.</td>
+        </tr>
+        <tr>
+          <td><code>enabled</code></td>
+          <td>Disable temporarily without deleting the record (maintenance, pre-launch).</td>
+        </tr>
+        <tr>
+          <td>Auth header/footer flags</td>
+          <td>Control whether org branding appears on sign-in and sign-out pages for this satellite.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="warning-box">
+      <strong>Primary domain must stay online.</strong>
+      Satellite sign-in redirects users to the primary app for Clerk authentication. If the primary deployment
+      is removed, users on satellite domains cannot complete login or sign-out.
+    </div>
+
+    <div class="info-box">
+      <strong>Manage satellite domains:</strong>
+      <a href="/admin/satellite-domains">Open Satellite Domains admin</a>
+      ·
+      <a href="/admin/tenant-management/settings">Tenant Settings</a>
+      ·
+      <a href="/admin/tenant-management/organizations">Organizations</a>
+    </div>
+  </div>
+</body>
+</html>
