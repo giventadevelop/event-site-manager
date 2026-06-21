@@ -5,6 +5,7 @@ import { fetchRecentTenantOrganizationsForSelectServer } from '@/app/admin/tenan
 import TenantSettingsEditClient from './TenantSettingsEditClient';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
+import SatelliteDomainsGuidance from '@/components/admin/SatelliteDomainsGuidance';
 
 interface PageProps {
   params: { id: string };
@@ -163,10 +164,17 @@ export default async function EditTenantSettingsPage({ params }: PageProps) {
 
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Edit Settings</h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-3xl font-bold text-gray-900">Edit Settings</h1>
+          <SatelliteDomainsGuidance showHelp showBanner={false} />
+        </div>
         <p className="mt-2 text-sm text-gray-600">
           Update tenant configuration settings
         </p>
+      </div>
+
+      <div className="mb-6">
+        <SatelliteDomainsGuidance showHelp={false} showBanner context="edit-settings" />
       </div>
 
       {/* Tip about upload features */}

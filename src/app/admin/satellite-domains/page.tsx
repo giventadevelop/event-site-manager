@@ -17,6 +17,7 @@ import {
   deleteSatelliteDomainServer,
   fetchTenantLogoUrlFromTenantSettingsServer,
 } from './ApiServerActions';
+import SatelliteDomainsGuidance from '@/components/admin/SatelliteDomainsGuidance';
 
 const emptyFormData: Partial<SatelliteDomainDTO> = {
   satelliteKey: '',
@@ -382,13 +383,17 @@ export default function SatelliteDomainsPage() {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2 flex-wrap">
                   <FaGlobe className="text-blue-600" />
                   Satellite Domains
+                  <SatelliteDomainsGuidance showHelp showBanner={false} />
                 </h1>
                 <p className="text-gray-600 mt-1">
                   Manage satellite domain configurations for multi-tenant authentication and branding.
                 </p>
+                <div className="mt-4 max-w-3xl">
+                  <SatelliteDomainsGuidance showHelp={false} showBanner context="general" />
+                </div>
               </div>
               <button
                 onClick={() => setIsCreateModalOpen(true)}

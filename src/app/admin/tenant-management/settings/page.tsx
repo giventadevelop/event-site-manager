@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { fetchTenantSettings } from './ApiServerActions';
 import TenantSettingsList from '@/app/admin/tenant-management/components/TenantSettingsList';
 import AdminNavigation from '@/components/AdminNavigation';
+import SatelliteDomainsGuidance from '@/components/admin/SatelliteDomainsGuidance';
 import Link from 'next/link';
 
 export default async function TenantSettingsPage() {
@@ -34,10 +35,18 @@ export default async function TenantSettingsPage() {
         <div className="mb-4 sm:mb-6 md:mb-8">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white text-center sm:text-left">Tenant Settings</h1>
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white text-center sm:text-left">
+                  Tenant Settings
+                </h1>
+                <SatelliteDomainsGuidance showHelp showBanner={false} />
+              </div>
               <p className="mt-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
                 Manage tenant-specific configurations and settings
               </p>
+              <div className="mt-4">
+                <SatelliteDomainsGuidance showHelp={false} showBanner context="settings" />
+              </div>
             </div>
             <Link
               href="/admin/tenant-management/settings/new"

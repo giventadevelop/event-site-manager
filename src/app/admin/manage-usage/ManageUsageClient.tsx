@@ -9,6 +9,7 @@ import { useAdminTenantId } from '../AdminTenantContext';
 import AdminTenantFilterField from '../AdminTenantFilterField';
 import { fetchUsersServer, patchUserProfileServer, bulkUploadUsersServer } from './ApiServerActions';
 import AdminNavigation from '@/components/AdminNavigation';
+import ManageUsageAdminGuidance from '@/components/admin/ManageUsageAdminGuidance';
 
 // Import UserDetailsTooltip and EditUserModal from the same file or extract if needed
 // ... (copy UserDetailsTooltip and EditUserModal here or import them)
@@ -307,6 +308,10 @@ function EditUserModal({ user, open, onClose, onSave, loading }: {
                 <option value="VOLUNTEER">VOLUNTEER</option>
                 <option value="MEMBER">MEMBER</option>
               </select>
+              <p className="mt-1.5 text-xs text-gray-500 leading-snug">
+                Set to ADMIN after the user has registered on your tenant site. They must sign out and back in for
+                the Admin menu to appear.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -685,12 +690,16 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
       <AdminNavigation />
       {/* Page Header */}
       <div className="mb-4 sm:mb-6 md:mb-8">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 text-center sm:text-left">
-          Manage Users
-        </h1>
-        <p className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 text-center sm:text-left">
+            Manage Users
+          </h1>
+          <ManageUsageAdminGuidance showHelp showBanner={false} className="flex justify-center sm:justify-end" />
+        </div>
+        <p className="text-xs sm:text-sm text-gray-600 text-center sm:text-left mb-3">
           Manage user profiles, roles, and statuses for your organization
         </p>
+        <ManageUsageAdminGuidance showHelp={false} showBanner />
       </div>
         <div className="flex items-center gap-2">
           <button
