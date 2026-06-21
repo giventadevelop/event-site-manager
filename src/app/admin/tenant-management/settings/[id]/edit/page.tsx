@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { fetchTenantSetting } from '@/app/admin/tenant-management/settings/ApiServerActions';
-import { fetchTenantOrganizations } from '@/app/admin/tenant-management/organizations/ApiServerActions';
+import { fetchRecentTenantOrganizationsForSelectServer } from '@/app/admin/tenant-management/organizations/organizationSelectServerActions';
 import TenantSettingsEditClient from './TenantSettingsEditClient';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
@@ -31,13 +31,7 @@ export default async function EditTenantSettingsPage({ params }: PageProps) {
       notFound();
     }
 
-    // Fetch organizations for dropdown
-    try {
-      const result = await fetchTenantOrganizations({ page: 0, pageSize: 100 }, {});
-      organizations = result.data;
-    } catch (orgError) {
-      console.error('Error fetching organizations:', orgError);
-    }
+    organizations = await fetchRecentTenantOrganizationsForSelectServer();
   } catch (err) {
     console.error('Error fetching settings:', err);
     error = err instanceof Error ? err.message : 'Failed to load settings';

@@ -230,6 +230,43 @@ export interface EventMediaDTO {
    * Reference to gallery album. Mutually exclusive with eventId (media belongs to either an event OR an album, not both).
    */
   albumId?: number;
+  /** FK to public.official_document_category when isEventManagementOfficialDocument is true (tenant library). */
+  officialDocumentCategoryId?: number | null;
+  /** Calendar year segment for official-document S3 path (e.g. 2025). */
+  officialDocumentYear?: number | null;
+  thumbnailUrl?: string;
+  thumbnailPreSignedUrl?: string;
+  thumbnailPreSignedUrlExpiresAt?: string;
+}
+
+/**
+ * Tenant-scoped official document category lookup (Church Resources).
+ */
+export interface OfficialDocumentCategoryDTO {
+  id?: number;
+  tenantId?: string;
+  slug: string;
+  displayName: string;
+  description?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Per-tenant, per-category, per-year bundle for official document library cover (see official_document_year_bundle).
+ */
+export interface OfficialDocumentYearBundleDTO {
+  id?: number;
+  tenantId?: string;
+  officialDocumentCategoryId: number;
+  documentYear: number;
+  coverEventMediaId?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+  /** When API embeds the cover media row */
+  coverEventMedia?: Partial<EventMediaDTO> | null;
 }
 
 /**
@@ -573,6 +610,14 @@ export interface TenantOrganizationDTO {
   monthlyFeeUsd?: number;
   stripeCustomerId?: string;
   isActive?: boolean;
+  description?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  stateProvince?: string | null;
+  zipCode?: string | null;
+  country?: string | null;
+  websiteUrl?: string | null;
   createdAt: string; // date-time
   updatedAt: string; // date-time
 }
@@ -614,12 +659,21 @@ export interface TenantSettingsDTO {
   defaultHeroIncludeWithEvents?: boolean;
   /** Max tenant default slides on homepage when slides are marked active (1-6). */
   defaultHeroMaxDisplayCount?: number;
-  // Contact and Address Fields
+  // Contact and operational fields (email, phone remain on settings)
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
+  description?: string | null;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   addressLine1?: string;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   addressLine2?: string;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
+  city?: string | null;
   phoneNumber?: string;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   zipCode?: string;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   country?: string;
+  /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   stateProvince?: string;
   email?: string;
   createdAt: string; // date-time

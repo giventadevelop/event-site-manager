@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Tenant ID naming convention and auto-generation standard for event-site-manager tenant organizations.">
+    <title>Tenant ID Naming Convention &amp; Auto-Generation Standard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px 20px 48px;
+        }
+        h1 {
+            font-size: 2.1em;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 12px;
+            margin-bottom: 8px;
+            color: #1a1a2e;
+        }
+        h2 {
+            font-size: 1.55em;
+            border-left: 4px solid #0066cc;
+            padding-left: 14px;
+            margin-top: 32px;
+            margin-bottom: 14px;
+            color: #1a1a2e;
+        }
+        h3 { font-size: 1.2em; margin-top: 18px; margin-bottom: 10px; color: #333; }
+        p, li { margin-bottom: 10px; }
+        ul, ol { margin: 10px 0 14px 24px; }
+        a { color: #0066cc; font-weight: 500; }
+        a:hover { text-decoration: underline; }
+        .doc-meta { color: #555; font-size: 0.95em; margin-bottom: 20px; }
+        .lead {
+            background: linear-gradient(135deg, #e8f4f8 0%, #d1e7f0 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 18px 20px;
+            margin: 20px 0;
+        }
+        .toc {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border: 1px solid #b8d4e3;
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px 25px;
+            margin: 25px 0;
+        }
+        .toc h2 { border-left: none; padding-left: 0; margin-top: 0; font-size: 1.4em; color: #0066cc; }
+        .toc ul { margin-bottom: 0; }
+        .section-container {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 22px 0;
+            box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+        }
+        .section-container.usage {
+            background: linear-gradient(135deg, #f0e6ff 0%, #e6ccff 100%);
+            border-left-color: #9c27b0;
+        }
+        .section-container.parameters {
+            background: linear-gradient(135deg, #fff5e6 0%, #ffe6cc 100%);
+            border-left-color: #ff9800;
+        }
+        .section-container.output {
+            background: linear-gradient(135deg, #e6ffe6 0%, #ccffcc 100%);
+            border-left-color: #28a745;
+        }
+        .section-header {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: white;
+            padding: 12px 20px;
+            margin: -20px -20px 18px -20px;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+        }
+        .section-container.usage .section-header {
+            background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+        }
+        .section-container.parameters .section-header {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+        .section-container.output .section-header {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            font-size: 0.92em;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        thead th {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: #fff;
+            text-align: left;
+            padding: 12px 14px;
+            text-transform: uppercase;
+            font-size: 0.88em;
+            letter-spacing: 0.4px;
+        }
+        tbody td {
+            padding: 11px 14px;
+            border-bottom: 1px solid #e0e8f0;
+            vertical-align: top;
+        }
+        tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        tbody tr:hover { background-color: #e3f2fd; transition: background-color 0.2s ease; }
+        code, .code-highlight {
+            background: #e8f4f8;
+            color: #0d3b66;
+            padding: 2px 7px;
+            border-radius: 3px;
+            border: 1px solid #b8d4e3;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.88em;
+        }
+        td code { padding: 3px 8px; }
+        pre {
+            background: #e8f4f8;
+            color: #0d3b66;
+            border: 1px solid #b8d4e3;
+            padding: 14px 16px;
+            border-radius: 6px;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            padding: 14px 16px;
+            border-radius: 6px;
+            margin: 16px 0;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 14px 16px;
+            border-radius: 6px;
+            margin: 16px 0;
+        }
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 14px 16px;
+            border-radius: 6px;
+            margin: 16px 0;
+        }
+        .section-intro {
+            background: linear-gradient(135deg, #e8f4f8 0%, #d1e7f0 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 6px;
+            padding: 14px 16px;
+            margin: 14px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Tenant ID Naming Convention &amp; Auto-Generation Standard</h1>
+    <p class="doc-meta">
+        <strong>Project:</strong> <code>event-site-manager</code> &nbsp;|&nbsp;
+        <strong>Version:</strong> 1.2 &nbsp;|&nbsp;
+        <strong>Effective:</strong> June 19, 2026 &nbsp;|&nbsp;
+        <strong>Source of truth:</strong> <code class="code-highlight">src/lib/tenantIdGeneration.ts</code>
+    </p>
+
+    <div class="lead">
+        <p>
+            Every tenant organization receives a unique <strong>tenant ID</strong> stored in
+            <code>tenant_organization.tenant_id</code>. New IDs follow the pattern
+            <code class="code-highlight">{prefix}_{sequence}</code> — for example
+            <code class="code-highlight">ford_motors_1</code>. Admins choose a name prefix on
+            <strong>Create Organization</strong>; the platform assigns the next global sequence number.
+            The numeric suffix has a <strong>minimum of 1 digit</strong> (no leading-zero padding), so the first ID is
+            <code class="code-highlight">1</code>, then <code class="code-highlight">2</code>, <code class="code-highlight">3</code>, and so on.
+        </p>
+    </div>
+
+    <nav class="toc" aria-label="Table of contents">
+        <h2>Contents</h2>
+        <ul>
+            <li><a href="#format">1. ID format</a></li>
+            <li><a href="#constants">2. Configuration constants</a></li>
+            <li><a href="#prefix-rules">3. Prefix rules</a></li>
+            <li><a href="#sequence-rules">4. Sequence rules (global counter)</a></li>
+            <li><a href="#padding-examples">5. Padding and scaling examples</a></li>
+            <li><a href="#validation">6. Validation</a></li>
+            <li><a href="#admin-workflow">7. Admin workflow</a></li>
+            <li><a href="#implementation">8. Implementation reference</a></li>
+            <li><a href="#legacy">9. Legacy and mixed conventions</a></li>
+            <li><a href="#related-docs">10. Related documentation</a></li>
+        </ul>
+    </nav>
+
+    <h2 id="format">1. ID format</h2>
+
+    <div class="section-container">
+        <div class="section-header">Canonical pattern</div>
+        <pre>{prefix}_{sequence}
+
+Examples:
+  ford_motors_1
+  event_site_manager_admin_7
+  acme_corp_200000</pre>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Part</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>prefix</strong></td>
+                <td>Lowercase slug chosen by the admin (letters, digits, underscores). Must end with a letter. Max 30 characters after normalization.</td>
+                <td><code>ford_motors</code></td>
+            </tr>
+            <tr>
+                <td><strong>separator</strong></td>
+                <td>Single underscore between prefix and sequence.</td>
+                <td><code>_</code></td>
+            </tr>
+            <tr>
+                <td><strong>sequence</strong></td>
+                <td>Positive integer; trailing numeric suffix after the <em>last</em> underscore. At least 1 digit; no leading-zero padding for new IDs.</td>
+                <td><code>1</code>, <code>9</code>, <code>99</code>, <code>100</code>, <code>200000</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="info-box">
+        <p>
+            <strong>Multi-underscore prefixes are supported.</strong> The sequence is always the digits after the
+            <em>final</em> underscore. For example, <code class="code-highlight">event_site_manager_admin_7</code>
+            has prefix <code>event_site_manager_admin</code> and sequence <code>7</code>.
+        </p>
+    </div>
+
+    <h2 id="constants">2. Configuration constants</h2>
+
+    <p>Defined in <code class="code-highlight">src/lib/tenantIdGeneration.ts</code>:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Constant</th>
+                <th>Value</th>
+                <th>Meaning</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>TENANT_ID_SUFFIX_MIN_DIGITS</code></td>
+                <td><code>1</code></td>
+                <td>Minimum width of the numeric suffix. With value <code>1</code>, no leading zeros — first tenant gets <code>_1</code>.</td>
+            </tr>
+            <tr>
+                <td><code>TENANT_ID_FIRST_SEQUENCE</code></td>
+                <td><code>1</code></td>
+                <td>Starting sequence when no existing ID has a trailing <code>_digits</code> suffix.</td>
+            </tr>
+            <tr>
+                <td><code>TENANT_ID_PREFIX_MAX_LENGTH</code></td>
+                <td><code>30</code></td>
+                <td>Maximum length of the normalized prefix (excluding <code>_sequence</code>).</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="warning-box">
+        <p>
+            <strong>Version history:</strong> v1.0 used 5-digit padding (<code>00001</code>); v1.1 used 2-digit padding (<code>01</code>); v1.2 uses
+            <strong>1 digit minimum</strong> (<code>1</code>, <code>2</code>, …). Change only <code>TENANT_ID_SUFFIX_MIN_DIGITS</code> in
+            <code>tenantIdGeneration.ts</code> to adjust platform-wide formatting; validation regex derives from this constant.
+        </p>
+    </div>
+
+    <h2 id="prefix-rules">3. Prefix rules</h2>
+
+    <div class="section-container parameters">
+        <div class="section-header">Prefix normalization and validation</div>
+        <ul>
+            <li>Input is trimmed and lowercased.</li>
+            <li>Spaces and hyphens become underscores.</li>
+            <li>Only <code>a-z</code>, <code>0-9</code>, and <code>_</code> are kept.</li>
+            <li>Repeated underscores collapse to one; leading/trailing underscores are removed.</li>
+            <li>Prefix must <strong>end with a letter</strong> (not a digit or underscore).</li>
+            <li>Organization name can suggest a prefix via <code>suggestTenantIdPrefixFromName</code> (strips trailing digits/underscores).</li>
+        </ul>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Admin input</th>
+                <th>Normalized prefix</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><code>Ford Motors</code></td><td><code>ford_motors</code></td></tr>
+            <tr><td><code>Event Site Manager Admin</code></td><td><code>event_site_manager_admin</code></td></tr>
+            <tr><td><code>ACME-Corp</code></td><td><code>acme_corp</code></td></tr>
+        </tbody>
+    </table>
+
+    <h2 id="sequence-rules">4. Sequence rules (global counter)</h2>
+
+    <div class="section-intro">
+        <p>
+            The sequence number is <strong>global across all tenant organizations</strong>, not per prefix.
+            The system scans every existing <code>tenant_id</code>, parses the trailing numeric suffix, takes the
+            maximum, and assigns <strong>max + 1</strong> for the next organization.
+        </p>
+    </div>
+
+    <ol>
+        <li><code>extractTenantIdSequence(id)</code> — reads digits after the last underscore (e.g. <code>ford_motors_07</code> → <code>7</code>).</li>
+        <li><code>getMaxTenantIdSequence(allIds)</code> — highest parsed value, or <code>0</code> if none match.</li>
+        <li><code>getNextTenantIdSequence(allIds)</code> — returns <code>max + 1</code>, or <code>1</code> when max is <code>0</code>.</li>
+        <li><code>formatTenantIdSequence(n)</code> — <code>String(n).padStart(TENANT_ID_SUFFIX_MIN_DIGITS, '0')</code>.</li>
+        <li><code>buildTenantId(prefix, sequence)</code> — <code>{normalizedPrefix}_{formattedSequence}</code>.</li>
+    </ol>
+
+    <div class="section-container output">
+        <div class="section-header">Example: existing IDs in database</div>
+        <table>
+            <thead>
+                <tr><th>Existing tenant_id</th><th>Parsed sequence</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>ford_motors_01</code></td><td>1</td></tr>
+                <tr><td><code>acme_00007</code></td><td>7</td></tr>
+                <tr><td><code>event_site_manager_admin_00012</code></td><td>12</td></tr>
+                <tr><td><code>tenant_demo_001</code></td><td>1 (legacy pattern; still parsed)</td></tr>
+            </tbody>
+        </table>
+        <p style="margin-top: 12px; margin-bottom: 0;">
+            If max parsed sequence is <strong>12</strong>, the next ID uses sequence <strong>13</strong> →
+            formatted as <code class="code-highlight">13</code> → e.g.
+            <code class="code-highlight">new_org_13</code>.
+        </p>
+    </div>
+
+    <h2 id="padding-examples">5. Padding and scaling examples</h2>
+
+    <p>With minimum 1 digit, sequences are not zero-padded. Values grow naturally (10, 100, 200000, …).</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Sequence (numeric)</th>
+                <th>Formatted suffix</th>
+                <th>Full ID (prefix <code>ford_motors</code>)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1</td><td><code>1</code></td><td><code>ford_motors_1</code></td></tr>
+            <tr><td>9</td><td><code>9</code></td><td><code>ford_motors_9</code></td></tr>
+            <tr><td>99</td><td><code>99</code></td><td><code>ford_motors_99</code></td></tr>
+            <tr><td>100</td><td><code>100</code></td><td><code>ford_motors_100</code></td></tr>
+            <tr><td>9999</td><td><code>9999</code></td><td><code>ford_motors_9999</code></td></tr>
+            <tr><td>100000</td><td><code>100000</code></td><td><code>ford_motors_100000</code></td></tr>
+            <tr><td>200000</td><td><code>200000</code></td><td><code>ford_motors_200000</code></td></tr>
+        </tbody>
+    </table>
+
+    <h2 id="validation">6. Validation</h2>
+
+    <div class="section-container">
+        <div class="section-header">Generated tenant ID</div>
+        <p>A full generated ID is valid when:</p>
+        <ul>
+            <li>It matches <code>^(.+)_(\\d{1,})$</code> (at least 1 digit suffix).</li>
+            <li>The prefix portion passes <code>isValidTenantIdPrefix</code> (normalization rules above).</li>
+        </ul>
+        <pre>isValidGeneratedTenantId('ford_motors_1')            // true
+isValidGeneratedTenantId('ford_motors_01')           // true (legacy padded form)
+isValidGeneratedTenantId('event_site_manager_admin_7') // true
+isValidGeneratedTenantId('ford_motors')             // false (no suffix)</pre>
+    </div>
+
+    <div class="info-box">
+        <p>
+            <strong>Domain validation</strong> (required, unique website/domain per organization) lives in
+            <code class="code-highlight">src/lib/tenantDomainValidation.ts</code> and is separate from tenant ID format.
+            See the Create Organization form for UX details.
+        </p>
+    </div>
+
+    <h2 id="admin-workflow">7. Admin workflow</h2>
+
+    <div class="section-container usage">
+        <div class="section-header">Create Organization (<code>/admin/tenant-management/organizations/new</code>)</div>
+        <ol>
+            <li>Admin enters organization name and required domain/website.</li>
+            <li>Prefix field is suggested from the name; admin may edit (e.g. <code>ford_motors</code>).</li>
+            <li>UI calls <code>previewNextTenantIdServer(prefix)</code> (debounced) to show the next sequence and full ID.</li>
+            <li>On submit, preview is refreshed once, then <code>createTenantOrganization</code> persists the final <code>tenantId</code>.</li>
+            <li><strong>Edit mode:</strong> tenant ID is read-only.</li>
+        </ol>
+    </div>
+
+    <div class="success-box">
+        <p>
+            <strong>Tenant Settings</strong> (<code>/admin/tenant-management/settings/new</code>) selects an
+            <em>existing</em> organization — it does not mint a new tenant ID.
+        </p>
+    </div>
+
+    <h2 id="implementation">8. Implementation reference</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>src/lib/tenantIdGeneration.ts</code></td>
+                <td>Canonical constants and pure functions: normalize, parse, max/next sequence, format, build, validate.</td>
+            </tr>
+            <tr>
+                <td><code>src/app/admin/tenant-management/organizations/tenantIdServerActions.ts</code></td>
+                <td><code>previewNextTenantIdServer</code> — paginates organizations, computes next ID server-side.</td>
+            </tr>
+            <tr>
+                <td><code>src/app/admin/tenant-management/components/TenantOrganizationForm.tsx</code></td>
+                <td>Create UI: prefix input, sequence preview, validation, submit with refreshed ID.</td>
+            </tr>
+            <tr>
+                <td><code>src/app/admin/tenant-management/components/TenantOrganizationList.tsx</code></td>
+                <td>Lists organizations with Tenant ID column and detail tooltip.</td>
+            </tr>
+            <tr>
+                <td><code>src/lib/tenantDomainValidation.ts</code></td>
+                <td>Domain format and uniqueness checks (companion to tenant ID).</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="legacy">9. Legacy and mixed conventions</h2>
+
+    <ul>
+        <li>
+            IDs created before auto-generation (e.g. <code>tenant_demo_001</code>, <code>tenant_demo_002</code>) remain valid
+            and continue to work in the app and database.
+        </li>
+        <li>
+            IDs with 5-digit suffixes (e.g. <code>event_site_manager_admin_00001</code>) remain valid; they participate in
+            max-sequence calculation as numeric values (1, 7, 12, …).
+        </li>
+        <li>
+            After v1.2, <strong>new</strong> organizations use unpadded suffixes starting at
+            <code>1</code> when no higher sequence exists; the next ID after max sequence <code>12</code> is
+            <code>_13</code>. Legacy padded forms (<code>_01</code>, <code>_00012</code>) remain valid in the database.
+        </li>
+        <li>
+            <code>UNIQUE</code> constraint on <code>tenant_organization.tenant_id</code> is the final guard against duplicates
+            (including race conditions on concurrent creates).
+        </li>
+    </ul>
+
+    <h2 id="related-docs">10. Related documentation</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Document</th>
+                <th>Topic</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><a href="auto_tenant_id_generation/generic_enhancement_prd.html">auto_tenant_id_generation / index</a></td>
+                <td>Enhancement PRD index and links to frontend/backend/schema notes</td>
+            </tr>
+            <tr>
+                <td><a href="auto_tenant_id_generation/frontend_enhancements_prd.html">Frontend enhancements PRD</a></td>
+                <td>Admin UI routes, server actions, UX flow</td>
+            </tr>
+            <tr>
+                <td><a href="PLATFORM_ADMIN_TENANT_ID_ARCHITECTURE.html">Platform admin tenant ID architecture</a></td>
+                <td><code>NEXT_PUBLIC_TENANT_ID</code> for primary admin deployment vs satellite tenants</td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>

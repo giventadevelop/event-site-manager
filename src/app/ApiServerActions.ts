@@ -1,8 +1,13 @@
 'use server';
 
-import { TenantSettingsDTO } from '@/types';
+import type { TenantOrganizationDTO, TenantSettingsDTO } from '@/types';
 import { getApiBaseUrl, getTenantId } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+import { resolveTenantOrganizationIdentity } from '@/lib/resolveTenantOrganizationIdentity';
+import { formatOrganizationAddress } from '@/lib/formatOrganizationAddress';
+import type { FooterContactProps } from '@/lib/footerContactTypes';
+
+export type { FooterContactProps } from '@/lib/footerContactTypes';
 
 /**
  * Fetch tenant settings for the current tenant
@@ -51,5 +56,78 @@ export async function fetchTenantSettingsServer(): Promise<TenantSettingsDTO | n
   } catch (error) {
     console.error('[fetchTenantSettingsServer] ❌ Error fetching tenant settings:', error);
     return null;
+  }
+}
+
+/**
+ * Fetch tenant organization for the current tenant (first match by tenantId).
+ */
+export async function fetchTenantOrganizationByTenantIdServer(
+  tenantId?: string,
+): Promise<TenantOrganizationDTO | null> {
+  try {
+    const API_BASE_URL = getApiBaseUrl();
+    if (!API_BASE_URL) {
+      console.error('[fetchTenantOrganizationByTenantIdServer] API base URL not configured');
+      return null;
+    }
+
+    const tid = tenantId ?? getTenantId();
+    const response = await fetchWithJwtRetry(
+      `${API_BASE_URL}/api/tenant-organizations?tenantId.equals=${encodeURIComponent(tid)}&size=1`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+      },
+    );
+
+    if (!response.ok) {
+      console.error(
+        '[fetchTenantOrganizationByTenantIdServer] Failed to fetch organization:',
+        response.status,
+      );
+      return null;
+    }
+
+    const data = await response.json();
+    const organization = Array.isArray(data) ? data[0] : data;
+    return organization || null;
+  } catch (error) {
+    console.error('[fetchTenantOrganizationByTenantIdServer] Error:', error);
+    return null;
+  }
+}
+
+/** Resolved org identity + operational contact fields for public footer/contact UI. */
+export async function fetchFooterContactPropsServer(
+  tenantId?: string,
+): Promise<FooterContactProps> {
+  const empty: FooterContactProps = {
+    formattedAddress: null,
+    phoneNumber: null,
+    email: null,
+    websiteUrl: null,
+    description: null,
+  };
+
+  try {
+    const [settings, organization] = await Promise.all([
+      fetchTenantSettingsServer(),
+      fetchTenantOrganizationByTenantIdServer(tenantId),
+    ]);
+
+    const identity = resolveTenantOrganizationIdentity(organization, settings);
+
+    return {
+      formattedAddress: formatOrganizationAddress(identity),
+      phoneNumber: settings?.phoneNumber?.trim() || organization?.contactPhone?.trim() || null,
+      email: settings?.email?.trim() || organization?.contactEmail?.trim() || null,
+      websiteUrl: identity.websiteUrl,
+      description: identity.description,
+    };
+  } catch (error) {
+    console.error('[fetchFooterContactPropsServer] Error:', error);
+    return empty;
   }
 }
