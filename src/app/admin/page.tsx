@@ -208,6 +208,21 @@ export default function AdminPage() {
       key: 'manual-payments'
     },
     {
+      href: '/admin/official-documents',
+      icon: 'folderOpen',
+      label: 'Official Documents',
+      color: 'documentOfficial',
+      key: 'official-documents'
+    },
+    {
+      href: '/admin/official-document-categories',
+      icon: 'listBullet',
+      label: 'Document categories',
+      sublabel: 'Official library',
+      color: 'docCategories',
+      key: 'official-document-categories'
+    },
+    {
       href: '/admin/batch-jobs',
       icon: 'chartBar',
       label: 'Batch Job Dashboard',
@@ -243,7 +258,9 @@ export default function AdminPage() {
       brightYellow: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-800',
       deepTeal: 'bg-teal-50 hover:bg-teal-100 text-teal-800',
       lightCyan: 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800',
-      mintGreen: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
+      mintGreen: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800',
+      documentOfficial: 'bg-[#f5f3ff] hover:bg-[#ede9fe] text-[#5b21b6]',
+      docCategories: 'bg-[#fdf2f8] hover:bg-[#fce7f3] text-[#9d174d]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -275,7 +292,9 @@ export default function AdminPage() {
       brightYellow: 'bg-yellow-100',
       deepTeal: 'bg-teal-100',
       lightCyan: 'bg-cyan-100',
-      mintGreen: 'bg-emerald-100'
+      mintGreen: 'bg-emerald-100',
+      documentOfficial: 'bg-[#ddd6fe]',
+      docCategories: 'bg-[#fbcfe8]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -307,7 +326,9 @@ export default function AdminPage() {
       brightYellow: 'text-yellow-500',
       deepTeal: 'text-teal-500',
       lightCyan: 'text-cyan-500',
-      mintGreen: 'text-emerald-500'
+      mintGreen: 'text-emerald-500',
+      documentOfficial: 'text-violet-600',
+      docCategories: 'text-pink-600'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -362,6 +383,10 @@ export default function AdminPage() {
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>;
       case 'moneyBill':
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+      case 'folderOpen':
+        return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h12a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" /></svg>;
+      case 'listBullet':
+        return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7m0 0l3-3m-3 3l3 3" /></svg>;
       case 'globe':
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9 0 01-9-9m9 9c0 01.53.053 0 019 9m-9-9a9 9 0 019-9m-9 9a9 9 0 019 9m0 0a9 9 0 01-9 9m9-9a9 9 0 009 9" /></svg>;
       default:

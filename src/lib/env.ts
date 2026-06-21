@@ -61,6 +61,18 @@ export function getTenantId() {
 }
 
 /**
+ * Client-safe tenant ID for use in browser (cache keys, data attributes, etc.).
+ * Returns empty string if not set; does not throw. Prefer getTenantId() server-side.
+ */
+export function getClientTenantId(): string {
+  return (
+    process.env.AMPLIFY_NEXT_PUBLIC_TENANT_ID ||
+    process.env.NEXT_PUBLIC_TENANT_ID ||
+    ''
+  );
+}
+
+/**
  * Lazily loads Payment Method Domain ID from environment variables, prioritizing AMPLIFY_ prefix for AWS Amplify.
  * Throws an error if not set.
  * This is used to identify the Stripe Payment Method Domain (pmd_*) associated with this tenant.
