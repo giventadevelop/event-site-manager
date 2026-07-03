@@ -406,6 +406,9 @@ export default function TenantSettingsList({
                 <th className="w-[140px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
                   Email Marketing
                 </th>
+                <th className="w-[130px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
+                  AdSense
+                </th>
                 <th className="w-[140px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
                   Max Events/Month
                 </th>
@@ -456,6 +459,14 @@ export default function TenantSettingsList({
                     : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                     }`}>
                     {setting.enableEmailMarketing ? 'Enabled' : 'Disabled'}
+                  </span>
+                </td>
+                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${setting.enableGoogleAdsense
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
+                    {setting.enableGoogleAdsense ? 'Enabled' : 'Disabled'}
                   </span>
                 </td>
                 <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-600">

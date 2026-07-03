@@ -17,6 +17,20 @@ import {
 import TenantDefaultHeroManager from '@/app/admin/tenant-management/components/TenantDefaultHeroManager';
 import TenantOrganizationSearchSelect from '@/app/admin/tenant-management/components/TenantOrganizationSearchSelect';
 import Link from 'next/link';
+import GoogleAdsensePlacementsFields from '@/app/admin/tenant-management/components/GoogleAdsensePlacementsFields';
+import {
+  adsensePlacementFieldsFromJson,
+  serializeAdsensePlacementFields,
+  validateAdsenseSlotId,
+  collectAdsensePlacementFieldErrors,
+  validateGoogleAdsenseForSave,
+  type AdsensePlacementFields,
+  type AdsenseRegionId,
+} from '@/lib/adsense/parseAdsensePlacements';
+import {
+  validateWhatsappIntegrationForSave,
+  type WhatsappIntegrationField,
+} from '@/lib/integrations/validateTenantIntegrationsForSave';
 
 interface TenantSettingsFormProps {
   initialData?: TenantSettingsDTO;
@@ -56,10 +70,27 @@ export default function TenantSettingsForm({
   const [heroSlides, setHeroSlides] = useState<DefaultHeroSlide[]>(() =>
     parseTenantDefaultHeroSlides(initialData)
   );
+  const [adsensePlacements, setAdsensePlacements] = useState<AdsensePlacementFields>(() =>
+    adsensePlacementFieldsFromJson(initialData?.googleAdsensePlacementsJson)
+  );
+  const [adsensePlacementErrors, setAdsensePlacementErrors] = useState<
+    Partial<Record<AdsenseRegionId, string>>
+  >({});
+  const [adsensePlacementsFormError, setAdsensePlacementsFormError] = useState('');
+  const [formSaveValidationDialog, setFormSaveValidationDialog] = useState<{
+    message: string;
+    details: string[];
+  } | null>(null);
 
   useEffect(() => {
     setHeroSlides(parseTenantDefaultHeroSlides(initialData));
   }, [initialData?.id, initialData?.defaultHeroImageUrlsJson, initialData?.defaultHeroImageUrls]);
+
+  useEffect(() => {
+    setAdsensePlacements(adsensePlacementFieldsFromJson(initialData?.googleAdsensePlacementsJson));
+    setAdsensePlacementErrors({});
+    setAdsensePlacementsFormError('');
+  }, [initialData?.id, initialData?.googleAdsensePlacementsJson]);
 
   const footerHtmlFileInputRef = useRef<HTMLInputElement>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +101,7 @@ export default function TenantSettingsForm({
     handleSubmit,
     formState: { errors, isSubmitting },
     setValue,
+    setError,
     watch,
     reset
   } = useForm<TenantSettingsFormDTO>({
@@ -79,6 +111,9 @@ export default function TenantSettingsForm({
       requireAdminApproval: initialData?.requireAdminApproval ?? false,
       enableWhatsappIntegration: initialData?.enableWhatsappIntegration ?? false,
       enableEmailMarketing: initialData?.enableEmailMarketing ?? false,
+      enableGoogleAdsense: initialData?.enableGoogleAdsense ?? false,
+      googleAdsensePublisherId: initialData?.googleAdsensePublisherId || '',
+      googleAdsensePlacementsJson: initialData?.googleAdsensePlacementsJson || '',
       whatsappApiKey: initialData?.whatsappApiKey || '',
       emailProviderConfig: initialData?.emailProviderConfig || '',
       maxEventsPerMonth: initialData?.maxEventsPerMonth || undefined,
@@ -130,12 +165,92 @@ export default function TenantSettingsForm({
     watch('tenantId')?.trim() || initialData?.tenantId?.trim() || undefined;
 
   // Handle form submission
+  const validateAdsensePlacementFields = (fields: AdsensePlacementFields): boolean => {
+    const nextErrors = collectAdsensePlacementFieldErrors(fields);
+    setAdsensePlacementErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const showIntegrationSaveValidationError = (summary: string, details: string[]) => {
+    setFormSaveValidationDialog({ message: summary, details });
+  };
+
+  const handleAdsensePlacementBlur = (regionId: AdsenseRegionId) => {
+    const result = validateAdsenseSlotId(adsensePlacements[regionId]);
+    setAdsensePlacementErrors((prev) => {
+      const next = { ...prev };
+      if (result === true) {
+        delete next[regionId];
+      } else {
+        next[regionId] = result;
+      }
+      return next;
+    });
+  };
+
   const onFormSubmit = async (data: TenantSettingsFormDTO) => {
     try {
+      const whatsappValidation = validateWhatsappIntegrationForSave({
+        enableWhatsappIntegration: data.enableWhatsappIntegration,
+        whatsappPhoneNumber: data.whatsappPhoneNumber,
+        twilioAccountSid: data.twilioAccountSid,
+        twilioAuthToken: data.twilioAuthToken,
+      });
+      if (!whatsappValidation.valid) {
+        setActiveTab('integrations');
+        for (const [field, message] of Object.entries(whatsappValidation.fieldErrors)) {
+          setError(field as WhatsappIntegrationField, { type: 'manual', message });
+        }
+        showIntegrationSaveValidationError(whatsappValidation.summary, whatsappValidation.details);
+        return;
+      }
+
+      const adsenseValidation = validateGoogleAdsenseForSave(
+        Boolean(data.enableGoogleAdsense),
+        data.googleAdsensePublisherId,
+        adsensePlacements
+      );
+      if (!adsenseValidation.valid) {
+        setActiveTab('integrations');
+        if (adsenseValidation.field === 'googleAdsensePublisherId') {
+          setError('googleAdsensePublisherId', {
+            type: 'manual',
+            message: adsenseValidation.details[0] ?? adsenseValidation.summary,
+          });
+          setAdsensePlacementsFormError('');
+        } else {
+          validateAdsensePlacementFields(adsensePlacements);
+          setAdsensePlacementsFormError(adsenseValidation.summary);
+        }
+        showIntegrationSaveValidationError(adsenseValidation.summary, adsenseValidation.details);
+        return;
+      }
+
+      const placementsJson = serializeAdsensePlacementFields(adsensePlacements);
+      if (placementsJson.length > 8192) {
+        setActiveTab('integrations');
+        setAdsensePlacementsFormError('Combined placements exceed the maximum allowed size.');
+        showIntegrationSaveValidationError('Ad placement configuration is too large.', [
+          'Remove unused slot IDs or shorten values, then try again.',
+        ]);
+        return;
+      }
+      setAdsensePlacementsFormError('');
+
       data.defaultHeroImageUrlsJson = serializeDefaultHeroSlides(heroSlides);
       data.defaultHeroMaxDisplayCount = clampHeroMaxDisplayCount(
         data.defaultHeroMaxDisplayCount ?? DEFAULT_MAX_DISPLAY_COUNT
       );
+      data.googleAdsensePlacementsJson = placementsJson;
+      if (!data.enableGoogleAdsense) {
+        data.googleAdsensePublisherId = '';
+        data.googleAdsensePlacementsJson = '';
+      }
+      if (!data.enableWhatsappIntegration) {
+        data.whatsappPhoneNumber = '';
+        data.twilioAccountSid = '';
+        data.twilioAuthToken = '';
+      }
       await onSubmit(data);
     } catch (error) {
       console.error('Form submission error:', error);
@@ -516,15 +631,15 @@ export default function TenantSettingsForm({
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-4">
+      <div className="mb-6 pb-4 border-b border-gray-200">
+        <nav className="flex flex-wrap gap-2 w-full" aria-label="Settings sections">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             const getColorClasses = (color: string) => {
               if (color === 'blue') {
                 return {
-                  active: 'bg-blue-100 text-blue-600 border-blue-500',
-                  inactive: 'bg-blue-50 text-blue-400 border-transparent hover:bg-blue-100 hover:text-blue-500',
+                  active: 'bg-blue-100 text-blue-600 border-blue-500 ring-1 ring-blue-200',
+                  inactive: 'bg-white text-blue-400 border-gray-200 hover:bg-blue-50 hover:text-blue-500 hover:border-blue-300',
                   iconBgActive: 'bg-blue-100',
                   iconBgInactive: 'bg-blue-50',
                   iconTextActive: 'text-blue-500',
@@ -534,8 +649,8 @@ export default function TenantSettingsForm({
                 };
               } else if (color === 'green') {
                 return {
-                  active: 'bg-green-100 text-green-600 border-green-500',
-                  inactive: 'bg-green-50 text-green-400 border-transparent hover:bg-green-100 hover:text-green-500',
+                  active: 'bg-green-100 text-green-600 border-green-500 ring-1 ring-green-200',
+                  inactive: 'bg-white text-green-400 border-gray-200 hover:bg-green-50 hover:text-green-500 hover:border-green-300',
                   iconBgActive: 'bg-green-100',
                   iconBgInactive: 'bg-green-50',
                   iconTextActive: 'text-green-500',
@@ -545,8 +660,8 @@ export default function TenantSettingsForm({
                 };
               } else if (color === 'purple') {
                 return {
-                  active: 'bg-purple-100 text-purple-600 border-purple-500',
-                  inactive: 'bg-purple-50 text-purple-400 border-transparent hover:bg-purple-100 hover:text-purple-500',
+                  active: 'bg-purple-100 text-purple-600 border-purple-500 ring-1 ring-purple-200',
+                  inactive: 'bg-white text-purple-400 border-gray-200 hover:bg-purple-50 hover:text-purple-500 hover:border-purple-300',
                   iconBgActive: 'bg-purple-100',
                   iconBgInactive: 'bg-purple-50',
                   iconTextActive: 'text-purple-500',
@@ -556,8 +671,8 @@ export default function TenantSettingsForm({
                 };
               } else if (color === 'teal') {
                 return {
-                  active: 'bg-teal-100 text-teal-600 border-teal-500',
-                  inactive: 'bg-teal-50 text-teal-400 border-transparent hover:bg-teal-100 hover:text-teal-500',
+                  active: 'bg-teal-100 text-teal-600 border-teal-500 ring-1 ring-teal-200',
+                  inactive: 'bg-white text-teal-400 border-gray-200 hover:bg-teal-50 hover:text-teal-500 hover:border-teal-300',
                   iconBgActive: 'bg-teal-100',
                   iconBgInactive: 'bg-teal-50',
                   iconTextActive: 'text-teal-500',
@@ -567,8 +682,8 @@ export default function TenantSettingsForm({
                 };
               } else {
                 return {
-                  active: 'bg-orange-100 text-orange-600 border-orange-500',
-                  inactive: 'bg-orange-50 text-orange-400 border-transparent hover:bg-orange-100 hover:text-orange-500',
+                  active: 'bg-orange-100 text-orange-600 border-orange-500 ring-1 ring-orange-200',
+                  inactive: 'bg-white text-orange-400 border-gray-200 hover:bg-orange-50 hover:text-orange-500 hover:border-orange-300',
                   iconBgActive: 'bg-orange-100',
                   iconBgInactive: 'bg-orange-50',
                   iconTextActive: 'text-orange-500',
@@ -582,19 +697,20 @@ export default function TenantSettingsForm({
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-3 px-4 border-b-2 font-semibold text-base flex items-center gap-3 rounded-t-lg transition-all duration-300 ${
+                className={`py-2.5 px-3 sm:px-4 border-2 font-semibold text-sm sm:text-base flex items-center gap-2 sm:gap-3 rounded-lg transition-all duration-300 flex-[1_1_11rem] sm:flex-[1_1_auto] min-w-[11rem] max-w-full ${
                   isActive ? colors.active : colors.inactive
                 }`}
               >
-                <div className={`flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 ${
-                  isActive ? colors.iconBgActive : colors.iconBgInactive
-                }`}>
-                  <svg className={`w-10 h-10 ${isActive ? colors.iconTextActive : colors.iconTextInactive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className={`flex-shrink-0 w-11 h-11 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                  isActive ? 'scale-105' : 'hover:scale-105'
+                } ${isActive ? colors.iconBgActive : colors.iconBgInactive}`}>
+                  <svg className={`w-8 h-8 sm:w-10 sm:h-10 ${isActive ? colors.iconTextActive : colors.iconTextInactive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.svgPath} />
                   </svg>
                 </div>
-                <span className={isActive ? colors.textActive : colors.textInactive}>{tab.label}</span>
+                <span className={`whitespace-nowrap ${isActive ? colors.textActive : colors.textInactive}`}>{tab.label}</span>
               </button>
             );
           })}
@@ -838,10 +954,19 @@ export default function TenantSettingsForm({
                       <input
                         type="text"
                         {...register('whatsappPhoneNumber', {
-                          pattern: {
-                            value: /^\+[1-9]\d{1,14}$/,
-                            message: 'Please enter a valid international phone number (e.g., +1234567890)'
-                          }
+                          validate: (value) => {
+                            if (!watch('enableWhatsappIntegration')) {
+                              return true;
+                            }
+                            const trimmed = value?.trim() ?? '';
+                            if (!trimmed) {
+                              return 'Phone number is required when WhatsApp Integration is enabled';
+                            }
+                            if (!/^\+[1-9]\d{1,14}$/.test(trimmed)) {
+                              return 'Please enter a valid international phone number (e.g., +1234567890)';
+                            }
+                            return true;
+                          },
                         })}
                         className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
                         placeholder="+1234567890"
@@ -858,11 +983,19 @@ export default function TenantSettingsForm({
                       <input
                         type="text"
                         {...register('twilioAccountSid', {
-                          required: watchedValues.enableWhatsappIntegration ? 'Account SID is required' : false,
-                          pattern: {
-                            value: /^AC[a-f0-9]{32}$/,
-                            message: 'Please enter a valid Twilio Account SID'
-                          }
+                          validate: (value) => {
+                            if (!watch('enableWhatsappIntegration')) {
+                              return true;
+                            }
+                            const trimmed = value?.trim() ?? '';
+                            if (!trimmed) {
+                              return 'Account SID is required when WhatsApp Integration is enabled';
+                            }
+                            if (!/^AC[a-f0-9]{32}$/.test(trimmed)) {
+                              return 'Please enter a valid Twilio Account SID';
+                            }
+                            return true;
+                          },
                         })}
                         className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
                         placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -879,11 +1012,19 @@ export default function TenantSettingsForm({
                       <input
                         type="password"
                         {...register('twilioAuthToken', {
-                          required: watchedValues.enableWhatsappIntegration ? 'Auth Token is required' : false,
-                          minLength: {
-                            value: 32,
-                            message: 'Auth Token must be at least 32 characters'
-                          }
+                          validate: (value) => {
+                            if (!watch('enableWhatsappIntegration')) {
+                              return true;
+                            }
+                            const trimmed = value?.trim() ?? '';
+                            if (!trimmed) {
+                              return 'Auth Token is required when WhatsApp Integration is enabled';
+                            }
+                            if (trimmed.length < 32) {
+                              return 'Auth Token must be at least 32 characters';
+                            }
+                            return true;
+                          },
                         })}
                         className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
                         placeholder="Enter your Twilio Auth Token"
@@ -1108,6 +1249,80 @@ export default function TenantSettingsForm({
                   />
                   {errors.emailProviderConfig && (
                     <p className="mt-1 text-sm text-red-600">{errors.emailProviderConfig.message}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Google AdSense Integration */}
+            <div className="space-y-4 border-t border-gray-200 pt-6">
+              <div>
+                <h4 className="text-md font-medium text-gray-900 flex items-center">
+                  <span className="mr-2">📢</span>
+                  Google AdSense
+                </h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  Enable programmatic ad regions on this tenant&apos;s public site. Each region maps to an AdSense ad unit slot ID.
+                </p>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="enableGoogleAdsense"
+                  label="Enable Google AdSense"
+                  description="Show configured ad regions on public pages for this tenant"
+                  checked={watchedValues.enableGoogleAdsense || false}
+                  onChange={(checked) => setValue('enableGoogleAdsense', checked)}
+                />
+              </div>
+
+              {watchedValues.enableGoogleAdsense && (
+                <div className="space-y-4 bg-white border border-gray-200 rounded-lg p-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Publisher ID *
+                    </label>
+                    <input
+                      type="text"
+                      {...register('googleAdsensePublisherId', {
+                        validate: (value) => {
+                          if (!watch('enableGoogleAdsense')) {
+                            return true;
+                          }
+                          const trimmed = value?.trim() ?? '';
+                          if (!trimmed) {
+                            return 'Publisher ID is required when Google AdSense is enabled';
+                          }
+                          if (!/^ca-pub-[0-9]+$/.test(trimmed)) {
+                            return 'Publisher ID must start with ca-pub- followed by digits';
+                          }
+                          if (trimmed.length > 32) {
+                            return 'Publisher ID must not exceed 32 characters';
+                          }
+                          return true;
+                        },
+                      })}
+                      className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base font-mono text-sm"
+                      placeholder="ca-pub-1234567890123456"
+                    />
+                    {errors.googleAdsensePublisherId && (
+                      <p className="mt-1 text-sm text-red-600">{errors.googleAdsensePublisherId.message}</p>
+                    )}
+                  </div>
+
+                  <GoogleAdsensePlacementsFields
+                    value={adsensePlacements}
+                    onChange={(fields) => {
+                      setAdsensePlacements(fields);
+                      if (adsensePlacementsFormError) {
+                        setAdsensePlacementsFormError('');
+                      }
+                    }}
+                    fieldErrors={adsensePlacementErrors}
+                    onFieldBlur={handleAdsensePlacementBlur}
+                  />
+                  {adsensePlacementsFormError && (
+                    <p className="mt-1 text-sm text-red-600">{adsensePlacementsFormError}</p>
                   )}
                 </div>
               )}
@@ -1665,6 +1880,15 @@ export default function TenantSettingsForm({
             setHeaderImageUploadMessage('');
           }
         }}
+      />
+
+      <SaveStatusDialog
+        isOpen={formSaveValidationDialog !== null}
+        status="error"
+        title="Cannot save settings"
+        message={formSaveValidationDialog?.message ?? ''}
+        details={formSaveValidationDialog?.details ?? []}
+        onClose={() => setFormSaveValidationDialog(null)}
       />
     </div>
   );

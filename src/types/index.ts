@@ -659,6 +659,12 @@ export interface TenantSettingsDTO {
   defaultHeroIncludeWithEvents?: boolean;
   /** Max tenant default slides on homepage when slides are marked active (1-6). */
   defaultHeroMaxDisplayCount?: number;
+  /** When true, render Google AdSense ad regions on this tenant's public site */
+  enableGoogleAdsense?: boolean;
+  /** AdSense publisher ID (ca-pub-...) */
+  googleAdsensePublisherId?: string;
+  /** JSON map of layout region id → ad slot id */
+  googleAdsensePlacementsJson?: string;
   // Contact and operational fields (email, phone remain on settings)
   /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   description?: string | null;

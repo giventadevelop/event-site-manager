@@ -529,6 +529,14 @@ export default async function TenantOrganizationViewPage({ params }: PageProps) 
                     )}
                   </div>
                   <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Google AdSense</span>
+                    {settings.enableGoogleAdsense ? (
+                      <FaToggleOn className="text-green-500" />
+                    ) : (
+                      <FaToggleOff className="text-gray-400" />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Event Management</span>
                     {settings.enableEventManagement ? (
                       <FaToggleOn className="text-green-500" />

@@ -318,6 +318,12 @@ export default function TenantDetailsModal({
                             {settings.enableEmailMarketing ? 'Enabled' : 'Disabled'}
                           </p>
                         </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Google AdSense</label>
+                          <p className="text-sm text-gray-900">
+                            {settings.enableGoogleAdsense ? 'Enabled' : 'Disabled'}
+                          </p>
+                        </div>
                       </div>
                     </div>
 

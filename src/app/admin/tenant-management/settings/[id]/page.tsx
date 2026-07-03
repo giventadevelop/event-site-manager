@@ -278,6 +278,7 @@ export default async function TenantSettingsViewPage({ params }: PageProps) {
                       settings?.allowUserRegistration && 'User Registration',
                       settings?.enableWhatsappIntegration && 'WhatsApp',
                       settings?.enableEmailMarketing && 'Email Marketing',
+                      settings?.enableGoogleAdsense && 'Google AdSense',
                       settings?.enableEventManagement && 'Event Management',
                       settings?.enablePaymentProcessing && 'Payment Processing'
                     ].filter(Boolean).join(', ') || 'None'}
