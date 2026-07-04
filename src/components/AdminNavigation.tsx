@@ -102,6 +102,22 @@ export default function AdminNavigation({ currentPage, showHome = true }: AdminN
       key: 'tenant-settings'
     },
     {
+      href: '/admin/profile-site',
+      icon: 'users',
+      label: 'Personal Profile',
+      color: 'purple',
+      active: currentPage === 'profile-site',
+      key: 'profile-site'
+    },
+    {
+      href: '/admin/gas-station',
+      icon: 'chart',
+      label: 'Gas Stations',
+      color: 'orange',
+      active: currentPage === 'gas-station',
+      key: 'gas-station'
+    },
+    {
       href: '/admin/tenant-management/test',
       icon: 'chart',
       label: 'Test CRUD',

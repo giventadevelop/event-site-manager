@@ -128,6 +128,19 @@ export default function TenantSettingsForm({
       showTeamMembersSectionInHomePage: initialData?.showTeamMembersSectionInHomePage ?? true,
       showSponsorsSectionInHomePage: initialData?.showSponsorsSectionInHomePage ?? true,
       isMembershipSubscriptionEnabled: initialData?.isMembershipSubscriptionEnabled ?? false,
+      // Personal profile homepage sections (PERSONAL_PROFILE / HYBRID site types)
+      showPublicProfileHeroSection: initialData?.showPublicProfileHeroSection ?? false,
+      showProfileWritingsSection: initialData?.showProfileWritingsSection ?? false,
+      showProfileAchievementsSection: initialData?.showProfileAchievementsSection ?? false,
+      showProfileAffiliationsSection: initialData?.showProfileAffiliationsSection ?? false,
+      showProfileMediaDownloadsSection: initialData?.showProfileMediaDownloadsSection ?? false,
+      showProfileContactSection: initialData?.showProfileContactSection ?? false,
+      // Gas station COO module (GAS_STATION site type)
+      enableGasStationModule: initialData?.enableGasStationModule ?? false,
+      gasAiEngineBaseUrl: initialData?.gasAiEngineBaseUrl || '',
+      gasAiEngineApiKeyRef: initialData?.gasAiEngineApiKeyRef || '',
+      gasAiEngineWebhookToken: initialData?.gasAiEngineWebhookToken || '',
+      gasDailyBriefHourLocal: initialData?.gasDailyBriefHourLocal ?? undefined,
       // Enhanced WhatsApp Integration Fields
       whatsappPhoneNumber: initialData?.whatsappPhoneNumber || '',
       twilioAccountSid: initialData?.twilioAccountSid || '',
@@ -901,6 +914,74 @@ export default function TenantSettingsForm({
                 />
               </div>
             </div>
+
+            {/* Personal Profile Homepage Sections */}
+            <div className="space-y-4">
+              <h4 className="text-md font-medium text-gray-900">Personal Profile Sections</h4>
+              <p className="text-sm text-gray-600">
+                Homepage sections for Personal Profile / Hybrid site types (auto-set by the organization&apos;s Site Type preset)
+              </p>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="showPublicProfileHeroSection"
+                  label="Show Profile Hero Section"
+                  description="Display the personal profile hero on the homepage"
+                  checked={watchedValues.showPublicProfileHeroSection || false}
+                  onChange={(checked) => setValue('showPublicProfileHeroSection', checked)}
+                />
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="showProfileWritingsSection"
+                  label="Show Writings Section"
+                  description="Display the writings / portfolio section"
+                  checked={watchedValues.showProfileWritingsSection || false}
+                  onChange={(checked) => setValue('showProfileWritingsSection', checked)}
+                />
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="showProfileAchievementsSection"
+                  label="Show Achievements Section"
+                  description="Display the achievements timeline section"
+                  checked={watchedValues.showProfileAchievementsSection || false}
+                  onChange={(checked) => setValue('showProfileAchievementsSection', checked)}
+                />
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="showProfileAffiliationsSection"
+                  label="Show Affiliations Section"
+                  description="Display the community / board affiliations section"
+                  checked={watchedValues.showProfileAffiliationsSection || false}
+                  onChange={(checked) => setValue('showProfileAffiliationsSection', checked)}
+                />
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="showProfileMediaDownloadsSection"
+                  label="Show Media Downloads Section"
+                  description="Display the downloadable media / documents section"
+                  checked={watchedValues.showProfileMediaDownloadsSection || false}
+                  onChange={(checked) => setValue('showProfileMediaDownloadsSection', checked)}
+                />
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="showProfileContactSection"
+                  label="Show Profile Contact Section"
+                  description="Display the profile contact section"
+                  checked={watchedValues.showProfileContactSection || false}
+                  onChange={(checked) => setValue('showProfileContactSection', checked)}
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -908,6 +989,118 @@ export default function TenantSettingsForm({
         {activeTab === 'integrations' && (
           <div className="space-y-6">
             <h3 className="text-lg font-medium text-gray-900">Integration Settings</h3>
+
+            {/* Gas Station AI Engine (GAS_STATION site type) */}
+            <div className="space-y-6">
+              <div className="border-b border-gray-200 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-md font-medium text-gray-900 flex items-center">
+                      <span className="mr-2">⛽</span>
+                      Gas Station AI Engine
+                    </h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Enable the gas station COO module and connect the external AI engine (GAS_STATION site type)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="enableGasStationModule"
+                  label="Enable Gas Station Module"
+                  description="Show the gas station COO admin module for this tenant"
+                  checked={watchedValues.enableGasStationModule || false}
+                  onChange={(checked) => setValue('enableGasStationModule', checked)}
+                />
+              </div>
+
+              {watchedValues.enableGasStationModule && (
+                <div className="space-y-6 bg-white border border-gray-200 rounded-lg p-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      AI Engine Base URL
+                    </label>
+                    <input
+                      type="url"
+                      {...register('gasAiEngineBaseUrl', {
+                        maxLength: { value: 1024, message: 'Base URL must be 1024 characters or less' }
+                      })}
+                      className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
+                      placeholder="https://engine.example.com"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Invoked server-side only; never exposed to the browser
+                    </p>
+                    {errors.gasAiEngineBaseUrl && (
+                      <p className="mt-1 text-sm text-red-600">{errors.gasAiEngineBaseUrl.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      API Key Reference
+                    </label>
+                    <input
+                      type="text"
+                      {...register('gasAiEngineApiKeyRef', {
+                        maxLength: { value: 512, message: 'API key reference must be 512 characters or less' }
+                      })}
+                      className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
+                      placeholder="secrets-manager reference, e.g. arn:aws:secretsmanager:..."
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Secrets-manager reference only — never paste the raw API key
+                    </p>
+                    {errors.gasAiEngineApiKeyRef && (
+                      <p className="mt-1 text-sm text-red-600">{errors.gasAiEngineApiKeyRef.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Webhook Token
+                    </label>
+                    <input
+                      type="password"
+                      {...register('gasAiEngineWebhookToken', {
+                        maxLength: { value: 1048, message: 'Webhook token must be 1048 characters or less' }
+                      })}
+                      className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
+                      placeholder="Token the engine presents on write-back callbacks"
+                    />
+                    {errors.gasAiEngineWebhookToken && (
+                      <p className="mt-1 text-sm text-red-600">{errors.gasAiEngineWebhookToken.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Daily Brief Hour (local)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="23"
+                      {...register('gasDailyBriefHourLocal', {
+                        min: { value: 0, message: 'Hour must be between 0 and 23' },
+                        max: { value: 23, message: 'Hour must be between 0 and 23' },
+                        valueAsNumber: true
+                      })}
+                      className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
+                      placeholder="6"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Hour (0–23) the morning brief is expected; interpreted per station timezone
+                    </p>
+                    {errors.gasDailyBriefHourLocal && (
+                      <p className="mt-1 text-sm text-red-600">{errors.gasDailyBriefHourLocal.message}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* WhatsApp Integration */}
             <div className="space-y-6">

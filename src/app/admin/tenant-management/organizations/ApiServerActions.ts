@@ -320,3 +320,34 @@ export async function toggleTenantOrganizationStatus(id: number, isActive: boole
     throw new Error('Failed to toggle tenant organization status');
   }
 }
+
+
+/**
+ * List tenant organizations whose site type is one of the given archetypes
+ * (e.g. ['GAS_STATION'] or ['PERSONAL_PROFILE', 'HYBRID']).
+ * Used by module dashboards to offer a tenant picker for their category.
+ */
+export async function fetchTenantOrganizationsBySiteTypes(
+  siteTypes: string[]
+): Promise<TenantOrganizationDTO[]> {
+  try {
+    const params = new URLSearchParams({
+      sort: 'organizationName,asc',
+      size: '200',
+    });
+    for (const siteType of siteTypes) {
+      params.append('siteType.in', siteType);
+    }
+
+    const response = await fetchWithJwtRetry(
+      `${API_BASE_URL}/api/tenant-organizations?${params.toString()}`,
+      { cache: 'no-store' }
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error('Error fetching tenant organizations by site type:', error);
+    return [];
+  }
+}

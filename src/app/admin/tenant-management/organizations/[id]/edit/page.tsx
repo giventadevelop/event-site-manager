@@ -1,10 +1,11 @@
 import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { fetchTenantOrganization, updateTenantOrganization } from '@/app/admin/tenant-management/organizations/ApiServerActions';
+import { applySiteTypePresetsForTenant } from '@/app/admin/tenant-management/settings/ApiServerActions';
 import TenantOrganizationForm from '@/app/admin/tenant-management/components/TenantOrganizationForm';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
-import { TenantOrganizationFormDTO } from '@/app/admin/tenant-management/types';
+import { TenantOrganizationDTO, TenantOrganizationFormDTO } from '@/app/admin/tenant-management/types';
 
 interface PageProps {
   params: { id: string };
@@ -21,7 +22,7 @@ export default async function EditTenantOrganizationPage({ params }: PageProps) 
   }
 
   // Fetch organization data
-  let organization = null;
+  let organization: TenantOrganizationDTO | null = null;
   let error = null;
 
   try {
@@ -39,6 +40,9 @@ export default async function EditTenantOrganizationPage({ params }: PageProps) 
 
     try {
       await updateTenantOrganization(organizationId, data);
+      if (data.siteType && data.siteType !== organization?.siteType) {
+        await applySiteTypePresetsForTenant(data.tenantId, data.siteType);
+      }
       redirect(`/admin/tenant-management/organizations/${organizationId}`);
     } catch (error) {
       console.error('Error updating organization:', error);

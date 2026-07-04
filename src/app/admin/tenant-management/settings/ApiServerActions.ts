@@ -5,6 +5,8 @@ import { withTenantId } from '@/lib/withTenantId';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { fetchTenantOrganizations } from '@/app/admin/tenant-management/organizations/ApiServerActions';
 import { stripDeprecatedSettingsIdentityFields } from '@/lib/stripDeprecatedSettingsIdentityFields';
+import { getSiteTypePresetSettings } from '@/lib/siteTypePresets';
+import type { TenantSiteType } from '@/types/profileSite';
 import type {
   TenantSettingsDTO,
   TenantSettingsFormDTO,
@@ -592,4 +594,27 @@ export async function uploadDefaultHeroImageClient(
   return {
     url: result.defaultHeroImageUrl || result.url || '',
   };
+}
+
+/**
+ * Apply homepage section presets for a tenant when its site type changes.
+ * Tenant is always explicit — this admin app manages all tenants.
+ */
+export async function applySiteTypePresetsForTenant(
+  tenantId: string,
+  siteType: TenantSiteType
+): Promise<boolean> {
+  try {
+    const settings = await fetchTenantSettingsByTenantId(tenantId);
+    if (!settings?.id) {
+      console.warn('[applySiteTypePresetsForTenant] No settings row for tenant', tenantId);
+      return false;
+    }
+    const presetPatch = getSiteTypePresetSettings(siteType);
+    await patchTenantSetting(settings.id, { ...presetPatch, tenantId });
+    return true;
+  } catch (error) {
+    console.error('[applySiteTypePresetsForTenant]', error);
+    return false;
+  }
 }

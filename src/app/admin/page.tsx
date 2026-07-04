@@ -145,6 +145,20 @@ export default function AdminPage() {
       key: 'tenant-settings'
     },
     {
+      href: '/admin/profile-site',
+      icon: 'users',
+      label: 'Personal Profile',
+      color: 'violet',
+      key: 'profile-site'
+    },
+    {
+      href: '/admin/gas-station',
+      icon: 'chart',
+      label: 'Gas Stations',
+      color: 'orange',
+      key: 'gas-station'
+    },
+    {
       href: '/admin/tenant-management/test',
       icon: 'chart',
       label: 'Test CRUD',

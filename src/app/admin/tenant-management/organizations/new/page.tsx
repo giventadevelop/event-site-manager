@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createTenantOrganization } from '@/app/admin/tenant-management/organizations/ApiServerActions';
+import { applySiteTypePresetsForTenant } from '@/app/admin/tenant-management/settings/ApiServerActions';
 import TenantOrganizationForm from '@/app/admin/tenant-management/components/TenantOrganizationForm';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
@@ -12,6 +13,10 @@ export default function NewTenantOrganizationPage() {
 
     try {
       await createTenantOrganization(data);
+      if (data.siteType && data.siteType !== 'EVENT_ORG') {
+        // Best-effort: settings row may not exist yet for a brand-new tenant
+        await applySiteTypePresetsForTenant(data.tenantId, data.siteType);
+      }
       redirect('/admin/tenant-management/organizations');
     } catch (error) {
       console.error('Error creating organization:', error);
