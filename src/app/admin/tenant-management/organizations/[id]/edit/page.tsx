@@ -6,6 +6,7 @@ import TenantOrganizationForm from '@/app/admin/tenant-management/components/Ten
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
 import { TenantOrganizationDTO, TenantOrganizationFormDTO } from '@/app/admin/tenant-management/types';
+import TenantConfigurationContextLabel from '@/app/admin/tenant-management/components/TenantConfigurationContextLabel';
 
 interface PageProps {
   params: { id: string };
@@ -175,9 +176,12 @@ export default async function EditTenantOrganizationPage({ params }: PageProps) 
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Edit Organization</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Update organization information and settings
-        </p>
+        <TenantConfigurationContextLabel
+          className="mt-2 text-sm text-gray-600"
+          tenantId={organization?.tenantId}
+          organizationName={organization?.organizationName}
+        />
+        <p className="mt-1 text-sm text-gray-500">Update organization information and settings</p>
       </div>
 
       {/* Form */}

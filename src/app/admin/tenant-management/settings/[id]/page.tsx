@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
 import { TenantSettingsDTO, TenantOrganizationDTO } from '@/app/admin/tenant-management/types';
 import TenantSettingsViewClient from './TenantSettingsViewClient';
+import TenantConfigurationContextLabel from '@/app/admin/tenant-management/components/TenantConfigurationContextLabel';
 
 interface PageProps {
   params: { id: string };
@@ -182,9 +183,10 @@ export default async function TenantSettingsViewPage({ params }: PageProps) {
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-600">
-              Configuration settings for tenant ID: {settings?.tenantId}
-            </p>
+            <TenantConfigurationContextLabel
+              tenantId={settings?.tenantId}
+              organizationName={organization?.organizationName}
+            />
           </div>
           <div className="flex gap-3">
             <Link

@@ -6,6 +6,7 @@ import TenantSettingsEditClient from './TenantSettingsEditClient';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
 import SatelliteDomainsGuidance from '@/components/admin/SatelliteDomainsGuidance';
+import TenantConfigurationContextLabel from '@/app/admin/tenant-management/components/TenantConfigurationContextLabel';
 
 interface PageProps {
   params: { id: string };
@@ -168,9 +169,15 @@ export default async function EditTenantSettingsPage({ params }: PageProps) {
           <h1 className="text-3xl font-bold text-gray-900">Edit Settings</h1>
           <SatelliteDomainsGuidance showHelp showBanner={false} />
         </div>
-        <p className="mt-2 text-sm text-gray-600">
-          Update tenant configuration settings
-        </p>
+        <TenantConfigurationContextLabel
+          className="mt-2 text-sm text-gray-600"
+          tenantId={settings?.tenantId}
+          organizationName={
+            settings?.tenantOrganization?.organizationName ||
+            organizations.find((org) => org.tenantId === settings?.tenantId)?.organizationName
+          }
+        />
+        <p className="mt-1 text-sm text-gray-500">Update tenant configuration settings</p>
       </div>
 
       <div className="mb-6">

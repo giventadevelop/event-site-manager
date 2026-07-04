@@ -1,6 +1,7 @@
 import { fetchRecentTenantOrganizationsForSelectServer } from '@/app/admin/tenant-management/organizations/organizationSelectServerActions';
 import NewTenantSettingsClient from '@/app/admin/tenant-management/settings/new/NewTenantSettingsClient';
 import Link from 'next/link';
+import TenantConfigurationContextLabel from '@/app/admin/tenant-management/components/TenantConfigurationContextLabel';
 
 interface PageProps {
   searchParams: Promise<{ tenantId?: string }> | { tenantId?: string };
@@ -13,6 +14,10 @@ export default async function NewTenantSettingsPage({ searchParams }: PageProps)
       : (searchParams as { tenantId?: string });
 
   const organizations = await fetchRecentTenantOrganizationsForSelectServer();
+  const initialTenantId = resolvedSearchParams.tenantId?.trim();
+  const organizationForTenant = initialTenantId
+    ? organizations.find((org) => org.tenantId === initialTenantId)
+    : undefined;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -77,7 +82,14 @@ export default async function NewTenantSettingsPage({ searchParams }: PageProps)
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Create New Settings</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        {initialTenantId ? (
+          <TenantConfigurationContextLabel
+            className="mt-2 text-sm text-gray-600"
+            tenantId={initialTenantId}
+            organizationName={organizationForTenant?.organizationName}
+          />
+        ) : null}
+        <p className={`text-sm text-gray-600 ${initialTenantId ? 'mt-1' : 'mt-2'}`}>
           Configure settings for a tenant organization. To add a new tenant with an auto-generated ID, create the organization first under{' '}
           <Link href="/admin/tenant-management/organizations/new" className="text-blue-600 hover:text-blue-800 font-medium">
             Organizations → New Organization
