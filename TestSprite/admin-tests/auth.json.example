@@ -1,5 +1,9 @@
 {
-  "email": "your-admin@example.com",
-  "password": "your-clerk-password",
-  "baseUrl": "http://localhost:3000"
+  "email": "your-admin-email@example.com",
+  "password": "your-admin-password",
+  "baseUrl": "http://localhost:3001",
+  "tenantId": "tenant_demo_002",
+  "timeout": 30000,
+  "headless": true,
+  "screenshotOnFailure": true
 }

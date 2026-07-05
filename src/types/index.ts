@@ -669,6 +669,8 @@ export interface TenantSettingsDTO {
   defaultHeroIncludeWithEvents?: boolean;
   /** Max tenant default slides on homepage when slides are marked active (1-6). */
   defaultHeroMaxDisplayCount?: number;
+  /** When true, show event hero images in the homepage hero section */
+  displayEventHeroImages?: boolean;
   /** When true, render Google AdSense ad regions on this tenant's public site */
   enableGoogleAdsense?: boolean;
   /** AdSense publisher ID (ca-pub-...) */
@@ -961,7 +963,13 @@ export interface TenantEmailAddressDTO {
    * Optional copy-to address that will be placed in the CC header for outgoing emails.
    * Maps to the `copy_to_email_address` column in the `tenant_email_addresses` table.
    */
-  copyToEmailAddress: string;
+  copyToEmailAddress?: string | null;
+  /**
+   * Optional Reply-To address for outbound emails of this type.
+   * When set, recipients reply to this address instead of the visitor/sender.
+   * Maps to the `reply_to_email_address` column in the `tenant_email_addresses` table.
+   */
+  replyToEmailAddress?: string | null;
   /**
    * Email address type:
    * INFO, SALES, TICKETS, CONTACT, SUPPORT, MARKETING, NOREPLY, ADMIN.

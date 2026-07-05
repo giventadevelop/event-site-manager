@@ -6,6 +6,7 @@ import TenantOrganizationForm from '@/app/admin/tenant-management/components/Ten
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
 import { TenantOrganizationFormDTO } from '@/app/admin/tenant-management/types';
+import { adminPageTopStyle } from '@/lib/admin/adminPageLayout';
 
 export default function NewTenantOrganizationPage() {
   async function handleSubmit(data: TenantOrganizationFormDTO) {
@@ -25,7 +26,7 @@ export default function NewTenantOrganizationPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8" style={adminPageTopStyle}>
       {/* Breadcrumb Navigation */}
       <nav className="flex mb-8" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 md:space-x-3">

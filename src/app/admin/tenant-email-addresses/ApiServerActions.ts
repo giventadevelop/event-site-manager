@@ -82,9 +82,13 @@ export async function createTenantEmailAddressServer(
 ): Promise<TenantEmailAddressDTO> {
   const now = new Date().toISOString();
 
+  const copyToTrimmed = email.copyToEmailAddress?.trim();
+  const replyToTrimmed = email.replyToEmailAddress?.trim();
+
   const basePayload = {
     emailAddress: email.emailAddress.trim(),
-    copyToEmailAddress: email.copyToEmailAddress?.trim() || email.emailAddress.trim(),
+    ...(copyToTrimmed ? { copyToEmailAddress: copyToTrimmed } : { copyToEmailAddress: null }),
+    ...(replyToTrimmed ? { replyToEmailAddress: replyToTrimmed } : { replyToEmailAddress: null }),
     emailType: email.emailType,
     displayName: email.displayName?.trim() || undefined,
     isActive: email.isActive ?? true,
@@ -127,6 +131,17 @@ export async function updateTenantEmailAddressServer(
     id,
     updatedAt: now,
   };
+
+  if ('copyToEmailAddress' in email) {
+    const copyToTrimmed = email.copyToEmailAddress?.trim();
+    basePatch.copyToEmailAddress = copyToTrimmed ? copyToTrimmed : null;
+  }
+
+  if ('replyToEmailAddress' in email) {
+    const replyToTrimmed = email.replyToEmailAddress?.trim();
+    basePatch.replyToEmailAddress = replyToTrimmed ? replyToTrimmed : null;
+  }
+
   if (tid != null) basePatch.tenantId = tid;
   const payload = basePatch;
 

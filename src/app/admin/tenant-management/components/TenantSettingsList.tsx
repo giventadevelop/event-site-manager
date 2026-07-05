@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Link from 'next/link';
-import type { TenantSettingsDTO, TenantOrganizationDTO, TenantSettingsFilters } from '@/app/admin/tenant-management/types';
 import { useAdminTenantId } from '../../AdminTenantContext';
 import AdminTenantFilterField from '../../AdminTenantFilterField';
 import { deleteTenantSetting, fetchTenantSettings } from '../settings/ApiServerActions';
+import AdminTableActionButtons from '@/components/admin/AdminTableActionButtons';
+import { useAdminHoverTooltip } from '@/lib/admin/useAdminHoverTooltip';
+import TenantSettingsDetailsTooltip from './TenantSettingsDetailsTooltip';
 
 type SearchField =
   | 'tenantId'
@@ -135,6 +136,16 @@ export default function TenantSettingsList({
   }, [filterSignature]);
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  const {
+    item: tooltipSetting,
+    anchorRect: tooltipAnchor,
+    handleMouseEnter: handleTooltipEnter,
+    handleMouseLeave: handleTooltipLeave,
+    cancelClose: cancelTooltipClose,
+    scheduleClose: scheduleTooltipClose,
+    close: closeTooltip,
+  } = useAdminHoverTooltip<TenantSettingsDTO>();
 
   const loadListAt = useCallback(
     async (targetPage: number) => {
@@ -379,7 +390,7 @@ export default function TenantSettingsList({
 
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
         <div className="user-table-scroll-container">
-          <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 border border-gray-300 dark:border-gray-600" style={{ minWidth: '980px', width: '100%' }}>
+          <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 border border-gray-300 dark:border-gray-600" style={{ minWidth: '820px', width: '100%' }}>
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left border-b border-r border-gray-300 dark:border-gray-600">
@@ -409,11 +420,8 @@ export default function TenantSettingsList({
                 <th className="w-[130px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
                   AdSense
                 </th>
-                <th className="w-[140px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-300 dark:border-gray-600">
+                <th className="w-[140px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-300 dark:border-gray-600">
                   Max Events/Month
-                </th>
-                <th className="w-[170px] px-2 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-300 dark:border-gray-600">
-                  Actions
                 </th>
               </tr>
             </thead>
@@ -429,12 +437,27 @@ export default function TenantSettingsList({
                     onClick={(e) => e.stopPropagation()}
                   />
                 </td>
-                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-600">
+                <td
+                  className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-600 cursor-help"
+                  onMouseEnter={(e) => handleTooltipEnter(setting, e)}
+                  onMouseLeave={handleTooltipLeave}
+                  title="Hover for full settings details"
+                >
                   {setting.tenantId}
                 </td>
                 <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-600">
-                  <div className="max-w-[180px] truncate" title={organizationNamesByTenant[setting.tenantId] || setting.tenantOrganization?.organizationName || 'Not linked'}>
-                    {organizationNamesByTenant[setting.tenantId] || setting.tenantOrganization?.organizationName || 'Not linked'}
+                  <div className="space-y-2">
+                    <div className="max-w-[200px] truncate" title={organizationNamesByTenant[setting.tenantId] || setting.tenantOrganization?.organizationName || 'Not linked'}>
+                      {organizationNamesByTenant[setting.tenantId] || setting.tenantOrganization?.organizationName || 'Not linked'}
+                    </div>
+                    <AdminTableActionButtons
+                      viewHref={`/admin/tenant-management/settings/${setting.id}`}
+                      editHref={`/admin/tenant-management/settings/${setting.id}/edit`}
+                      onDelete={() => handleDelete(setting.id!)}
+                      viewTitle="View settings"
+                      editTitle="Edit settings"
+                      deleteTitle="Delete settings"
+                    />
                   </div>
                 </td>
                 <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-600">
@@ -472,42 +495,6 @@ export default function TenantSettingsList({
                 <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-600">
                   {setting.maxEventsPerMonth ?? 'Unlimited'}
                 </td>
-                <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
-                  <div className="flex items-center justify-end gap-1 sm:gap-2" onClick={(e) => e.stopPropagation()}>
-                    <Link
-                      href={`/admin/tenant-management/settings/${setting.id}`}
-                      className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 flex items-center justify-center transition-all duration-300 hover:scale-110"
-                      title="View details"
-                      aria-label="View details"
-                    >
-                      <svg className="w-6 h-6 sm:w-10 sm:h-10 text-green-700 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </Link>
-                    <Link
-                      href={`/admin/tenant-management/settings/${setting.id}/edit`}
-                      className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 flex items-center justify-center transition-all duration-300 hover:scale-110"
-                      title="Edit settings"
-                      aria-label="Edit settings"
-                    >
-                      <svg className="w-6 h-6 sm:w-10 sm:h-10 text-blue-500 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(setting.id!)}
-                      className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 flex items-center justify-center transition-all duration-300 hover:scale-110"
-                      title="Delete settings"
-                      aria-label="Delete settings"
-                      type="button"
-                    >
-                      <svg className="w-6 h-6 sm:w-10 sm:h-10 text-red-500 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
               </tr>
             ))}
             {settings.length === 0 && !loading && (
@@ -527,6 +514,17 @@ export default function TenantSettingsList({
         </table>
         </div>
       </div>
+
+      {tooltipSetting && (
+        <TenantSettingsDetailsTooltip
+          setting={tooltipSetting}
+          organizationName={organizationNamesByTenant[tooltipSetting.tenantId]}
+          anchorRect={tooltipAnchor}
+          onClose={closeTooltip}
+          onTooltipMouseEnter={cancelTooltipClose}
+          onTooltipMouseLeave={scheduleTooltipClose}
+        />
+      )}
 
       <div className="mt-8">
         <div className="flex justify-between items-center gap-2">

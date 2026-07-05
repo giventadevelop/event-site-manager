@@ -2,6 +2,7 @@ import { fetchRecentTenantOrganizationsForSelectServer } from '@/app/admin/tenan
 import NewTenantSettingsClient from '@/app/admin/tenant-management/settings/new/NewTenantSettingsClient';
 import Link from 'next/link';
 import TenantConfigurationContextLabel from '@/app/admin/tenant-management/components/TenantConfigurationContextLabel';
+import { adminPageTopStyle } from '@/lib/admin/adminPageLayout';
 
 interface PageProps {
   searchParams: Promise<{ tenantId?: string }> | { tenantId?: string };
@@ -20,7 +21,7 @@ export default async function NewTenantSettingsPage({ searchParams }: PageProps)
     : undefined;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8" style={adminPageTopStyle}>
       {/* Breadcrumb Navigation */}
       <nav className="flex mb-8" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 md:space-x-3">

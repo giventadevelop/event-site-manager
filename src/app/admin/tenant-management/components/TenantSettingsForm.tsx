@@ -160,6 +160,7 @@ export default function TenantSettingsForm({
       defaultHeroMaxDisplayCount: clampHeroMaxDisplayCount(
         initialData?.defaultHeroMaxDisplayCount ?? DEFAULT_MAX_DISPLAY_COUNT
       ),
+      displayEventHeroImages: initialData?.displayEventHeroImages ?? true,
       phoneNumber: initialData?.phoneNumber || '',
       email: initialData?.email || ''
     }
@@ -168,8 +169,11 @@ export default function TenantSettingsForm({
   // Get settings ID from prop or initialData (for edit mode)
   const settingsId = propSettingsId || initialData?.id;
 
+  register('displayEventHeroImages');
+
   // Watch form values for real-time updates
   const watchedValues = watch();
+  const displayEventHeroImages = watch('displayEventHeroImages');
   const emailFooterHtmlUrl = watch('emailFooterHtmlUrl');
   const emailHeaderImageUrl = watch('emailHeaderImageUrl');
   const logoImageUrl = watch('logoImageUrl');
@@ -1617,22 +1621,34 @@ export default function TenantSettingsForm({
 
         {/* Homepage Hero Tab */}
         {activeTab === 'homepageHero' && (
-          <TenantDefaultHeroManager
-            settingsId={settingsId ?? undefined}
-            tenantIdForUpload={tenantIdForUpload}
-            initialSlides={heroSlides}
-            maxDisplayCount={watch('defaultHeroMaxDisplayCount') ?? DEFAULT_MAX_DISPLAY_COUNT}
-            displayMode={(watch('defaultHeroDisplayMode') as DefaultHeroDisplayMode) || 'slideshow'}
-            includeWithEvents={watch('defaultHeroIncludeWithEvents') ?? true}
-            onSlidesChange={setHeroSlides}
-            onMaxDisplayCountChange={(count) =>
-              setValue('defaultHeroMaxDisplayCount', clampHeroMaxDisplayCount(count))
-            }
-            onDisplayModeChange={(mode) => setValue('defaultHeroDisplayMode', mode)}
-            onIncludeWithEventsChange={(value) => setValue('defaultHeroIncludeWithEvents', value)}
-            disabled={!settingsId}
-            mode={mode}
-          />
+          <div className="space-y-6">
+            <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+              <ToggleSwitch
+                name="displayEventHeroImages"
+                label="Show event hero images"
+                description="When enabled, upcoming events with hero media appear in the homepage hero slideshow. When disabled, only tenant default hero slides (if configured) or the fallback image are shown."
+                checked={displayEventHeroImages ?? true}
+                onChange={(checked) => setValue('displayEventHeroImages', checked)}
+              />
+            </div>
+
+            <TenantDefaultHeroManager
+              settingsId={settingsId ?? undefined}
+              tenantIdForUpload={tenantIdForUpload}
+              initialSlides={heroSlides}
+              maxDisplayCount={watch('defaultHeroMaxDisplayCount') ?? DEFAULT_MAX_DISPLAY_COUNT}
+              displayMode={(watch('defaultHeroDisplayMode') as DefaultHeroDisplayMode) || 'slideshow'}
+              includeWithEvents={watch('defaultHeroIncludeWithEvents') ?? true}
+              onSlidesChange={setHeroSlides}
+              onMaxDisplayCountChange={(count) =>
+                setValue('defaultHeroMaxDisplayCount', clampHeroMaxDisplayCount(count))
+              }
+              onDisplayModeChange={(mode) => setValue('defaultHeroDisplayMode', mode)}
+              onIncludeWithEventsChange={(value) => setValue('defaultHeroIncludeWithEvents', value)}
+              disabled={!settingsId}
+              mode={mode}
+            />
+          </div>
         )}
 
         {/* Customization Tab */}

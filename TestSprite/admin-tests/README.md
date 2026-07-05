@@ -64,7 +64,15 @@ This test suite provides **extensive automated testing** for all admin pages and
 ### Utilities (1 test)
 - Test Stripe
 
-**Total: 23+ static tests + 9 dynamic tests per event (up to 2 events)**
+**Total: 31 static tests + dynamic event tests (see `npm run test:admin:dynamic`)**
+
+### Platform admin (event-site-manager)
+
+This project is a **multi-tenant platform admin** app. Admin list/mutation APIs require an explicit tenant scope via `?tenant=` (`AdminTenantContext` / `AdminTenantFilterField`). There is no default `NEXT_PUBLIC_TENANT_ID` for admin operations.
+
+- Set **`tenantId`** in `auth.json` (default: `tenant_demo_002`) or env **`TEST_TENANT_ID`**
+- Tests append `?tenant=` to each page URL and sync the sticky tenant bar when present
+- Use a tenant that has seed data and an admin user profile in your backend
 
 ## 🚀 Quick Start
 
@@ -87,7 +95,8 @@ npm run test:install-playwright
    {
      "email": "your-admin-email@example.com",
      "password": "your-admin-password",
-     "baseUrl": "http://localhost:3000",
+     "baseUrl": "http://localhost:3001",
+     "tenantId": "tenant_demo_002",
      "timeout": 30000,
      "headless": true,
      "screenshotOnFailure": true
@@ -99,7 +108,7 @@ npm run test:install-playwright
 ### Step 3: Run Tests
 
 ```bash
-npm run test:admin
+npm run test:admin:all -- --port=3001
 ```
 
 Or directly:
@@ -114,7 +123,8 @@ TestSprite/admin-tests/
 ├── auth.json.example          # Example auth configuration
 ├── auth.json                  # Your actual credentials (not in git)
 ├── .auth-state.json          # Saved authentication state (not in git)
-├── comprehensive-admin-test-suite.js  # Main test script
+├── comprehensive-admin-test-suite.js  # Main test script (31 static tests)
+├── platform-admin-test-tenant.js      # ?tenant= helpers for platform admin
 ├── screenshots/               # Screenshots of failed tests
 ├── admin-test-report.html     # Generated test report
 └── README.md                  # This file
@@ -128,7 +138,8 @@ TestSprite/admin-tests/
 |--------|-------------|---------|
 | `email` | Admin user email (required) | - |
 | `password` | Admin user password (required) | - |
-| `baseUrl` | Base URL of the application | `http://localhost:3000` |
+| `baseUrl` | Base URL of the application | `http://localhost:3001` |
+| `tenantId` | Platform admin tenant scope (`?tenant=` on each page) | `tenant_demo_002` |
 | `timeout` | Page load timeout in ms | `30000` |
 | `headless` | Run browser in headless mode | `true` |
 | `screenshotOnFailure` | Capture screenshots on failures | `true` |
@@ -179,7 +190,7 @@ The report includes:
 
 - Ensure the user is logged in and has admin access
 - Check that `user_role = 'ADMIN'` in the `user_profile` table
-- Verify `NEXT_PUBLIC_TENANT_ID` matches the tenant with admin role
+- For platform admin: set `tenantId` in `auth.json` (or `TEST_TENANT_ID`) to a tenant where the admin user has access and seed data exists
 
 ### Tests Fail with 404 Errors
 

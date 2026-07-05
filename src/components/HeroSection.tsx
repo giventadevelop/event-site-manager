@@ -99,7 +99,9 @@ const DynamicHeroImage: React.FC<{
         const processedEvents: EventWithMediaExtended[] = [];
         const durations: number[] = []; // Duration in milliseconds for each image
 
-        if (filteredEvents && filteredEvents.length > 0) {
+        const displayEventHeroImages = tenantSettings?.displayEventHeroImages ?? true;
+
+        if (displayEventHeroImages && filteredEvents && filteredEvents.length > 0) {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const oneYearFromNow = new Date();
@@ -182,6 +184,7 @@ const DynamicHeroImage: React.FC<{
           totalImages: imageUrls.length,
           eventImages: processedEvents.length,
           defaultSlideCount: resolved.defaultSlideCount,
+          displayEventHeroImages,
           durations: durations.map((d) => `${d}ms (${d / 1000}s)`),
         });
 

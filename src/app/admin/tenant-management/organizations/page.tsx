@@ -3,10 +3,11 @@ import TenantOrganizationList from '@/app/admin/tenant-management/components/Ten
 import AdminNavigation from '@/components/AdminNavigation';
 import SatelliteDomainsGuidance from '@/components/admin/SatelliteDomainsGuidance';
 import Link from 'next/link';
+import { adminPageTopStyle } from '@/lib/admin/adminPageLayout';
 
 export default async function TenantOrganizationsPage() {
   return (
-    <div className="w-full overflow-x-hidden box-border" style={{ paddingTop: '120px' }}>
+    <div className="w-full overflow-x-hidden box-border" style={adminPageTopStyle}>
       {/* Navigation Section - Full Width, Separate Responsive Container */}
       <div className="w-full px-2 sm:px-3 md:px-4 lg:px-6 xl:px-8 mb-6 sm:mb-8">
         <AdminNavigation />

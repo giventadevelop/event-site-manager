@@ -247,6 +247,7 @@ export async function createTenantSetting(data: TenantSettingsFormDTO): Promise<
     const payload = withTenantId({
       ...stripDeprecatedSettingsIdentityFields(data as Record<string, unknown>),
       ...heroDefaults,
+      displayEventHeroImages: data.displayEventHeroImages ?? true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });

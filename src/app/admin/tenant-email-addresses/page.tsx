@@ -4,8 +4,11 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { FaPlus } from 'react-icons/fa';
 import { useAuth } from '@clerk/nextjs';
 import AdminNavigation from '@/components/AdminNavigation';
-import DataTable, { type Column } from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
+import AdminTableActionButtons from '@/components/admin/AdminTableActionButtons';
+import { adminPageTopStyle } from '@/lib/admin/adminPageLayout';
+import { useAdminHoverTooltip } from '@/lib/admin/useAdminHoverTooltip';
+import TenantEmailAddressDetailsTooltip from './TenantEmailAddressDetailsTooltip';
 import type { TenantEmailAddressDTO } from '@/types';
 import {
   fetchTenantEmailAddressesServer,
@@ -36,6 +39,7 @@ export default function TenantEmailAddressesPage() {
   const [formData, setFormData] = useState<FormState>({
     emailAddress: '',
     copyToEmailAddress: '',
+    replyToEmailAddress: '',
     emailType: 'INFO',
     displayName: '',
     isActive: true,
@@ -53,6 +57,16 @@ export default function TenantEmailAddressesPage() {
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [createFormMessage, setCreateFormMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [editFormMessage, setEditFormMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const {
+    item: tooltipItem,
+    anchorRect: tooltipAnchor,
+    handleMouseEnter: handleTooltipEnter,
+    handleMouseLeave: handleTooltipLeave,
+    cancelClose: cancelTooltipClose,
+    scheduleClose: scheduleTooltipClose,
+    close: closeTooltip,
+  } = useAdminHoverTooltip<TenantEmailAddressDTO>();
 
   const loadData = useCallback(async () => {
     try {
@@ -81,6 +95,7 @@ export default function TenantEmailAddressesPage() {
     setFormData({
       emailAddress: '',
       copyToEmailAddress: '',
+      replyToEmailAddress: '',
       emailType: 'INFO',
       displayName: '',
       isActive: true,
@@ -97,17 +112,25 @@ export default function TenantEmailAddressesPage() {
         setCreateFormMessage({ type: 'error', message: 'Email address is required' });
         return;
       }
-      if (!formData.copyToEmailAddress?.trim()) {
-        setCreateFormMessage({ type: 'error', message: 'Copy-to email address is required' });
-        return;
-      }
+      const copyToTrimmed = formData.copyToEmailAddress?.trim() || '';
+      const replyToTrimmed = formData.replyToEmailAddress?.trim() || '';
       if (
-        formData.emailAddress.trim().toLowerCase() ===
-        formData.copyToEmailAddress.trim().toLowerCase()
+        copyToTrimmed &&
+        formData.emailAddress.trim().toLowerCase() === copyToTrimmed.toLowerCase()
       ) {
         setCreateFormMessage({
           type: 'error',
-          message: 'From email and Copy-To email address must be different',
+          message: 'From email and Copy-To email address must be different when both are provided',
+        });
+        return;
+      }
+      if (
+        replyToTrimmed &&
+        formData.emailAddress.trim().toLowerCase() === replyToTrimmed.toLowerCase()
+      ) {
+        setCreateFormMessage({
+          type: 'error',
+          message: 'From email and Reply-To email address must be different when both are provided',
         });
         return;
       }
@@ -119,7 +142,8 @@ export default function TenantEmailAddressesPage() {
       setLoading(true);
       const payload = {
         emailAddress: formData.emailAddress!.trim(),
-        copyToEmailAddress: formData.copyToEmailAddress!.trim(),
+        copyToEmailAddress: copyToTrimmed || null,
+        replyToEmailAddress: replyToTrimmed || null,
         emailType: formData.emailType! as TenantEmailAddressDTO['emailType'],
         displayName: formData.displayName?.trim() || undefined,
         isActive: formData.isActive ?? true,
@@ -148,17 +172,25 @@ export default function TenantEmailAddressesPage() {
         setEditFormMessage({ type: 'error', message: 'Email address is required' });
         return;
       }
-      if (!formData.copyToEmailAddress?.trim()) {
-        setEditFormMessage({ type: 'error', message: 'Copy-to email address is required' });
-        return;
-      }
+      const copyToTrimmed = formData.copyToEmailAddress?.trim() || '';
+      const replyToTrimmed = formData.replyToEmailAddress?.trim() || '';
       if (
-        formData.emailAddress.trim().toLowerCase() ===
-        formData.copyToEmailAddress.trim().toLowerCase()
+        copyToTrimmed &&
+        formData.emailAddress.trim().toLowerCase() === copyToTrimmed.toLowerCase()
       ) {
         setEditFormMessage({
           type: 'error',
-          message: 'From email and Copy-To email address must be different',
+          message: 'From email and Copy-To email address must be different when both are provided',
+        });
+        return;
+      }
+      if (
+        replyToTrimmed &&
+        formData.emailAddress.trim().toLowerCase() === replyToTrimmed.toLowerCase()
+      ) {
+        setEditFormMessage({
+          type: 'error',
+          message: 'From email and Reply-To email address must be different when both are provided',
         });
         return;
       }
@@ -170,7 +202,8 @@ export default function TenantEmailAddressesPage() {
       setLoading(true);
       const patch: Partial<TenantEmailAddressDTO> = {
         emailAddress: formData.emailAddress!.trim(),
-        copyToEmailAddress: formData.copyToEmailAddress!.trim(),
+        copyToEmailAddress: copyToTrimmed || null,
+        replyToEmailAddress: replyToTrimmed || null,
         emailType: formData.emailType as TenantEmailAddressDTO['emailType'],
         displayName: formData.displayName?.trim() || undefined,
         isActive: formData.isActive ?? true,
@@ -225,7 +258,8 @@ export default function TenantEmailAddressesPage() {
     setSelectedItem(item);
     setFormData({
       emailAddress: item.emailAddress,
-      copyToEmailAddress: item.copyToEmailAddress,
+      copyToEmailAddress: item.copyToEmailAddress ?? '',
+      replyToEmailAddress: item.replyToEmailAddress ?? '',
       emailType: item.emailType,
       displayName: item.displayName,
       isActive: item.isActive,
@@ -276,44 +310,32 @@ export default function TenantEmailAddressesPage() {
     return data;
   }, [items, searchTerm, sortKey, sortDirection]);
 
-  const columns: Column<TenantEmailAddressDTO>[] = [
-    { key: 'emailType', label: 'Type', sortable: true },
-    { key: 'emailAddress', label: 'From Email Address', sortable: true },
-    { key: 'copyToEmailAddress', label: 'Copy-To Address', sortable: true },
-    { key: 'displayName', label: 'Display Name', sortable: true },
-    {
-      key: 'isActive',
-      label: 'Active',
-      sortable: true,
-      render: (value: boolean) => (
-        <span
-          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-            value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {value ? 'Yes' : 'No'}
-        </span>
-      ),
-    },
-    {
-      key: 'isDefault',
-      label: 'Default',
-      sortable: true,
-      render: (value: boolean) => (
-        <span
-          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-            value ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {value ? 'Yes' : 'No'}
-        </span>
-      ),
-    },
-  ];
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortableHeader = ({ label, columnKey }: { label: string; columnKey: string }) => (
+    <button
+      type="button"
+      onClick={() => handleSort(columnKey)}
+      className="flex items-center gap-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
+      title={`Sort by ${label}`}
+    >
+      {label}
+      {sortKey === columnKey && (
+        <span className="text-blue-600">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+      )}
+    </button>
+  );
 
   if (loading && items.length === 0) {
     return (
-      <div className="max-w-5xl mx-auto px-8 py-8" style={{ paddingTop: '180px' }}>
+      <div className="max-w-5xl mx-auto px-8 py-8" style={adminPageTopStyle}>
         <AdminNavigation currentPage="tenant-email-addresses" />
         <div className="flex justify-center items-center h-64">
           <div className="text-center">
@@ -326,7 +348,7 @@ export default function TenantEmailAddressesPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-8 py-8" style={{ paddingTop: '180px' }}>
+    <div className="max-w-5xl mx-auto px-8 py-8" style={adminPageTopStyle}>
       <AdminNavigation currentPage="tenant-email-addresses" />
 
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -337,12 +359,31 @@ export default function TenantEmailAddressesPage() {
               Configure the verified “From” email addresses for this tenant, categorized by type (info, sales,
               support, noreply, etc.). These addresses are used when sending emails from the platform.
             </p>
-            <p className="mt-2 rounded-md bg-blue-50 border border-blue-100 p-2 text-xs text-blue-800">
-              Please provide both a <span className="font-semibold">From</span> email and a{' '}
-              <span className="font-semibold">Copy-To</span> email address for each entry, and they must be
-              different. Both addresses should be AWS SES verified email addresses. Please contact the platform
-              administrator to have these addresses added or configured in SES.
-            </p>
+            <div className="mt-2 rounded-md bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800 space-y-2">
+              <p className="font-semibold text-blue-900">Email configuration guide</p>
+              <ul className="list-disc pl-4 space-y-1.5">
+                <li>
+                  <span className="font-semibold">From (required)</span> — The verified sender address shown in the
+                  &quot;From&quot; field when the platform sends email for this type (e.g. CONTACT, INFO). Must be an
+                  AWS SES verified address.
+                </li>
+                <li>
+                  <span className="font-semibold">Copy-To (optional)</span> — Leave empty if no extra copy is needed.
+                  When set, that address receives a duplicate of outbound messages (for example, a manager CC on contact
+                  form submissions). If provided, it must differ from the From address.
+                </li>
+                <li>
+                  <span className="font-semibold">Reply-To (optional)</span> — Leave empty to use the visitor&apos;s
+                  email as Reply-To on inbound notifications (typical for contact forms). When set, staff who click
+                  &quot;Reply&quot; in their mail client write to this address instead—for example a shared inbox like{' '}
+                  <span className="font-mono">support@yourorg.org</span>. If provided, it must differ from the From
+                  address.
+                </li>
+              </ul>
+              <p>
+                Contact the platform administrator to add or verify sender addresses in AWS SES before use.
+              </p>
+            </div>
             {totalCount !== null && (
               <p className="text-gray-500 text-xs mt-1">Total addresses: {totalCount}</p>
             )}
@@ -378,20 +419,122 @@ export default function TenantEmailAddressesPage() {
           />
         </div>
 
-        <DataTable<TenantEmailAddressDTO>
-          data={filteredAndSortedItems}
-          columns={columns}
-          loading={loading}
-          onEdit={openEditModal}
-          onDelete={openDeleteModal}
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          onSort={(key, direction) => {
-            setSortKey(key);
-            setSortDirection(direction);
-          }}
-          emptyMessage="No tenant email addresses configured yet."
-        />
+        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="user-table-scroll-container">
+            <table className="min-w-full divide-y divide-gray-300 border border-gray-300" style={{ minWidth: '720px', width: '100%' }}>
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left border-b border-r border-gray-300">
+                    <SortableHeader label="Type" columnKey="emailType" />
+                  </th>
+                  <th className="px-4 py-3 text-left border-b border-r border-gray-300">
+                    <SortableHeader label="From Email Address" columnKey="emailAddress" />
+                  </th>
+                  <th className="px-4 py-3 text-left border-b border-r border-gray-300">
+                    <SortableHeader label="Copy-To Address" columnKey="copyToEmailAddress" />
+                  </th>
+                  <th className="px-4 py-3 text-left border-b border-r border-gray-300">
+                    <SortableHeader label="Reply-To Address" columnKey="replyToEmailAddress" />
+                  </th>
+                  <th className="px-4 py-3 text-left border-b border-r border-gray-300">
+                    <SortableHeader label="Display Name" columnKey="displayName" />
+                  </th>
+                  <th className="px-4 py-3 text-left border-b border-r border-gray-300">
+                    <SortableHeader label="Active" columnKey="isActive" />
+                  </th>
+                  <th className="px-4 py-3 text-left border-b border-gray-300">
+                    <SortableHeader label="Default" columnKey="isDefault" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-300">
+                {loading && filteredAndSortedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      Loading...
+                    </td>
+                  </tr>
+                ) : filteredAndSortedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      {searchTerm.trim() ? 'No email addresses match your search.' : 'No tenant email addresses configured yet.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAndSortedItems.map((item, index) => (
+                    <tr
+                      key={item.id ?? `${item.emailType}-${item.emailAddress}`}
+                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-blue-50'} hover:bg-yellow-50 transition-colors`}
+                    >
+                      <td
+                        className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200 cursor-help"
+                        onMouseEnter={(e) => handleTooltipEnter(item, e)}
+                        onMouseLeave={handleTooltipLeave}
+                        title="Hover for full email address details"
+                      >
+                        {item.emailType}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200">
+                        <div className="space-y-2">
+                          <div className="max-w-[220px] truncate" title={item.emailAddress}>
+                            {item.emailAddress}
+                          </div>
+                          <AdminTableActionButtons
+                            onEdit={() => openEditModal(item)}
+                            onDelete={() => openDeleteModal(item)}
+                            editTitle="Edit email address"
+                            deleteTitle="Delete email address"
+                          />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 border-r border-gray-200">
+                        <span className="max-w-[180px] truncate block" title={item.copyToEmailAddress || '—'}>
+                          {item.copyToEmailAddress || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 border-r border-gray-200">
+                        <span className="max-w-[180px] truncate block" title={item.replyToEmailAddress || '—'}>
+                          {item.replyToEmailAddress || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 border-r border-gray-200">
+                        {item.displayName || '—'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap border-r border-gray-200">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            item.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {item.isActive ? 'Yes' : 'No'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            item.isDefault ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {item.isDefault ? 'Yes' : 'No'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {tooltipItem && (
+          <TenantEmailAddressDetailsTooltip
+            item={tooltipItem}
+            anchorRect={tooltipAnchor}
+            onClose={closeTooltip}
+            onTooltipMouseEnter={cancelTooltipClose}
+            onTooltipMouseLeave={scheduleTooltipClose}
+          />
+        )}
 
         {/* Pagination Controls - Always visible, matching admin page style */}
         {(() => {
@@ -630,16 +773,28 @@ function TenantEmailAddressForm({
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Copy-To Email Address <span className="text-red-500">*</span>
+            Copy-To Email Address
           </label>
           <input
             type="email"
             name="copyToEmailAddress"
             value={formData.copyToEmailAddress || ''}
             onChange={handleChange}
-            required
             className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Optional CC / copy-to address"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Reply-To Email Address
+          </label>
+          <input
+            type="email"
+            name="replyToEmailAddress"
+            value={formData.replyToEmailAddress || ''}
+            onChange={handleChange}
+            className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Optional reply-to address"
           />
         </div>
       </div>
@@ -656,12 +811,13 @@ function TenantEmailAddressForm({
         </div>
       )}
 
-      <div className="mt-2 rounded-md bg-blue-50 border border-blue-100 p-3">
-        <p className="text-xs text-blue-800">
-          Please provide both a <span className="font-semibold">From</span> email and a{' '}
-          <span className="font-semibold">Copy-To</span> email address, and they must be different.
-          Both addresses should be AWS SES verified email addresses. Please contact the platform
-          administrator to have these addresses added or configured in SES.
+      <div className="mt-2 rounded-md bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800 space-y-1.5">
+        <p>
+          <span className="font-semibold">From</span> is required and must be SES-verified.{' '}
+          <span className="font-semibold">Copy-To</span> and <span className="font-semibold">Reply-To</span> are
+          optional—leave either blank or fill in as needed (see the guide on this page). When set, Copy-To receives a
+          copy of sent mail; Reply-To controls where &quot;Reply&quot; goes. From must differ from any optional address
+          you provide.
         </p>
       </div>
 
