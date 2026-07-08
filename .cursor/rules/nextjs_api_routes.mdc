@@ -503,6 +503,15 @@ alwaysApply: true
   - See `src/pages/api/proxy/event-ticket-transactions/[...slug].ts` for a working example.
   - See `src/pages/api/proxy/discount-codes/[...slug].ts` for the required fix.
 
+---
+**Tenant Settings Admin — Homepage Hero tab parity (view + edit)**
+- **View page** (`/admin/tenant-management/settings/[id]`) and **edit page** (`.../edit`) must both expose a **Homepage Hero** tab with the same tab order as `TenantSettingsForm`: General → Integrations → Limits → **Homepage Hero** → Customization.
+- **View (read-only):** Use `TenantDefaultHeroView` in `TenantSettingsViewClient` — shows `displayEventHeroImages`, `defaultHeroDisplayMode`, `defaultHeroIncludeWithEvents`, `defaultHeroMaxDisplayCount`, slide library thumbnails, and an **Edit hero settings** link to the edit page. Do not embed `TenantDefaultHeroManager` on the view page (upload/persist is edit-only).
+- **Edit (mutable):** Use `TenantDefaultHeroManager` inside `TenantSettingsForm` on the `homepageHero` tab; hero uploads go through `/api/proxy/tenant-settings/upload/default-hero-image` with explicit `tenantId` query (multi-tenant admin — do not rely on `NEXT_PUBLIC_TENANT_ID` alone).
+- **DTO fields:** `defaultHeroImageUrlsJson`, `defaultHeroDisplayMode`, `defaultHeroIncludeWithEvents`, `defaultHeroMaxDisplayCount`, `displayEventHeroImages` on `TenantSettingsDTO` / form DTO in `src/app/admin/tenant-management/types.ts`.
+- **Hero JSON parsing:** Use `parseTenantDefaultHeroSlides` from `@/lib/hero/defaultHeroImages` (event-site-manager passes `{ defaultHeroImageUrlsJson }` object; mosc-temp may pass raw JSON string where the helper overload supports it).
+- **References:** `src/app/admin/tenant-management/settings/[id]/TenantSettingsViewClient.tsx`, `src/app/admin/tenant-management/components/TenantDefaultHeroView.tsx`, `src/app/admin/tenant-management/components/TenantSettingsForm.tsx`, `src/app/admin/tenant-management/settings/ApiServerActions.ts` (`uploadDefaultHeroImageClient`, `patchTenantSetting`).
+
 - **App URL and fetch targets (client vs server) — use the right base**
   - **Browser / `'use client'` calling `/api/proxy/*` (public data): use same-origin relative URLs**
     - **DO:** `fetch('/api/proxy/executive-committee-team-members?isActive.equals=true&sort=priorityOrder,asc', { ... })`

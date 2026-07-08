@@ -716,7 +716,7 @@ export default function TenantSettingsForm({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-2.5 px-3 sm:px-4 border-2 font-semibold text-sm sm:text-base flex items-center gap-2 sm:gap-3 rounded-lg transition-all duration-300 flex-[1_1_11rem] sm:flex-[1_1_auto] min-w-[11rem] max-w-full ${
+                className={`py-2.5 px-3 sm:px-4 border-2 font-semibold text-sm sm:text-base flex items-center gap-2 sm:gap-3 rounded-lg transition-all duration-300 flex-[1_1_calc(50%-0.25rem)] md:flex-[1_1_calc(33.333%-0.34rem)] min-w-[10rem] max-w-full ${
                   isActive ? colors.active : colors.inactive
                 }`}
               >

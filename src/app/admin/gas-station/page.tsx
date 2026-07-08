@@ -260,6 +260,12 @@ export default function GasStationDashboardPage() {
           </div>
           <div className="flex gap-3">
             <Link
+              href={`/admin/gas-station/access${tenantQuery}`}
+              className="px-4 py-2 rounded-xl bg-teal-100 hover:bg-teal-200 text-teal-700 font-semibold transition-colors"
+            >
+              Location access
+            </Link>
+            <Link
               href={`/admin/gas-station/stations${tenantQuery}`}
               className="px-4 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold transition-colors"
             >

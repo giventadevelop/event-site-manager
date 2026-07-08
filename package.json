@@ -12,6 +12,8 @@
   },
   "scripts": {
     "dev": "npx --no-install next dev",
+    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
+    "dev:clean": "npm run clean && npx --no-install next dev",
     "build": "npx --no-install next build --webpack",
     "start": "npx --no-install next start",
     "lint": "eslint .",

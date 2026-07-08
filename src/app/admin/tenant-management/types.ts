@@ -88,6 +88,8 @@ export interface TenantSettingsDTO {
   defaultHeroIncludeWithEvents?: boolean;
   /** Max tenant default slides on homepage when slides are marked active (1-6). */
   defaultHeroMaxDisplayCount?: number;
+  /** When true, upcoming events with hero media appear in the homepage hero slideshow. */
+  displayEventHeroImages?: boolean;
   /** When true, render Google AdSense ad regions on this tenant's public site */
   enableGoogleAdsense?: boolean;
   /** AdSense publisher ID (ca-pub-...) */
