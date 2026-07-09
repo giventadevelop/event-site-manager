@@ -84,7 +84,8 @@ export default function TenantSettingsForm({
 
   useEffect(() => {
     setHeroSlides(parseTenantDefaultHeroSlides(initialData));
-  }, [initialData?.id, initialData?.defaultHeroImageUrlsJson, initialData?.defaultHeroImageUrls]);
+    setValue('defaultHeroImageUrlsJson', serializeDefaultHeroSlides(parseTenantDefaultHeroSlides(initialData)));
+  }, [initialData?.id, initialData?.defaultHeroImageUrlsJson, initialData?.defaultHeroImageUrls, setValue]);
 
   useEffect(() => {
     setAdsensePlacements(adsensePlacementFieldsFromJson(initialData?.googleAdsensePlacementsJson));
@@ -155,6 +156,7 @@ export default function TenantSettingsForm({
       emailFooterHtmlUrl: initialData?.emailFooterHtmlUrl || '',
       emailHeaderImageUrl: initialData?.emailHeaderImageUrl || '',
       logoImageUrl: initialData?.logoImageUrl || '',
+      defaultHeroImageUrlsJson: initialData?.defaultHeroImageUrlsJson || '',
       defaultHeroDisplayMode: initialData?.defaultHeroDisplayMode || 'slideshow',
       defaultHeroIncludeWithEvents: initialData?.defaultHeroIncludeWithEvents ?? true,
       defaultHeroMaxDisplayCount: clampHeroMaxDisplayCount(
@@ -170,6 +172,10 @@ export default function TenantSettingsForm({
   const settingsId = propSettingsId || initialData?.id;
 
   register('displayEventHeroImages');
+  register('defaultHeroDisplayMode');
+  register('defaultHeroIncludeWithEvents');
+  register('defaultHeroMaxDisplayCount');
+  register('defaultHeroImageUrlsJson');
 
   // Watch form values for real-time updates
   const watchedValues = watch();
@@ -1622,6 +1628,9 @@ export default function TenantSettingsForm({
         {/* Homepage Hero Tab */}
         {activeTab === 'homepageHero' && (
           <div className="space-y-6">
+            <input type="hidden" {...register('defaultHeroImageUrlsJson')} />
+            <input type="hidden" {...register('defaultHeroMaxDisplayCount')} />
+
             <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
               <ToggleSwitch
                 name="displayEventHeroImages"
@@ -1639,7 +1648,10 @@ export default function TenantSettingsForm({
               maxDisplayCount={watch('defaultHeroMaxDisplayCount') ?? DEFAULT_MAX_DISPLAY_COUNT}
               displayMode={(watch('defaultHeroDisplayMode') as DefaultHeroDisplayMode) || 'slideshow'}
               includeWithEvents={watch('defaultHeroIncludeWithEvents') ?? true}
-              onSlidesChange={setHeroSlides}
+              onSlidesChange={(slides) => {
+                setHeroSlides(slides);
+                setValue('defaultHeroImageUrlsJson', serializeDefaultHeroSlides(slides));
+              }}
               onMaxDisplayCountChange={(count) =>
                 setValue('defaultHeroMaxDisplayCount', clampHeroMaxDisplayCount(count))
               }

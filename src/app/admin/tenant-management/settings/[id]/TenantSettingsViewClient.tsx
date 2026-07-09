@@ -101,14 +101,14 @@ export default function TenantSettingsViewClient({ settings, settingsId, organiz
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-2.5 px-3 sm:px-4 border-2 font-semibold text-sm sm:text-base flex items-center gap-2 sm:gap-3 rounded-lg transition-all duration-300 flex-[1_1_calc(50%-0.25rem)] md:flex-[1_1_calc(33.333%-0.34rem)] min-w-[10rem] max-w-full ${
+                className={`py-3 px-3 sm:px-4 border-2 font-semibold text-sm sm:text-base flex items-center gap-3 sm:gap-4 rounded-lg transition-all duration-300 flex-[1_1_calc(50%-0.25rem)] md:flex-[1_1_calc(33.333%-0.34rem)] min-w-[10rem] max-w-full ${
                   isActive ? colors.active : colors.inactive
                 }`}
               >
-                <div className={`flex-shrink-0 w-11 h-11 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                <div className={`flex-shrink-0 w-16 h-16 rounded-xl flex items-center justify-center transition-all duration-300 ${
                   isActive ? 'scale-105' : 'hover:scale-105'
                 } ${isActive ? colors.iconBgActive : colors.iconBgInactive}`}>
-                  <Icon className={`w-8 h-8 sm:w-10 sm:h-10 ${isActive ? colors.iconTextActive : colors.iconTextInactive}`} />
+                  <Icon className={`w-12 h-12 ${isActive ? colors.iconTextActive : colors.iconTextInactive}`} />
                 </div>
                 <span className={`whitespace-nowrap ${isActive ? colors.textActive : colors.textInactive}`}>{tab.label}</span>
               </button>

@@ -14,6 +14,7 @@ import type {
   PaginationParams,
   PaginatedResponse
 } from '@/app/admin/tenant-management/types';
+import { normalizeDefaultHeroImageUrlsJsonForApi } from '@/lib/hero/defaultHeroImages';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -334,6 +335,12 @@ export async function updateTenantSetting(
       tenantOrganization: tenantOrganization || null,
     });
 
+    if ('defaultHeroImageUrlsJson' in payload) {
+      payload.defaultHeroImageUrlsJson = normalizeDefaultHeroImageUrlsJsonForApi(
+        payload.defaultHeroImageUrlsJson
+      );
+    }
+
     console.log('[updateTenantSetting] Final payload with tenantOrganization:', {
       tenantId: payload.tenantId,
       organizationId: tenantOrganization?.id,
@@ -413,6 +420,12 @@ export async function patchTenantSetting(
       // Include the tenantOrganization relationship (either existing or newly fetched)
       tenantOrganization: tenantOrganization || null,
     });
+
+    if ('defaultHeroImageUrlsJson' in payload) {
+      payload.defaultHeroImageUrlsJson = normalizeDefaultHeroImageUrlsJsonForApi(
+        payload.defaultHeroImageUrlsJson
+      );
+    }
 
     console.log('[patchTenantSetting] Final payload with tenantOrganization:', {
       tenantId: payload.tenantId,

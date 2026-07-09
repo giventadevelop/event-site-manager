@@ -408,7 +408,7 @@ void persistSlides(slidesRef.current).catch((err: Error) => {
               <p className="font-semibold text-teal-900 mb-2">Quick setup (3 steps)</p>
               <ol className="list-decimal pl-5 text-sm text-teal-800 space-y-1">
                 <li>Upload one or more hero slides (drag and drop or browse).</li>
-                <li>Mark slides <strong>Active</strong> for the homepage (max 10). Set rotation count (1–6).</li>
+                <li>Mark slides <strong>Active</strong> for the homepage (max {MAX_ACTIVE_SLIDES}). Set rotation count (1–{MAX_DISPLAY_COUNT}).</li>
                 <li>Choose display mode: slideshow, random, or single.</li>
                 <li>Click <strong>Update Settings</strong> at the bottom, or uploads auto-save.</li>
               </ol>
@@ -624,31 +624,7 @@ void persistSlides(slidesRef.current).catch((err: Error) => {
       )}
 
 
-      <div>
-        <label htmlFor="defaultHeroMaxDisplayCount" className="block text-sm font-medium text-gray-700 mb-2">
-          Images in homepage rotation (when slides are active)
-        </label>
-        <select
-          id="defaultHeroMaxDisplayCount"
-          value={clampHeroMaxDisplayCount(maxDisplayCount)}
-          onChange={(e) => handleMaxDisplayChange(Number(e.target.value))}
-          className="mt-1 block w-full max-w-xs border border-gray-400 rounded-xl focus:border-teal-500 focus:ring-teal-500 px-4 py-3 text-base"
-          title="Maximum active slides shown on homepage"
-          aria-label="Maximum active slides shown on homepage"
-        >
-          {Array.from({ length: MAX_DISPLAY_COUNT }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>
-              {n} image{n === 1 ? '' : 's'}
-            </option>
-          ))}
-        </select>
-        <p className="mt-1 text-xs text-gray-500">
-          Uses the first N active slides in list order (max {MAX_DISPLAY_COUNT}). Separate from how many you mark active (
-          max {MAX_ACTIVE_SLIDES}).
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
           <label htmlFor="defaultHeroDisplayMode" className="block text-sm font-medium text-gray-700 mb-2">
             Display mode
@@ -661,21 +637,44 @@ void persistSlides(slidesRef.current).catch((err: Error) => {
             title="Default hero display mode"
             aria-label="Default hero display mode"
           >
-            <option value="slideshow">Slideshow (rotate all URLs)</option>
-            <option value="random">Random (one URL per page load)</option>
-            <option value="single">Single (first URL only)</option>
+            <option value="slideshow">Slideshow (ordered rotation)</option>
+            <option value="random">Random (shuffle each visit)</option>
+            <option value="single">Single (first slide only)</option>
           </select>
         </div>
-        <div className="flex items-center pt-8">
-          <label className="flex items-center gap-3 cursor-pointer">
+        <div>
+          <label htmlFor="defaultHeroMaxDisplayCount" className="block text-sm font-medium text-gray-700 mb-2">
+            Images in homepage rotation
+          </label>
+          <select
+            id="defaultHeroMaxDisplayCount"
+            value={clampHeroMaxDisplayCount(maxDisplayCount)}
+            onChange={(e) => handleMaxDisplayChange(Number(e.target.value))}
+            className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-teal-500 focus:ring-teal-500 px-4 py-3 text-base"
+            title="Maximum active slides shown on homepage"
+            aria-label="Maximum active slides shown on homepage"
+          >
+            {Array.from({ length: MAX_DISPLAY_COUNT }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n} {n === 1 ? 'image' : 'images'}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            When slides are active, show up to this many in order (max {MAX_DISPLAY_COUNT}).
+          </p>
+        </div>
+        <div className="flex items-start md:pt-8">
+          <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={includeWithEvents}
               onChange={(e) => onIncludeWithEventsChange(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-400 text-teal-600 focus:ring-teal-500"
+              className="mt-1 h-4 w-4 rounded border-gray-400 text-teal-600 focus:ring-teal-500"
             />
-            <span className="text-sm font-medium text-gray-700">
-              Include default slides when event hero images exist
+            <span className="text-sm text-gray-700">
+              Show default hero slides on the homepage (active slides only). When enabled, slides
+              are appended after upcoming event hero images when those exist.
             </span>
           </label>
         </div>

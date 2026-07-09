@@ -14,6 +14,7 @@ import {
   deleteProfileItemServer,
   type ProfileCollectionPath,
 } from './ApiServerActions';
+import ProfileAudiencePanel from './ProfileAudiencePanel';
 
 /* ------------------------------------------------------------------------ */
 /* Config-driven collection sections                                         */
@@ -374,6 +375,7 @@ const PROFILE_FIELDS: FieldConfig[] = [
   { name: 'websiteUrl', label: 'Website', type: 'text' },
   { name: 'cvDocumentUrl', label: 'CV document URL', type: 'text' },
   { name: 'bioMarkdown', label: 'Bio (markdown)', type: 'textarea' },
+  { name: 'contactFormEnabled', label: 'Enable contact form', type: 'checkbox' },
   { name: 'isPublished', label: 'Published', type: 'checkbox' },
 ];
 
@@ -504,6 +506,8 @@ export default function ProfileSiteAdminPage() {
             {COLLECTIONS.map((c) => (
               <CollectionSection key={c.key} config={c} tenantId={tenantId} />
             ))}
+
+            <ProfileAudiencePanel tenantId={tenantId} setMessage={setMessage} />
           </>
         )}
       </div>

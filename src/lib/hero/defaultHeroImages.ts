@@ -19,9 +19,13 @@ export interface TenantHeroConfig {
 }
 
 export const MAX_LIBRARY_SLIDES = 20;
-export const MAX_ACTIVE_SLIDES = 10;
+export const MAX_ACTIVE_SLIDES = 20;
 export const DEFAULT_MAX_DISPLAY_COUNT = 6;
-export const MAX_DISPLAY_COUNT = 6;
+export const MAX_DISPLAY_COUNT = 20;
+/** @deprecated Use MAX_DISPLAY_COUNT */
+export const MAX_HERO_DISPLAY_COUNT = MAX_DISPLAY_COUNT;
+/** @deprecated Use DEFAULT_MAX_DISPLAY_COUNT */
+export const DEFAULT_HERO_MAX_DISPLAY_COUNT = DEFAULT_MAX_DISPLAY_COUNT;
 export const RANDOM_FALLBACK_COUNT = 3;
 
 const DEFAULT_DISPLAY_MODE: DefaultHeroDisplayMode = 'slideshow';
@@ -59,6 +63,24 @@ export function isLegacyHeroSettings(
 export function clampHeroMaxDisplayCount(count?: number | null): number {
   if (count == null || Number.isNaN(Number(count))) return DEFAULT_MAX_DISPLAY_COUNT;
   return Math.min(MAX_DISPLAY_COUNT, Math.max(1, Math.floor(Number(count))));
+}
+
+/** Alias for clampHeroMaxDisplayCount (mosc-temp naming). */
+export const normalizeMaxDisplayCount = clampHeroMaxDisplayCount;
+
+export function normalizeDefaultHeroDisplayMode(
+  value?: string | null
+): DefaultHeroDisplayMode {
+  if (value === 'random' || value === 'single' || value === 'slideshow') {
+    return value;
+  }
+  return 'slideshow';
+}
+
+/** Backend rejects empty string for defaultHeroImageUrlsJson — use a valid empty array. */
+export function normalizeDefaultHeroImageUrlsJsonForApi(json?: string | null): string {
+  if (json == null || String(json).trim() === '') return '[]';
+  return json;
 }
 
 export function parseTenantDefaultHeroSlides(
