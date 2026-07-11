@@ -1,0 +1,255 @@
+{
+  "suite": "public-dynamic",
+  "startedAt": "2026-07-10T22:04:39.409Z",
+  "finishedAt": "2026-07-10T22:07:27.765Z",
+  "summary": {
+    "pass": 22,
+    "fail": 0,
+    "skip": 0,
+    "todo": 0
+  },
+  "results": [
+    {
+      "path": "/",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 8947,
+      "meta": {
+        "name": "Homepage"
+      },
+      "at": "2026-07-10T22:04:48.646Z"
+    },
+    {
+      "path": "/events",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 9705,
+      "meta": {
+        "name": "Events list"
+      },
+      "at": "2026-07-10T22:04:58.351Z"
+    },
+    {
+      "path": "/gallery",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 1389,
+      "meta": {
+        "name": "Gallery"
+      },
+      "at": "2026-07-10T22:04:59.740Z"
+    },
+    {
+      "path": "/sponsors",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 8381,
+      "meta": {
+        "name": "Sponsors"
+      },
+      "at": "2026-07-10T22:05:08.121Z"
+    },
+    {
+      "path": "/polls",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 8547,
+      "meta": {
+        "name": "Polls"
+      },
+      "at": "2026-07-10T22:05:16.669Z"
+    },
+    {
+      "path": "/calendar",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 1638,
+      "meta": {
+        "name": "Calendar"
+      },
+      "at": "2026-07-10T22:05:18.307Z"
+    },
+    {
+      "path": "/membership",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "auth-gated (redirect to sign-in)",
+      "durationMs": 9007,
+      "meta": {
+        "name": "Membership"
+      },
+      "at": "2026-07-10T22:05:27.314Z"
+    },
+    {
+      "path": "/membership/plans",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "auth-gated (redirect to sign-in)",
+      "durationMs": 8687,
+      "meta": {
+        "name": "Membership plans"
+      },
+      "at": "2026-07-10T22:05:36.001Z"
+    },
+    {
+      "path": "/team",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 8451,
+      "meta": {
+        "name": "Team"
+      },
+      "at": "2026-07-10T22:05:44.452Z"
+    },
+    {
+      "path": "/focus-groups",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 36120,
+      "meta": {
+        "name": "Focus groups"
+      },
+      "at": "2026-07-10T22:06:20.572Z"
+    },
+    {
+      "path": "/donate",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "auth-gated (redirect to sign-in)",
+      "durationMs": 8693,
+      "meta": {
+        "name": "Donate"
+      },
+      "at": "2026-07-10T22:06:29.266Z"
+    },
+    {
+      "path": "/privacy",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "auth-gated (redirect to sign-in)",
+      "durationMs": 8644,
+      "meta": {
+        "name": "Privacy"
+      },
+      "at": "2026-07-10T22:06:37.910Z"
+    },
+    {
+      "path": "/terms",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "auth-gated (redirect to sign-in)",
+      "durationMs": 8628,
+      "meta": {
+        "name": "Terms"
+      },
+      "at": "2026-07-10T22:06:46.538Z"
+    },
+    {
+      "path": "/events/27",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 2722,
+      "meta": {
+        "name": "Event detail 27"
+      },
+      "at": "2026-07-10T22:06:49.260Z"
+    },
+    {
+      "path": "/events/27/tickets",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 2248,
+      "meta": {
+        "name": "Event tickets 27"
+      },
+      "at": "2026-07-10T22:06:51.508Z"
+    },
+    {
+      "path": "/events/27/register",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 2033,
+      "meta": {
+        "name": "Event register 27"
+      },
+      "at": "2026-07-10T22:06:53.541Z"
+    },
+    {
+      "path": "/events/27/competitions",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 974,
+      "meta": {
+        "name": "Event competitions 27"
+      },
+      "at": "2026-07-10T22:06:54.515Z"
+    },
+    {
+      "path": "/events/27/competitions/rules",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 991,
+      "meta": {
+        "name": "Competition rules 27"
+      },
+      "at": "2026-07-10T22:06:55.506Z"
+    },
+    {
+      "path": "/events/27/donation",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 13623,
+      "meta": {
+        "name": "Event donation 27"
+      },
+      "at": "2026-07-10T22:07:09.130Z"
+    },
+    {
+      "path": "/membership/subscribe/6",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "auth-gated (redirect to sign-in)",
+      "durationMs": 8723,
+      "meta": {
+        "name": "Subscribe plan 6"
+      },
+      "at": "2026-07-10T22:07:17.853Z"
+    },
+    {
+      "path": "/sponsors/11",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 1993,
+      "meta": {
+        "name": "Sponsor 11"
+      },
+      "at": "2026-07-10T22:07:19.846Z"
+    },
+    {
+      "path": "/focus-groups/test3",
+      "status": "pass",
+      "kind": "public-dynamic",
+      "message": "OK",
+      "durationMs": 7558,
+      "meta": {
+        "name": "Focus group test3"
+      },
+      "at": "2026-07-10T22:07:27.404Z"
+    }
+  ]
+}

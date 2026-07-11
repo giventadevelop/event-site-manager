@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>event-site-manager — Full-site E2E (TestSprite)</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; background: #f5f7fa; color: #1f2937; line-height: 1.55; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 48px; }
+    h1 { color: #0066cc; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
+    h2 { color: #0052a3; margin-top: 32px; border-left: 4px solid #0066cc; padding-left: 10px; }
+    .section-container { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin: 16px 0; overflow: hidden; }
+    .section-header { padding: 12px 16px; font-weight: 700; color: #fff; }
+    .section-header.overview { background: linear-gradient(135deg, #0066cc, #0052a3); }
+    .section-header.usage { background: linear-gradient(135deg, #0d9488, #0f766e); }
+    .section-header.output { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+    .section-body { padding: 16px 18px 20px; }
+    code, .script-name, .code-highlight { background: #e8f4f8; color: #0d3b66; padding: 2px 6px; border-radius: 3px; border: 1px solid #b8d4e3; font-size: .9em; }
+    pre, .command-content { background: #e8f4f8; color: #0d3b66; border: 1px solid #b8d4e3; border-radius: 8px; padding: 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #b8d4e3; padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: #fff; }
+    tr:nth-child(even) { background: #f8fbfd; }
+    .info { background: #e8f4f8; border-left: 4px solid #0066cc; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+    .success { background: #dcfce7; border-left: 4px solid #16a34a; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+    .warning { background: #ffedd5; border-left: 4px solid #ea580c; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+    .toc { background: #fff; border-radius: 10px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .toc a { color: #0052a3; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>event-site-manager — Full-site E2E (TestSprite)</h1>
+    <p>
+      Same control flow as the MOSC satellite harness: inventory → smoke → admin CRUD → JSON/HTML coverage,
+      adapted for <strong>platform-admin multi-tenant</strong> (<code class="code-highlight">?tenant=</code>) and
+      <code class="script-name">nextjs_api_routes.mdc</code> proxy rules.
+    </p>
+
+    <div class="toc">
+      <h2 style="border:none;margin:0;padding:0;color:#0052a3;">Contents</h2>
+      <ul>
+        <li><a href="#tenant">1. Tenant parameter</a></li>
+        <li><a href="#port">2. Port (default 3001)</a></li>
+        <li><a href="#prereq">3. Prerequisites</a></li>
+        <li><a href="#scripts">4. npm scripts</a></li>
+        <li><a href="#ladder">5. Recommended command</a></li>
+        <li><a href="#reports">6. Where to find HTML reports</a></li>
+        <li><a href="#api">7. REST / proxy notes</a></li>
+      </ul>
+    </div>
+
+    <h2 id="tenant">1. Tenant parameter</h2>
+    <div class="section-container">
+      <div class="section-header overview">How tenant is selected</div>
+      <div class="section-body">
+        <ol>
+          <li><code class="code-highlight">--tenant=&lt;id&gt;</code> on the CLI (highest priority)</li>
+          <li><code class="code-highlight">TEST_TENANT_ID</code> or <code class="code-highlight">E2E_TENANT_ID</code></li>
+          <li><code class="script-name">TestSprite/admin-tests/auth.json</code> → <code>tenantId</code></li>
+          <li>Default <code class="code-highlight">tenant_demo_002</code></li>
+        </ol>
+        <p>
+          Expected tenant defaults to <code class="code-highlight">tenant_demo_002</code>
+          (<code class="code-highlight">E2E_EXPECTED_TENANT</code>). Set
+          <code class="code-highlight">E2E_ALLOW_ANY_TENANT=1</code> to bypass the hard check.
+        </p>
+        <div class="info">
+          Admin pages are opened as <code class="code-highlight">/admin/…?tenant=&lt;id&gt;</code>
+          and the sticky tenant bar is filled when needed
+          (<code class="script-name">platform-admin-test-tenant.js</code>).
+        </div>
+      </div>
+    </div>
+
+    <h2 id="port">2. Port (default 3001)</h2>
+    <div class="section-container">
+      <div class="section-header overview">Dynamic base URL</div>
+      <div class="section-body">
+        <p>
+          For <strong>event-site-manager</strong>, the default app URL is
+          <code class="code-highlight">http://localhost:3001</code>
+          (matches <code class="script-name">auth.json.example</code>).
+        </p>
+        <table>
+          <thead><tr><th>Override</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td>CLI port</td><td><code class="code-highlight">--port=3001</code> or <code class="code-highlight">--port=3000</code></td></tr>
+            <tr><td>CLI URL</td><td><code class="code-highlight">--base-url=http://localhost:3001</code></td></tr>
+            <tr><td>Env</td><td><code class="code-highlight">TEST_BASE_URL</code> / <code class="code-highlight">TEST_PORT</code></td></tr>
+            <tr><td>auth.json</td><td><code class="code-highlight">"baseUrl": "http://localhost:3001"</code></td></tr>
+          </tbody>
+        </table>
+        <p>Priority: CLI → env → auth.json → default <code class="code-highlight">:3001</code>. Probe fallback: 3001 → 3000 → 3002.</p>
+      </div>
+    </div>
+
+    <h2 id="prereq">3. Prerequisites</h2>
+    <div class="section-container">
+      <div class="section-header overview">Before you run</div>
+      <div class="section-body">
+        <ul>
+          <li><code>npm install</code> + <code>npm run test:install-playwright</code></li>
+          <li>App running on <strong>:3001</strong> by default (<code>npm run dev</code>) — or pass <code>--port=</code> to match</li>
+          <li>Copy <code class="script-name">auth.json.example</code> → <code class="script-name">auth.json</code> (ADMIN email/password + <code>tenantId</code> + <code>baseUrl</code>)</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 id="scripts">4. npm scripts</h2>
+    <div class="section-container">
+      <div class="section-header usage">Map</div>
+      <div class="section-body">
+        <table>
+          <thead>
+            <tr><th>Script</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code class="script-name">test:inventory</code></td><td>Generate route inventory from <code>src/app/**/page.tsx</code></td></tr>
+            <tr><td><code class="script-name">test:smoke:admin</code></td><td>Admin inventory smoke + home buttons (<code>?tenant=</code>)</td></tr>
+            <tr><td><code class="script-name">test:smoke:public</code></td><td>Public inventory smoke</td></tr>
+            <tr><td><code class="script-name">test:admin:crud</code></td><td><code>[E2E]</code> CRUD on scoped tenant</td></tr>
+            <tr><td><code class="script-name">test:e2e:full</code> / <code class="script-name">test:e2e:quick</code></td><td>Orchestrator — <code>--quick</code> skips comprehensive admin</td></tr>
+            <tr><td><code class="script-name">test:admin:all</code></td><td>Legacy comprehensive + dynamic only → <code>admin-tests/admin-test-report.html</code></td></tr>
+            <tr><td><code class="script-name">test:coverage:html</code></td><td>Regenerate HTML from JSON</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2 id="ladder">5. Recommended command</h2>
+    <div class="section-container">
+      <div class="section-header usage">Admin + public · tenant_demo_002</div>
+      <div class="section-body">
+        <div class="success">
+          Use <code class="code-highlight">&amp;</code> between Node steps so CRUD and smoke still run if comprehensive exits non-zero.
+        </div>
+        <pre class="command-content">cmd /c "set TEST_TENANT_ID=tenant_demo_002&& set E2E_TENANT_ID=tenant_demo_002&& set E2E_EXPECTED_TENANT=tenant_demo_002&& set TEST_BASE_URL=http://localhost:3001&& node TestSprite\tools\generate-route-inventory.js & node TestSprite\admin-tests\comprehensive-admin-test-suite.js --port=3001 & node TestSprite\admin-tests\admin-crud-demo-tenant-suite.js --tenant=tenant_demo_002 --port=3001 & node TestSprite\sanity-tests\run-inventory-smoke-crawl.js --kind=admin,public --tenant=tenant_demo_002 --port=3001"</pre>
+        <p>Quick orchestrator (default port <strong>3001</strong> for event-site-manager; inventory → public dynamic → CRUD → smoke; <strong>not</strong> <code>test:admin:all</code>):</p>
+        <pre class="command-content">cmd /c "set TEST_BASE_URL=http://localhost:3001&& node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3001"</pre>
+        <p>If the app is on port 3000:</p>
+        <pre class="command-content">cmd /c "set TEST_BASE_URL=http://localhost:3000&& node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3000"</pre>
+        <div class="success">
+          Look for <code class="code-highlight">[e2e-full] Mode: QUICK</code> and step banners. Reports land in <code class="script-name">TestSprite/reports/</code>.
+          <code class="script-name">admin-test-report.html</code> is only from <code class="script-name">npm run test:admin:all</code>.
+          Default base URL is <code class="code-highlight">http://localhost:3001</code>. Override with <code>--port=</code>, <code>--base-url=</code>, or <code>TEST_BASE_URL</code>. Fallback probe order: 3001 → 3000 → 3002.
+        </div>
+      </div>
+    </div>
+
+    <h2 id="reports">6. Where to find HTML reports</h2>
+    <div class="section-container">
+      <div class="section-header output">Outputs</div>
+      <div class="section-body">
+        <table>
+          <thead>
+            <tr><th>Artifact</th><th>Path</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Coverage JSON</td><td><code class="script-name">TestSprite/reports/coverage-*.json</code></td></tr>
+            <tr><td>Coverage HTML</td><td><code class="script-name">TestSprite/reports/coverage-*.html</code> — open in a browser</td></tr>
+            <tr><td>Smoke (admin+public)</td><td><code class="script-name">coverage-smoke-admin+public-&lt;stamp&gt;.html</code></td></tr>
+            <tr><td>CRUD</td><td><code class="script-name">coverage-admin-crud-&lt;stamp&gt;.html</code></td></tr>
+            <tr><td>Loop log</td><td><code class="script-name">TestSprite/reports/LOOP_LOG.md</code></td></tr>
+          </tbody>
+        </table>
+        <div class="info">
+          Console prints <code class="code-highlight">[harness] HTML report: …</code> next to the JSON path.
+          Older JSON-only files: <code class="script-name">npm run test:coverage:html</code>.
+        </div>
+      </div>
+    </div>
+
+    <h2 id="api">7. REST / proxy notes</h2>
+    <div class="section-container">
+      <div class="section-header overview">Aligned with nextjs_api_routes.mdc</div>
+      <div class="section-body">
+        <ul>
+          <li>UI and discovery use <code class="script-name">/api/proxy/…</code> — never call the backend base URL from the browser.</li>
+          <li>Do not add <code class="code-highlight">tenantId.equals</code> when calling the proxy (handler injects it).</li>
+          <li>Admin page scope uses <code class="code-highlight">?tenant=</code> for the platform-admin UI context (separate from proxy injection).</li>
+          <li>ID discovery for dynamic routes uses public proxy list GETs (<code>event-details</code>, <code>membership-plans</code>, etc.).</li>
+        </ul>
+        <div class="warning">
+          Companion markdown: <code class="script-name">TestSprite/E2E_FULL_README.md</code>.
+          Existing admin suites (<code class="script-name">comprehensive-admin-test-suite.js</code>, etc.) remain and are orchestrated by <code class="script-name">run-e2e-full.js</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

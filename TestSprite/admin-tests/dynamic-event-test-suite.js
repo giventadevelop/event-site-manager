@@ -72,7 +72,7 @@ function loadAuthConfig() {
     return {
       email: config.email,
       password: config.password,
-      baseUrl: resolveAdminTestBaseUrl(config.baseUrl) || 'http://localhost:3000',
+      baseUrl: resolveAdminTestBaseUrl(config.baseUrl) || 'http://localhost:3001',
       tenantId: resolveTestTenantId(config),
       timeout: config.timeout || 30000,
       headless: config.headless !== undefined ? config.headless : true,

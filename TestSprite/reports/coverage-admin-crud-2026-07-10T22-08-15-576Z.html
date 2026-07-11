@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E2E Coverage — admin-crud</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; background: #f5f7fa; color: #1f2937; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { color: #0066cc; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
+    h2 { color: #0052a3; margin-top: 28px; border-left: 4px solid #0066cc; padding-left: 10px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .card { background: #fff; border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,.06); border-left: 4px solid #0066cc; }
+    .card.pass { border-left-color: #28a745; }
+    .card.fail { border-left-color: #dc3545; }
+    .card.skip { border-left-color: #ff9800; }
+    .card .label { font-size: .8em; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+    .card .value { font-size: 1.6em; font-weight: 700; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.08); margin: 12px 0 20px; }
+    th, td { border: 1px solid #b8d4e3; padding: 10px 12px; text-align: left; vertical-align: top; font-size: .92em; }
+    th { background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: #fff; }
+    tr:nth-child(even) { background: #f8fbfd; }
+    tr:hover { background: #e3f2fd; }
+    code { background: #e8f4f8; color: #0d3b66; padding: 2px 6px; border-radius: 3px; border: 1px solid #b8d4e3; font-size: .88em; }
+    .pass { color: #166534; font-weight: 600; }
+    .fail { color: #991b1b; font-weight: 600; }
+    .muted { color: #64748b; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .75em; font-weight: 700; text-transform: uppercase; }
+    .badge.pass { background: #dcfce7; color: #166534; }
+    .badge.fail { background: #fee2e2; color: #991b1b; }
+    .badge.skip { background: #ffedd5; color: #9a3412; }
+    .badge.todo { background: #e0e7ff; color: #3730a3; }
+    .meta { background: #e8f4f8; border-left: 4px solid #0066cc; border-radius: 8px; padding: 14px 16px; margin-bottom: 18px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>E2E Coverage Report</h1>
+    <div class="meta">
+      <div><strong>Suite:</strong> <code>admin-crud</code></div>
+      <div><strong>Started:</strong> 2026-07-10T22:07:29.005Z</div>
+      <div><strong>Finished:</strong> 2026-07-10T22:08:15.576Z</div>
+      <div><strong>Wall clock:</strong> 46.6s · <strong>Sum of step durations:</strong> 44.9s</div>
+    </div>
+
+    <div class="cards">
+      <div class="card"><div class="label">Total</div><div class="value">15</div></div>
+      <div class="card pass"><div class="label">Passed</div><div class="value">2</div></div>
+      <div class="card fail"><div class="label">Failed</div><div class="value">4</div></div>
+      <div class="card skip"><div class="label">Skipped</div><div class="value">9</div></div>
+      <div class="card"><div class="label">Todo</div><div class="value">0</div></div>
+      <div class="card"><div class="label">Duration</div><div class="value" style="font-size:1.2em">46.6s</div></div>
+    </div>
+
+    <h2>Modules / kinds</h2>
+    <p class="muted">Time per component group (admin, public, admin-home-button, crud, etc.).</p>
+    <table>
+      <thead>
+        <tr><th>Module</th><th>Tests</th><th>Pass</th><th>Fail</th><th>Skip</th><th>Duration</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+      <td><code>crud</code></td>
+      <td>15</td>
+      <td class="pass">2</td>
+      <td class="fail">4</td>
+      <td>9</td>
+      <td>44.9s</td>
+    </tr>
+      </tbody>
+    </table>
+
+    <h2>Failures</h2>
+    <table>
+      <thead>
+        <tr><th>Path</th><th>Module</th><th>Duration</th><th>Message</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+      <td><code>/admin/manage-events</code></td>
+      <td><code>crud</code></td>
+      <td>2.4s</td>
+      <td>manage-events: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/manage-events?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/manage-events?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/focus-groups</code></td>
+      <td><code>crud</code></td>
+      <td>2.5s</td>
+      <td>focus-groups: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/focus-groups?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/focus-groups?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/tenant-management/organizations</code></td>
+      <td><code>crud</code></td>
+      <td>2.6s</td>
+      <td>tenant-organizations: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/organizations?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-management/organizations?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/tenant-management/settings</code></td>
+      <td><code>crud</code></td>
+      <td>2.4s</td>
+      <td>tenant-settings: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/settings?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-management/settings?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+      </tbody>
+    </table>
+
+    <h2>All results</h2>
+    <table>
+      <thead>
+        <tr><th>Status</th><th>Module</th><th>Path</th><th>Duration</th><th>Message</th></tr>
+      </thead>
+      <tbody>
+        <tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/manage-usage</code></td>
+      <td>2.3s</td>
+      <td>manage-usage: read-only smoke OK</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/manage-events</code></td>
+      <td>2.4s</td>
+      <td>manage-events: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/manage-events?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/manage-events?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-skip">
+      <td><span class="badge skip">skip</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/events/27/ticket-types/list</code></td>
+      <td>4.6s</td>
+      <td>ticket-types: no-name-field, not-saved, not-deleted</td>
+    </tr>
+<tr class="status-skip">
+      <td><span class="badge skip">skip</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/events/27/discount-codes/list</code></td>
+      <td>4.3s</td>
+      <td>discount-codes: no-name-field, not-saved, not-deleted</td>
+    </tr>
+<tr class="status-skip">
+      <td><span class="badge skip">skip</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/membership/plans</code></td>
+      <td>3.4s</td>
+      <td>membership-plans: no-name-field, not-saved, not-deleted</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/focus-groups</code></td>
+      <td>2.5s</td>
+      <td>focus-groups: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/focus-groups?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/focus-groups?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-skip">
+      <td><span class="badge skip">skip</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/gallery/albums</code></td>
+      <td>3.1s</td>
+      <td>gallery-albums: no-name-field, not-saved, not-deleted</td>
+    </tr>
+<tr class="status-skip">
+      <td><span class="badge skip">skip</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/event-sponsors</code></td>
+      <td>3.0s</td>
+      <td>event-sponsors: no-name-field, not-saved, not-deleted</td>
+    </tr>
+<tr class="status-skip">
+      <td><span class="badge skip">skip</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/event-featured-performers</code></td>
+      <td>3.0s</td>
+      <td>event-featured-performers: no-name-field, not-saved, not-deleted</td>
+    </tr>
+<tr class="status-skip">
+      <td><span class="badge skip">skip</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/event-contacts</code></td>
+      <td>3.0s</td>
+      <td>event-contacts: no-name-field, not-saved, not-deleted</td>
+    </tr>
+<tr class="status-skip">
+      <td><span class="badge skip">skip</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/event-program-directors</code></td>
+      <td>3.0s</td>
+      <td>event-program-directors: no-name-field, not-saved, not-deleted</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/tenant-management/organizations</code></td>
+      <td>2.6s</td>
+      <td>tenant-organizations: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/organizations?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-management/organizations?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/tenant-management/settings</code></td>
+      <td>2.4s</td>
+      <td>tenant-settings: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/settings?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-management/settings?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-skip">
+      <td><span class="badge skip">skip</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/polls</code></td>
+      <td>3.4s</td>
+      <td>polls: no-name-field, not-saved, not-deleted</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>crud</code></td>
+      <td><code>/admin/test-stripe</code></td>
+      <td>1.8s</td>
+      <td>test-stripe: read-only smoke OK</td>
+    </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

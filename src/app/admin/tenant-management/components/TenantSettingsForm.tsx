@@ -83,11 +83,6 @@ export default function TenantSettingsForm({
   } | null>(null);
 
   useEffect(() => {
-    setHeroSlides(parseTenantDefaultHeroSlides(initialData));
-    setValue('defaultHeroImageUrlsJson', serializeDefaultHeroSlides(parseTenantDefaultHeroSlides(initialData)));
-  }, [initialData?.id, initialData?.defaultHeroImageUrlsJson, initialData?.defaultHeroImageUrls, setValue]);
-
-  useEffect(() => {
     setAdsensePlacements(adsensePlacementFieldsFromJson(initialData?.googleAdsensePlacementsJson));
     setAdsensePlacementErrors({});
     setAdsensePlacementsFormError('');
@@ -167,6 +162,13 @@ export default function TenantSettingsForm({
       email: initialData?.email || ''
     }
   });
+
+  // Sync hero slides + form field after useForm (setValue is not available before this)
+  useEffect(() => {
+    const slides = parseTenantDefaultHeroSlides(initialData);
+    setHeroSlides(slides);
+    setValue('defaultHeroImageUrlsJson', serializeDefaultHeroSlides(slides));
+  }, [initialData?.id, initialData?.defaultHeroImageUrlsJson, initialData?.defaultHeroImageUrls, setValue]);
 
   // Get settings ID from prop or initialData (for edit mode)
   const settingsId = propSettingsId || initialData?.id;

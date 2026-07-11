@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E2E Coverage — smoke-admin</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; background: #f5f7fa; color: #1f2937; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { color: #0066cc; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
+    h2 { color: #0052a3; margin-top: 28px; border-left: 4px solid #0066cc; padding-left: 10px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+    .card { background: #fff; border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,.06); border-left: 4px solid #0066cc; }
+    .card.pass { border-left-color: #28a745; }
+    .card.fail { border-left-color: #dc3545; }
+    .card.skip { border-left-color: #ff9800; }
+    .card .label { font-size: .8em; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+    .card .value { font-size: 1.6em; font-weight: 700; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.08); margin: 12px 0 20px; }
+    th, td { border: 1px solid #b8d4e3; padding: 10px 12px; text-align: left; vertical-align: top; font-size: .92em; }
+    th { background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: #fff; }
+    tr:nth-child(even) { background: #f8fbfd; }
+    tr:hover { background: #e3f2fd; }
+    code { background: #e8f4f8; color: #0d3b66; padding: 2px 6px; border-radius: 3px; border: 1px solid #b8d4e3; font-size: .88em; }
+    .pass { color: #166534; font-weight: 600; }
+    .fail { color: #991b1b; font-weight: 600; }
+    .muted { color: #64748b; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .75em; font-weight: 700; text-transform: uppercase; }
+    .badge.pass { background: #dcfce7; color: #166534; }
+    .badge.fail { background: #fee2e2; color: #991b1b; }
+    .badge.skip { background: #ffedd5; color: #9a3412; }
+    .badge.todo { background: #e0e7ff; color: #3730a3; }
+    .meta { background: #e8f4f8; border-left: 4px solid #0066cc; border-radius: 8px; padding: 14px 16px; margin-bottom: 18px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>E2E Coverage Report</h1>
+    <div class="meta">
+      <div><strong>Suite:</strong> <code>smoke-admin</code></div>
+      <div><strong>Started:</strong> 2026-07-10T22:08:16.436Z</div>
+      <div><strong>Finished:</strong> 2026-07-10T22:12:00.822Z</div>
+      <div><strong>Wall clock:</strong> 3m 44.4s · <strong>Sum of step durations:</strong> 3m 42.7s</div>
+    </div>
+
+    <div class="cards">
+      <div class="card"><div class="label">Total</div><div class="value">118</div></div>
+      <div class="card pass"><div class="label">Passed</div><div class="value">91</div></div>
+      <div class="card fail"><div class="label">Failed</div><div class="value">27</div></div>
+      <div class="card skip"><div class="label">Skipped</div><div class="value">0</div></div>
+      <div class="card"><div class="label">Todo</div><div class="value">0</div></div>
+      <div class="card"><div class="label">Duration</div><div class="value" style="font-size:1.2em">3m 44.4s</div></div>
+    </div>
+
+    <h2>Modules / kinds</h2>
+    <p class="muted">Time per component group (admin, public, admin-home-button, crud, etc.).</p>
+    <table>
+      <thead>
+        <tr><th>Module</th><th>Tests</th><th>Pass</th><th>Fail</th><th>Skip</th><th>Duration</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+      <td><code>admin</code></td>
+      <td>91</td>
+      <td class="pass">91</td>
+      <td class="fail">0</td>
+      <td>0</td>
+      <td>3m 29.3s</td>
+    </tr>
+<tr>
+      <td><code>admin-home-button</code></td>
+      <td>27</td>
+      <td class="pass">0</td>
+      <td class="fail">27</td>
+      <td>0</td>
+      <td>13.4s</td>
+    </tr>
+      </tbody>
+    </table>
+
+    <h2>Failures</h2>
+    <table>
+      <thead>
+        <tr><th>Path</th><th>Module</th><th>Duration</th><th>Message</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+      <td><code>/admin</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>467ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/manage-usage</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>430ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/manage-usage?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/manage-usage?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/manage-events</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>419ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/manage-events?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/manage-events?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/events/dashboard</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>444ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/events/dashboard?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/events/dashboard?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/events/registrations</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>411ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/events/registrations?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/events/registrations?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/polls</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>600ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/polls?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/polls?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/focus-groups</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>678ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/focus-groups?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/focus-groups?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/membership/plans</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>370ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/membership/plans?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/membership/plans?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/membership/subscriptions</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>431ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/membership/subscriptions?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/membership/subscriptions?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/tenant-email-addresses</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>369ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-email-addresses?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-email-addresses?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/bulk-email</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>633ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/bulk-email?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/bulk-email?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/test-stripe</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>424ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/test-stripe?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/test-stripe?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/media</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>614ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/media?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/media?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/gallery/albums</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>466ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/gallery/albums?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/gallery/albums?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/executive-committee</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>630ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/executive-committee?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/executive-committee?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/event-sponsors</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>464ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/event-sponsors?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/event-sponsors?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/tenant-management/organizations</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>694ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/organizations?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-management/organizations?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/satellite-domains</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>593ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/satellite-domains?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/satellite-domains?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/tenant-management/settings</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>400ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/settings?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-management/settings?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/profile-site</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>564ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/profile-site?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/profile-site?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/gas-station</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>393ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/gas-station?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/gas-station?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/tenant-management/test</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>553ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/test?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-management/test?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/event-featured-performers</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>374ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/event-featured-performers?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/event-featured-performers?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/event-contacts</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>489ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/event-contacts?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/event-contacts?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/event-emails</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>423ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/event-emails?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/event-emails?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/event-program-directors</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>406ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/event-program-directors?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/event-program-directors?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr>
+      <td><code>/admin/qr-scanner</code></td>
+      <td><code>admin-home-button</code></td>
+      <td>658ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/qr-scanner?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/qr-scanner?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+      </tbody>
+    </table>
+
+    <h2>All results</h2>
+    <table>
+      <thead>
+        <tr><th>Status</th><th>Module</th><th>Path</th><th>Duration</th><th>Message</th></tr>
+      </thead>
+      <tbody>
+        <tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin</code></td>
+      <td>467ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/manage-usage</code></td>
+      <td>430ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/manage-usage?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/manage-usage?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/manage-events</code></td>
+      <td>419ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/manage-events?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/manage-events?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/events/dashboard</code></td>
+      <td>444ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/events/dashboard?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/events/dashboard?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/events/registrations</code></td>
+      <td>411ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/events/registrations?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/events/registrations?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/polls</code></td>
+      <td>600ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/polls?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/polls?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/focus-groups</code></td>
+      <td>678ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/focus-groups?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/focus-groups?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/membership/plans</code></td>
+      <td>370ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/membership/plans?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/membership/plans?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/membership/subscriptions</code></td>
+      <td>431ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/membership/subscriptions?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/membership/subscriptions?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/tenant-email-addresses</code></td>
+      <td>369ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-email-addresses?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-email-addresses?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/bulk-email</code></td>
+      <td>633ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/bulk-email?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/bulk-email?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/test-stripe</code></td>
+      <td>424ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/test-stripe?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/test-stripe?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/media</code></td>
+      <td>614ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/media?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/media?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/gallery/albums</code></td>
+      <td>466ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/gallery/albums?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/gallery/albums?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/executive-committee</code></td>
+      <td>630ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/executive-committee?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/executive-committee?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/event-sponsors</code></td>
+      <td>464ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/event-sponsors?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/event-sponsors?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/tenant-management/organizations</code></td>
+      <td>694ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/organizations?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-management/organizations?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/satellite-domains</code></td>
+      <td>593ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/satellite-domains?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/satellite-domains?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/tenant-management/settings</code></td>
+      <td>400ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/settings?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-management/settings?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/profile-site</code></td>
+      <td>564ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/profile-site?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/profile-site?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/gas-station</code></td>
+      <td>393ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/gas-station?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/gas-station?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/tenant-management/test</code></td>
+      <td>553ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/test?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/tenant-management/test?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/event-featured-performers</code></td>
+      <td>374ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/event-featured-performers?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/event-featured-performers?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/event-contacts</code></td>
+      <td>489ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/event-contacts?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/event-contacts?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/event-emails</code></td>
+      <td>423ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/event-emails?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/event-emails?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/event-program-directors</code></td>
+      <td>406ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/event-program-directors?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/event-program-directors?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-fail">
+      <td><span class="badge fail">fail</span></td>
+      <td><code>admin-home-button</code></td>
+      <td><code>/admin/qr-scanner</code></td>
+      <td>658ms</td>
+      <td>page.goto: net::ERR_ABORTED at http://localhost:3001/admin/qr-scanner?tenant=tenant_demo_002
+Call log:
+[2m  - navigating to &quot;http://localhost:3001/admin/qr-scanner?tenant=tenant_demo_002&quot;, waiting until &quot;domcontentloaded&quot;[22m
+</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin</code></td>
+      <td>1.5s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/bulk-email</code></td>
+      <td>1.5s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/check-in-analytics</code></td>
+      <td>2.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/event-analytics</code></td>
+      <td>1.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/event-contacts</code></td>
+      <td>1.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/event-emails</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/event-featured-performers</code></td>
+      <td>1.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/event-featured-performers/[id]</code></td>
+      <td>3.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/event-program-directors</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/event-program-directors/[id]</code></td>
+      <td>3.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/event-sponsors</code></td>
+      <td>1.5s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/event-sponsors/[id]</code></td>
+      <td>2.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics</code></td>
+      <td>2.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/contacts</code></td>
+      <td>2.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/discount-codes/list</code></td>
+      <td>2.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/edit</code></td>
+      <td>2.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/emails</code></td>
+      <td>2.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/media</code></td>
+      <td>3.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/media/list</code></td>
+      <td>2.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/performers</code></td>
+      <td>2.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/program-directors</code></td>
+      <td>2.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/sponsors</code></td>
+      <td>2.5s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/ticket-types/list</code></td>
+      <td>2.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events-analytics/[id]/tickets/list</code></td>
+      <td>3.3s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]</code></td>
+      <td>3.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/contacts</code></td>
+      <td>3.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/discount-codes/list</code></td>
+      <td>2.2s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/edit</code></td>
+      <td>2.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/emails</code></td>
+      <td>3.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/media</code></td>
+      <td>3.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/media/list</code></td>
+      <td>3.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/performers</code></td>
+      <td>2.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/program-directors</code></td>
+      <td>2.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/sponsors</code></td>
+      <td>3.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/ticket-types/list</code></td>
+      <td>2.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/[id]/tickets/list</code></td>
+      <td>3.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/dashboard</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/new</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/registrations</code></td>
+      <td>1.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/reports</code></td>
+      <td>2.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/events/settings</code></td>
+      <td>2.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/executive-committee</code></td>
+      <td>1.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/focus-groups</code></td>
+      <td>1.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/focus-groups/[id]/edit</code></td>
+      <td>2.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/focus-groups/[id]/events</code></td>
+      <td>2.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/focus-groups/[id]/members</code></td>
+      <td>3.2s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/focus-groups/new</code></td>
+      <td>1.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/gallery/albums</code></td>
+      <td>1.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/gallery/albums/[id]/edit</code></td>
+      <td>2.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/gallery/albums/[id]/media</code></td>
+      <td>2.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/gas-station</code></td>
+      <td>1.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/gas-station/access</code></td>
+      <td>2.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/gas-station/compare</code></td>
+      <td>2.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/gas-station/integrations</code></td>
+      <td>2.2s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/gas-station/stations</code></td>
+      <td>2.4s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/manage-events</code></td>
+      <td>1.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/manage-usage</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/manual-payments</code></td>
+      <td>2.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/manual-payments/[id]</code></td>
+      <td>3.2s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/media</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/media/[id]/edit</code></td>
+      <td>2.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/membership/plans</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/membership/subscriptions</code></td>
+      <td>1.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/newsletter-emails</code></td>
+      <td>2.2s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/newsletter-emails/[id]</code></td>
+      <td>2.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/official-document-categories</code></td>
+      <td>2.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/official-documents</code></td>
+      <td>2.2s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/polls</code></td>
+      <td>1.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/profile-site</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/promotion-emails</code></td>
+      <td>2.3s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/promotion-emails/[id]</code></td>
+      <td>2.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/qr-scanner</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/qrcode-scan/tickets/events/[eventId]/transactions/[transactionId]</code></td>
+      <td>3.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/sales-analytics</code></td>
+      <td>2.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/satellite-domains</code></td>
+      <td>2.2s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-email-addresses</code></td>
+      <td>2.4s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-management/organizations</code></td>
+      <td>1.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-management/organizations/[id]</code></td>
+      <td>2.9s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-management/organizations/[id]/edit</code></td>
+      <td>2.8s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-management/organizations/[id]/settings</code></td>
+      <td>3.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-management/organizations/new</code></td>
+      <td>1.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-management/settings</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-management/settings/[id]</code></td>
+      <td>2.4s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-management/settings/[id]/edit</code></td>
+      <td>2.2s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-management/settings/new</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/tenant-management/test</code></td>
+      <td>1.7s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/test-stripe</code></td>
+      <td>1.6s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/test-stripe/success</code></td>
+      <td>2.0s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/whatsapp-settings</code></td>
+      <td>2.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/whatsapp/bulk-messaging</code></td>
+      <td>2.1s</td>
+      <td>OK</td>
+    </tr>
+<tr class="status-pass">
+      <td><span class="badge pass">pass</span></td>
+      <td><code>admin</code></td>
+      <td><code>/admin/whatsapp/dashboard</code></td>
+      <td>2.6s</td>
+      <td>OK</td>
+    </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

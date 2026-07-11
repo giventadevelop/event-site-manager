@@ -1,0 +1,187 @@
+{
+  "suite": "admin-crud",
+  "startedAt": "2026-07-10T22:07:29.005Z",
+  "finishedAt": "2026-07-10T22:08:15.576Z",
+  "summary": {
+    "pass": 2,
+    "fail": 4,
+    "skip": 9,
+    "todo": 0
+  },
+  "results": [
+    {
+      "path": "/admin/manage-usage",
+      "status": "pass",
+      "kind": "crud",
+      "message": "manage-usage: read-only smoke OK",
+      "durationMs": 2258,
+      "meta": {
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:07:32.644Z"
+    },
+    {
+      "path": "/admin/manage-events",
+      "status": "fail",
+      "kind": "crud",
+      "message": "manage-events: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/manage-events?tenant=tenant_demo_002\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/admin/manage-events?tenant=tenant_demo_002\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "durationMs": 2393,
+      "meta": {
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:07:35.037Z"
+    },
+    {
+      "path": "/admin/events/27/ticket-types/list",
+      "status": "skip",
+      "kind": "crud",
+      "message": "ticket-types: no-name-field, not-saved, not-deleted",
+      "durationMs": 4622,
+      "meta": {
+        "e2eName": "[E2E] Demo 1783721248577",
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:07:39.659Z"
+    },
+    {
+      "path": "/admin/events/27/discount-codes/list",
+      "status": "skip",
+      "kind": "crud",
+      "message": "discount-codes: no-name-field, not-saved, not-deleted",
+      "durationMs": 4346,
+      "meta": {
+        "e2eName": "[E2E] Demo 1783721248577",
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:07:44.005Z"
+    },
+    {
+      "path": "/admin/membership/plans",
+      "status": "skip",
+      "kind": "crud",
+      "message": "membership-plans: no-name-field, not-saved, not-deleted",
+      "durationMs": 3431,
+      "meta": {
+        "e2eName": "[E2E] Demo 1783721248577",
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:07:47.436Z"
+    },
+    {
+      "path": "/admin/focus-groups",
+      "status": "fail",
+      "kind": "crud",
+      "message": "focus-groups: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/focus-groups?tenant=tenant_demo_002\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/admin/focus-groups?tenant=tenant_demo_002\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "durationMs": 2544,
+      "meta": {
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:07:49.980Z"
+    },
+    {
+      "path": "/admin/gallery/albums",
+      "status": "skip",
+      "kind": "crud",
+      "message": "gallery-albums: no-name-field, not-saved, not-deleted",
+      "durationMs": 3088,
+      "meta": {
+        "e2eName": "[E2E] Demo 1783721248577",
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:07:53.068Z"
+    },
+    {
+      "path": "/admin/event-sponsors",
+      "status": "skip",
+      "kind": "crud",
+      "message": "event-sponsors: no-name-field, not-saved, not-deleted",
+      "durationMs": 2970,
+      "meta": {
+        "e2eName": "[E2E] Demo 1783721248577",
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:07:56.038Z"
+    },
+    {
+      "path": "/admin/event-featured-performers",
+      "status": "skip",
+      "kind": "crud",
+      "message": "event-featured-performers: no-name-field, not-saved, not-deleted",
+      "durationMs": 3013,
+      "meta": {
+        "e2eName": "[E2E] Demo 1783721248577",
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:07:59.051Z"
+    },
+    {
+      "path": "/admin/event-contacts",
+      "status": "skip",
+      "kind": "crud",
+      "message": "event-contacts: no-name-field, not-saved, not-deleted",
+      "durationMs": 2959,
+      "meta": {
+        "e2eName": "[E2E] Demo 1783721248577",
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:08:02.010Z"
+    },
+    {
+      "path": "/admin/event-program-directors",
+      "status": "skip",
+      "kind": "crud",
+      "message": "event-program-directors: no-name-field, not-saved, not-deleted",
+      "durationMs": 3012,
+      "meta": {
+        "e2eName": "[E2E] Demo 1783721248577",
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:08:05.023Z"
+    },
+    {
+      "path": "/admin/tenant-management/organizations",
+      "status": "fail",
+      "kind": "crud",
+      "message": "tenant-organizations: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/organizations?tenant=tenant_demo_002\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/admin/tenant-management/organizations?tenant=tenant_demo_002\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "durationMs": 2553,
+      "meta": {
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:08:07.576Z"
+    },
+    {
+      "path": "/admin/tenant-management/settings",
+      "status": "fail",
+      "kind": "crud",
+      "message": "tenant-settings: page.goto: net::ERR_ABORTED at http://localhost:3001/admin/tenant-management/settings?tenant=tenant_demo_002\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/admin/tenant-management/settings?tenant=tenant_demo_002\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "durationMs": 2425,
+      "meta": {
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:08:10.001Z"
+    },
+    {
+      "path": "/admin/polls",
+      "status": "skip",
+      "kind": "crud",
+      "message": "polls: no-name-field, not-saved, not-deleted",
+      "durationMs": 3427,
+      "meta": {
+        "e2eName": "[E2E] Demo 1783721248577",
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:08:13.428Z"
+    },
+    {
+      "path": "/admin/test-stripe",
+      "status": "pass",
+      "kind": "crud",
+      "message": "test-stripe: read-only smoke OK",
+      "durationMs": 1835,
+      "meta": {
+        "tenantId": "tenant_demo_002"
+      },
+      "at": "2026-07-10T22:08:15.263Z"
+    }
+  ]
+}

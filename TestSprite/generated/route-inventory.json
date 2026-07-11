@@ -1,0 +1,2702 @@
+{
+  "generatedAt": "2026-07-10T22:04:38.235Z",
+  "root": "src/app",
+  "totalPages": 366,
+  "totalUniqueRoutes": 366,
+  "byKind": {
+    "public": 83,
+    "admin": 91,
+    "mosc": 192
+  },
+  "routes": [
+    {
+      "path": "/",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/page.tsx"
+    },
+    {
+      "path": "/admin",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/page.tsx"
+    },
+    {
+      "path": "/admin/bulk-email",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/bulk-email/page.tsx"
+    },
+    {
+      "path": "/admin/check-in-analytics",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/check-in-analytics/page.tsx"
+    },
+    {
+      "path": "/admin/event-analytics",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/event-analytics/page.tsx"
+    },
+    {
+      "path": "/admin/event-contacts",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/event-contacts/page.tsx"
+    },
+    {
+      "path": "/admin/event-emails",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/event-emails/page.tsx"
+    },
+    {
+      "path": "/admin/event-featured-performers",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/event-featured-performers/page.tsx"
+    },
+    {
+      "path": "/admin/event-featured-performers/[id]",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/event-featured-performers/[id]/page.tsx"
+    },
+    {
+      "path": "/admin/event-program-directors",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/event-program-directors/page.tsx"
+    },
+    {
+      "path": "/admin/event-program-directors/[id]",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/event-program-directors/[id]/page.tsx"
+    },
+    {
+      "path": "/admin/event-sponsors",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/event-sponsors/page.tsx"
+    },
+    {
+      "path": "/admin/event-sponsors/[id]",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/event-sponsors/[id]/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/events-analytics/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/contacts",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/contacts/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/discount-codes/list",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/discount-codes/list/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/edit",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/edit/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/emails",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/emails/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/media",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/media/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/media/list",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/media/list/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/performers",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/performers/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/program-directors",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/program-directors/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/sponsors",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/sponsors/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/ticket-types/list",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/ticket-types/list/page.tsx"
+    },
+    {
+      "path": "/admin/events-analytics/[id]/tickets/list",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events-analytics/[id]/tickets/list/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/contacts",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/contacts/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/discount-codes/list",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/discount-codes/list/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/edit",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/edit/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/emails",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/emails/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/media",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/media/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/media/list",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/media/list/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/performers",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/performers/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/program-directors",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/program-directors/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/sponsors",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/sponsors/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/ticket-types/list",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/ticket-types/list/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/tickets/list",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/tickets/list/page.tsx"
+    },
+    {
+      "path": "/admin/events/dashboard",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/events/dashboard/page.tsx"
+    },
+    {
+      "path": "/admin/events/new",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/events/new/page.tsx"
+    },
+    {
+      "path": "/admin/events/registrations",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/events/registrations/page.tsx"
+    },
+    {
+      "path": "/admin/events/reports",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/events/reports/page.tsx"
+    },
+    {
+      "path": "/admin/events/settings",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/events/settings/page.tsx"
+    },
+    {
+      "path": "/admin/executive-committee",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/executive-committee/page.tsx"
+    },
+    {
+      "path": "/admin/focus-groups",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/focus-groups/page.tsx"
+    },
+    {
+      "path": "/admin/focus-groups/[id]/edit",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/focus-groups/[id]/edit/page.tsx"
+    },
+    {
+      "path": "/admin/focus-groups/[id]/events",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/focus-groups/[id]/events/page.tsx"
+    },
+    {
+      "path": "/admin/focus-groups/[id]/members",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/focus-groups/[id]/members/page.tsx"
+    },
+    {
+      "path": "/admin/focus-groups/new",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/focus-groups/new/page.tsx"
+    },
+    {
+      "path": "/admin/gallery/albums",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/gallery/albums/page.tsx"
+    },
+    {
+      "path": "/admin/gallery/albums/[id]/edit",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/gallery/albums/[id]/edit/page.tsx"
+    },
+    {
+      "path": "/admin/gallery/albums/[id]/media",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/gallery/albums/[id]/media/page.tsx"
+    },
+    {
+      "path": "/admin/gas-station",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/gas-station/page.tsx"
+    },
+    {
+      "path": "/admin/gas-station/access",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/gas-station/access/page.tsx"
+    },
+    {
+      "path": "/admin/gas-station/compare",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/gas-station/compare/page.tsx"
+    },
+    {
+      "path": "/admin/gas-station/integrations",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/gas-station/integrations/page.tsx"
+    },
+    {
+      "path": "/admin/gas-station/stations",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/gas-station/stations/page.tsx"
+    },
+    {
+      "path": "/admin/manage-events",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/manage-events/page.tsx"
+    },
+    {
+      "path": "/admin/manage-usage",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/manage-usage/page.tsx"
+    },
+    {
+      "path": "/admin/manual-payments",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/manual-payments/page.tsx"
+    },
+    {
+      "path": "/admin/manual-payments/[id]",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/manual-payments/[id]/page.tsx"
+    },
+    {
+      "path": "/admin/media",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/media/page.tsx"
+    },
+    {
+      "path": "/admin/media/[id]/edit",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/media/[id]/edit/page.tsx"
+    },
+    {
+      "path": "/admin/membership/plans",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/membership/plans/page.tsx"
+    },
+    {
+      "path": "/admin/membership/subscriptions",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/membership/subscriptions/page.tsx"
+    },
+    {
+      "path": "/admin/newsletter-emails",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/newsletter-emails/page.tsx"
+    },
+    {
+      "path": "/admin/newsletter-emails/[id]",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/newsletter-emails/[id]/page.tsx"
+    },
+    {
+      "path": "/admin/official-document-categories",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/official-document-categories/page.tsx"
+    },
+    {
+      "path": "/admin/official-documents",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/official-documents/page.tsx"
+    },
+    {
+      "path": "/admin/polls",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/polls/page.tsx"
+    },
+    {
+      "path": "/admin/profile-site",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/profile-site/page.tsx"
+    },
+    {
+      "path": "/admin/promotion-emails",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/promotion-emails/page.tsx"
+    },
+    {
+      "path": "/admin/promotion-emails/[id]",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/promotion-emails/[id]/page.tsx"
+    },
+    {
+      "path": "/admin/qr-scanner",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/qr-scanner/page.tsx"
+    },
+    {
+      "path": "/admin/qrcode-scan/tickets/events/[eventId]/transactions/[transactionId]",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "eventId",
+        "transactionId"
+      ],
+      "sourceFile": "src/app/admin/qrcode-scan/tickets/events/[eventId]/transactions/[transactionId]/page.tsx"
+    },
+    {
+      "path": "/admin/sales-analytics",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/sales-analytics/page.tsx"
+    },
+    {
+      "path": "/admin/satellite-domains",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/satellite-domains/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-email-addresses",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/tenant-email-addresses/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-management/organizations",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/tenant-management/organizations/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-management/organizations/[id]",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/tenant-management/organizations/[id]/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-management/organizations/[id]/edit",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/tenant-management/organizations/[id]/edit/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-management/organizations/[id]/settings",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/tenant-management/organizations/[id]/settings/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-management/organizations/new",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/tenant-management/organizations/new/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-management/settings",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/tenant-management/settings/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-management/settings/[id]",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/tenant-management/settings/[id]/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-management/settings/[id]/edit",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/tenant-management/settings/[id]/edit/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-management/settings/new",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/tenant-management/settings/new/page.tsx"
+    },
+    {
+      "path": "/admin/tenant-management/test",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/tenant-management/test/page.tsx"
+    },
+    {
+      "path": "/admin/test-stripe",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/test-stripe/page.tsx"
+    },
+    {
+      "path": "/admin/test-stripe/success",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/test-stripe/success/page.tsx"
+    },
+    {
+      "path": "/admin/whatsapp-settings",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/whatsapp-settings/page.tsx"
+    },
+    {
+      "path": "/admin/whatsapp/bulk-messaging",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/whatsapp/bulk-messaging/page.tsx"
+    },
+    {
+      "path": "/admin/whatsapp/dashboard",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/whatsapp/dashboard/page.tsx"
+    },
+    {
+      "path": "/auth/callback",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/auth/callback/page.tsx"
+    },
+    {
+      "path": "/auth/signout-redirect",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/auth/signout-redirect/page.tsx"
+    },
+    {
+      "path": "/calendar",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/calendar/page.tsx"
+    },
+    {
+      "path": "/charity-theme",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/charity-theme/page.tsx"
+    },
+    {
+      "path": "/creator-analytics",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/creator-analytics/page.tsx"
+    },
+    {
+      "path": "/dashboard",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/dashboard/page.tsx"
+    },
+    {
+      "path": "/donate",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/donate/page.tsx"
+    },
+    {
+      "path": "/event",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/event/page.tsx"
+    },
+    {
+      "path": "/event/[slug]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "slug"
+      ],
+      "sourceFile": "src/app/event/[slug]/page.tsx"
+    },
+    {
+      "path": "/event/registration",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/event/registration/page.tsx"
+    },
+    {
+      "path": "/event/success",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/event/success/page.tsx"
+    },
+    {
+      "path": "/event/ticket-qr",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/event/ticket-qr/page.tsx"
+    },
+    {
+      "path": "/events",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/events/page.tsx"
+    },
+    {
+      "path": "/events/[id]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/page.tsx"
+    },
+    {
+      "path": "/events/[id]/checkout",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/checkout/page.tsx"
+    },
+    {
+      "path": "/events/[id]/donation",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/donation/page.tsx"
+    },
+    {
+      "path": "/events/[id]/donation-checkout",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/donation-checkout/page.tsx"
+    },
+    {
+      "path": "/events/[id]/donation/success",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/donation/success/page.tsx"
+    },
+    {
+      "path": "/events/[id]/manual-checkout",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/manual-checkout/page.tsx"
+    },
+    {
+      "path": "/events/[id]/manual-checkout/success",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/manual-checkout/success/page.tsx"
+    },
+    {
+      "path": "/events/[id]/offering",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/offering/page.tsx"
+    },
+    {
+      "path": "/events/[id]/offering/success",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/offering/success/page.tsx"
+    },
+    {
+      "path": "/events/[id]/register",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/register/page.tsx"
+    },
+    {
+      "path": "/events/[id]/register/success",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/register/success/page.tsx"
+    },
+    {
+      "path": "/events/[id]/tickets",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/tickets/page.tsx"
+    },
+    {
+      "path": "/events/[id]/tickets-stripe-web-client",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/tickets-stripe-web-client/page.tsx"
+    },
+    {
+      "path": "/examples/auth-usage",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/examples/auth-usage/page.tsx"
+    },
+    {
+      "path": "/focus-groups",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/focus-groups/page.tsx"
+    },
+    {
+      "path": "/focus-groups/[slug]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "slug"
+      ],
+      "sourceFile": "src/app/focus-groups/[slug]/page.tsx"
+    },
+    {
+      "path": "/gallery",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/gallery/page.tsx"
+    },
+    {
+      "path": "/home",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/home/page.tsx"
+    },
+    {
+      "path": "/home-backup",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/home-backup/page.tsx"
+    },
+    {
+      "path": "/ipartner-test",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/ipartner-test/page.tsx"
+    },
+    {
+      "path": "/membership",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/membership/page.tsx"
+    },
+    {
+      "path": "/membership/manage",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/membership/manage/page.tsx"
+    },
+    {
+      "path": "/membership/plans",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/membership/plans/page.tsx"
+    },
+    {
+      "path": "/membership/qr",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/membership/qr/page.tsx"
+    },
+    {
+      "path": "/membership/subscribe/[planId]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "planId"
+      ],
+      "sourceFile": "src/app/membership/subscribe/[planId]/page.tsx"
+    },
+    {
+      "path": "/membership/success",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/membership/success/page.tsx"
+    },
+    {
+      "path": "/mosc",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/page.tsx"
+    },
+    {
+      "path": "/mosc/administration",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/administration/page.tsx"
+    },
+    {
+      "path": "/mosc/administration/administration",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/administration/administration/page.tsx"
+    },
+    {
+      "path": "/mosc/administration/he-canon-law-of-the-malankara-orthodox-church",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/administration/he-canon-law-of-the-malankara-orthodox-church/page.tsx"
+    },
+    {
+      "path": "/mosc/administration/malankara-association",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/administration/malankara-association/page.tsx"
+    },
+    {
+      "path": "/mosc/administration/the-diocesan-general-body",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/administration/the-diocesan-general-body/page.tsx"
+    },
+    {
+      "path": "/mosc/administration/the-holy-episcopal-synod",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/administration/the-holy-episcopal-synod/page.tsx"
+    },
+    {
+      "path": "/mosc/administration/the-managing-committee",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/administration/the-managing-committee/page.tsx"
+    },
+    {
+      "path": "/mosc/administration/the-parish-general-body",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/administration/the-parish-general-body/page.tsx"
+    },
+    {
+      "path": "/mosc/administration/the-parish-managing-committee",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/administration/the-parish-managing-committee/page.tsx"
+    },
+    {
+      "path": "/mosc/administration/the-working-committee",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/administration/the-working-committee/page.tsx"
+    },
+    {
+      "path": "/mosc/calendar",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/calendar/page.tsx"
+    },
+    {
+      "path": "/mosc/catholicate",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/catholicate/page.tsx"
+    },
+    {
+      "path": "/mosc/catholicate/catholicate",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/catholicate/catholicate/page.tsx"
+    },
+    {
+      "path": "/mosc/catholicate/h-h-baselios-marthoma-paulose-ii",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/catholicate/h-h-baselios-marthoma-paulose-ii/page.tsx"
+    },
+    {
+      "path": "/mosc/catholicate/his-holiness-baselios-geevarghese-i-second-catholicos-of-the-east-in-malankara",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/catholicate/his-holiness-baselios-geevarghese-i-second-catholicos-of-the-east-in-malankara/page.tsx"
+    },
+    {
+      "path": "/mosc/catholicate/his-holiness-baselios-geevarghese-ii-third-catholicos-of-the-east-in-malankara",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/catholicate/his-holiness-baselios-geevarghese-ii-third-catholicos-of-the-east-in-malankara/page.tsx"
+    },
+    {
+      "path": "/mosc/catholicate/his-holiness-baselios-marthoma-didymos-i-seventh-catholicos-of-the-east-in-malankara",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/catholicate/his-holiness-baselios-marthoma-didymos-i-seventh-catholicos-of-the-east-in-malankara/page.tsx"
+    },
+    {
+      "path": "/mosc/catholicate/his-holiness-baselios-marthoma-mathews-i-fifth-catholicos-of-the-east-in-malankara",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/catholicate/his-holiness-baselios-marthoma-mathews-i-fifth-catholicos-of-the-east-in-malankara/page.tsx"
+    },
+    {
+      "path": "/mosc/catholicate/his-holiness-baselios-marthoma-mathews-ii-sixth-catholicos-of-the-east-in-malankara",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/catholicate/his-holiness-baselios-marthoma-mathews-ii-sixth-catholicos-of-the-east-in-malankara/page.tsx"
+    },
+    {
+      "path": "/mosc/catholicate/his-holiness-baselios-oughen-i-the-fourth-catholicos-of-the-east-in-malankara",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/catholicate/his-holiness-baselios-oughen-i-the-fourth-catholicos-of-the-east-in-malankara/page.tsx"
+    },
+    {
+      "path": "/mosc/catholicate/his-holiness-baselios-paulos-i-1st-catholicos-of-the-east-in-malankara",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/catholicate/his-holiness-baselios-paulos-i-1st-catholicos-of-the-east-in-malankara/page.tsx"
+    },
+    {
+      "path": "/mosc/contact-form-email",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/contact-form-email/page.tsx"
+    },
+    {
+      "path": "/mosc/contact-info",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/contact-info/page.tsx"
+    },
+    {
+      "path": "/mosc/creator-analytics",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/creator-analytics/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-adoor-kadampanadu",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-adoor-kadampanadu/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-ahmedabad",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-ahmedabad/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-ankamaly",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-ankamaly/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-bangalore",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-bangalore/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-brahamavar",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-brahamavar/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-calcutta",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-calcutta/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-chengannur",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-chengannur/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-chennai-diocese",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-chennai-diocese/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-delhi",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-delhi/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-idukki",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-idukki/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-kandanad-east",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-kandanad-east/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-kandanad-west",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-kandanad-west/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-kochi",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-kochi/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-kollam",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-kollam/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-kottarakara-punalur",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-kottarakara-punalur/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-kottayam",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-kottayam/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-kottayam-central",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-kottayam-central/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-kunnamkulam",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-kunnamkulam/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-malabar",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-malabar/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-mavelikara",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-mavelikara/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-mumbai",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-mumbai/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-nilackal",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-nilackal/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-niranam",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-niranam/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-south-west-america",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-south-west-america/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-sulthan-bathery-diocese",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-sulthan-bathery-diocese/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-thiruvananthapuram-diocese",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-thiruvananthapuram-diocese/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-thrissur",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-thrissur/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-thumpamon",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-thumpamon/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/diocese-of-uk-europe-and-africa",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/diocese-of-uk-europe-and-africa/page.tsx"
+    },
+    {
+      "path": "/mosc/dioceses/northeast-america",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/dioceses/northeast-america/page.tsx"
+    },
+    {
+      "path": "/mosc/directory",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/directory/page.tsx"
+    },
+    {
+      "path": "/mosc/downloads",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/downloads/page.tsx"
+    },
+    {
+      "path": "/mosc/downloads/application-forms",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/downloads/application-forms/page.tsx"
+    },
+    {
+      "path": "/mosc/downloads/kalpana",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/downloads/kalpana/page.tsx"
+    },
+    {
+      "path": "/mosc/downloads/pdfs",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/downloads/pdfs/page.tsx"
+    },
+    {
+      "path": "/mosc/downloads/photos",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/downloads/photos/page.tsx"
+    },
+    {
+      "path": "/mosc/downloads/prayer-books",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/downloads/prayer-books/page.tsx"
+    },
+    {
+      "path": "/mosc/ecumenical",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/ecumenical/page.tsx"
+    },
+    {
+      "path": "/mosc/ecumenical/catholic-church",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/ecumenical/catholic-church/page.tsx"
+    },
+    {
+      "path": "/mosc/ecumenical/interfaith-dialogue",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/ecumenical/interfaith-dialogue/page.tsx"
+    },
+    {
+      "path": "/mosc/ecumenical/oriental-orthodox",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/ecumenical/oriental-orthodox/page.tsx"
+    },
+    {
+      "path": "/mosc/ecumenical/orthodox-churches",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/ecumenical/orthodox-churches/page.tsx"
+    },
+    {
+      "path": "/mosc/ecumenical/protestant-churches",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/ecumenical/protestant-churches/page.tsx"
+    },
+    {
+      "path": "/mosc/ecumenical/world-council-of-churches",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/ecumenical/world-council-of-churches/page.tsx"
+    },
+    {
+      "path": "/mosc/email",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/email/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/armenian-genocide-100th",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/armenian-genocide-100th/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/armenian-genocide-canonization",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/armenian-genocide-canonization/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/armenian-president",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/armenian-president/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/blessing-holy-myron",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/blessing-holy-myron/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/canberra-visit",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/canberra-visit/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/ceremonial-reception-russian-orthodox",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/ceremonial-reception-russian-orthodox/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/dharma-dhamma-conference",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/dharma-dhamma-conference/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/enthronement-coptic-pope",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/enthronement-coptic-pope/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/enthronement-mathews-iii",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/enthronement-mathews-iii/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/ethiopian-visit",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/ethiopian-visit/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/metropolitan-hilarion",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/metropolitan-hilarion/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/mother-feofania",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/mother-feofania/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/offering-incense-st-thomas",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/offering-incense-st-thomas/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/order-st-thomas-abune-mathias",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/order-st-thomas-abune-mathias/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/paulose-ii-with-kiril",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/paulose-ii-with-kiril/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/pokrovsky-monastery",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/pokrovsky-monastery/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/private-audience-aram",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/private-audience-aram/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/private-audience-karekin",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/private-audience-karekin/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/private-audience-tikon-devalokam",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/private-audience-tikon-devalokam/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/reception-mathews-iii",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/reception-mathews-iii/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/reception-tikon-puthupally",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/reception-tikon-puthupally/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/rome-visit",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/rome-visit/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/russia-visit",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/russia-visit/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/st-cyril-methodius",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/st-cyril-methodius/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/st-matrona-relics",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/st-matrona-relics/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/vatican-visit",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/vatican-visit/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/vienna-fraternity",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/vienna-fraternity/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/visit-abune-mathias",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/visit-abune-mathias/page.tsx"
+    },
+    {
+      "path": "/mosc/gallery/website-inauguration",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/gallery/website-inauguration/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-abraham-mar-epiphanios",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-abraham-mar-epiphanios/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-abraham-mar-stephanos-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-abraham-mar-stephanos-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-alexios-mar-eusebius-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-alexios-mar-eusebius-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-dr-abraham-mar-seraphim-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-dr-abraham-mar-seraphim-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-dr-geevarghese-mar-barnabas-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-dr-geevarghese-mar-barnabas-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-dr-geevarghese-mar-julius-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-dr-geevarghese-mar-julius-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-dr-mathews-mar-thimothios-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-dr-mathews-mar-thimothios-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-dr-yuhanon-mar-demetrius-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-dr-yuhanon-mar-demetrius-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-dr-yuhanon-mar-dioscoros-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-dr-yuhanon-mar-dioscoros-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-dr-yuhanon-mor-meletius-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-dr-yuhanon-mor-meletius-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-dr-zacharias-mar-aprem-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-dr-zacharias-mar-aprem-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-geevarghese-mar-pachomios-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-geevarghese-mar-pachomios-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-geevarghese-mar-philaxenos-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-geevarghese-mar-philaxenos-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-joseph-mar-dionysius-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-joseph-mar-dionysius-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-joshua-mar-nicodemus-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-joshua-mar-nicodemus-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-mathews-mar-theodosius",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-mathews-mar-theodosius/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-thomas-mar-ivanios-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-thomas-mar-ivanios-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-yakoob-mar-elias-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-yakoob-mar-elias-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-youhanon-mar-polycarpus-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-youhanon-mar-polycarpus-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-yuhanon-mar-theodorus-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-yuhanon-mar-theodorus-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-zacharia-mar-severios-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-zacharia-mar-severios-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/h-g-zachariah-mar-nicholovos-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/h-g-zachariah-mar-nicholovos-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/hg-dr-geevarghese-mar-theophilos-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/hg-dr-geevarghese-mar-theophilos-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/his-grace-dr-gabriel-mar-gregorios",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/his-grace-dr-gabriel-mar-gregorios/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/his-grace-dr-thomas-mar-athanasius",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/his-grace-dr-thomas-mar-athanasius/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/his-grace-dr-yoohanon-mar-chrysostamus",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/his-grace-dr-yoohanon-mar-chrysostamus/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/his-grace-geevarghese-mar-coorilose-metropolitan",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/his-grace-geevarghese-mar-coorilose-metropolitan/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/his-grace-jacob-mar-irenios",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/his-grace-jacob-mar-irenios/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/his-grace-kuriakose-mar-clemis",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/his-grace-kuriakose-mar-clemis/page.tsx"
+    },
+    {
+      "path": "/mosc/holy-synod/his-holiness-baselios-marthoma-mathews-iii",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/holy-synod/his-holiness-baselios-marthoma-mathews-iii/page.tsx"
+    },
+    {
+      "path": "/mosc/institutions",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/institutions/page.tsx"
+    },
+    {
+      "path": "/mosc/institutions/convents",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/institutions/convents/page.tsx"
+    },
+    {
+      "path": "/mosc/institutions/engineering-colleges",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/institutions/engineering-colleges/page.tsx"
+    },
+    {
+      "path": "/mosc/institutions/hospitals",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/institutions/hospitals/page.tsx"
+    },
+    {
+      "path": "/mosc/institutions/major-centres",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/institutions/major-centres/page.tsx"
+    },
+    {
+      "path": "/mosc/institutions/medical-college",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/institutions/medical-college/page.tsx"
+    },
+    {
+      "path": "/mosc/institutions/moc-colleges",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/institutions/moc-colleges/page.tsx"
+    },
+    {
+      "path": "/mosc/institutions/monasteries",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/institutions/monasteries/page.tsx"
+    },
+    {
+      "path": "/mosc/institutions/orphanages",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/institutions/orphanages/page.tsx"
+    },
+    {
+      "path": "/mosc/institutions/schools",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/institutions/schools/page.tsx"
+    },
+    {
+      "path": "/mosc/lectionary",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/lectionary/page.tsx"
+    },
+    {
+      "path": "/mosc/lectionary/great-lent",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/lectionary/great-lent/page.tsx"
+    },
+    {
+      "path": "/mosc/lectionary/koodosh-eetho-to-kothne",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/lectionary/koodosh-eetho-to-kothne/page.tsx"
+    },
+    {
+      "path": "/mosc/lectionary/kyomtho-easter-to-koodosh-edtho",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/lectionary/kyomtho-easter-to-koodosh-edtho/page.tsx"
+    },
+    {
+      "path": "/mosc/lectionary/special-occasions",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/lectionary/special-occasions/page.tsx"
+    },
+    {
+      "path": "/mosc/photo-gallery/reception-to-his-holiness-baselios-marthoma-mathews-iii",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/photo-gallery/reception-to-his-holiness-baselios-marthoma-mathews-iii/page.tsx"
+    },
+    {
+      "path": "/mosc/pilgrim-centres",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/pilgrim-centres/page.tsx"
+    },
+    {
+      "path": "/mosc/pilgrim-centres/[slug]",
+      "kind": "mosc",
+      "dynamic": true,
+      "dynamicParams": [
+        "slug"
+      ],
+      "sourceFile": "src/app/mosc/pilgrim-centres/[slug]/page.tsx"
+    },
+    {
+      "path": "/mosc/publications",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/publications/page.tsx"
+    },
+    {
+      "path": "/mosc/publications/malankara-sabha-magazine-masika",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/publications/malankara-sabha-magazine-masika/page.tsx"
+    },
+    {
+      "path": "/mosc/saints",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/saints/page.tsx"
+    },
+    {
+      "path": "/mosc/saints/church-fathers",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/saints/church-fathers/page.tsx"
+    },
+    {
+      "path": "/mosc/saints/indian-saints",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/saints/indian-saints/page.tsx"
+    },
+    {
+      "path": "/mosc/saints/st-mary-mother-of-god",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/saints/st-mary-mother-of-god/page.tsx"
+    },
+    {
+      "path": "/mosc/saints/the-apostles",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/saints/the-apostles/page.tsx"
+    },
+    {
+      "path": "/mosc/sitemap",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/sitemap/page.tsx"
+    },
+    {
+      "path": "/mosc/speeches",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/speeches/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/akhila-malankara-bala-samajam",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/akhila-malankara-bala-samajam/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/akhila-malankara-orthodox-shusrushaka-sangham-amoss",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/akhila-malankara-orthodox-shusrushaka-sangham-amoss/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/akhila-malankara-prayer-group-association",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/akhila-malankara-prayer-group-association/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/ardra-charitable-trust",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/ardra-charitable-trust/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/divyabodhanam-theological-education-programme-for-the-laity",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/divyabodhanam-theological-education-programme-for-the-laity/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/ecological-commission",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/ecological-commission/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/malankara-orthodox-baskiyoma-association",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/malankara-orthodox-baskiyoma-association/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/mar-gregorios-orthodox-christian-student-movement-mgocsm",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/mar-gregorios-orthodox-christian-student-movement-mgocsm/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/marth-mariam-vanitha-samajam-womens-wing-of-orthodox-church-of-india",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/marth-mariam-vanitha-samajam-womens-wing-of-orthodox-church-of-india/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/ministry-of-human-empowerment",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/ministry-of-human-empowerment/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/mission-board",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/mission-board/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/navajyothi-moms-charitable-society",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/navajyothi-moms-charitable-society/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/orthodox-sabha-gayaka-sangham-co-sruthi-school-of-liturgical-music",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/orthodox-sabha-gayaka-sangham-co-sruthi-school-of-liturgical-music/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/orthodox-syrian-sunday-school-association-of-the-east",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/orthodox-syrian-sunday-school-association-of-the-east/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/st-pauls-st-thomas-suvishesha-sangam-national-association-for-mission-studies",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/st-pauls-st-thomas-suvishesha-sangam-national-association-for-mission-studies/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/st-thomas-orthodox-vaidika-sanghom",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/st-thomas-orthodox-vaidika-sanghom/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/the-orthodox-christian-youth-movement",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/the-orthodox-christian-youth-movement/page.tsx"
+    },
+    {
+      "path": "/mosc/spiritual-organizations/the-servants-of-the-cross",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/spiritual-organizations/the-servants-of-the-cross/page.tsx"
+    },
+    {
+      "path": "/mosc/the-church",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/the-church/page.tsx"
+    },
+    {
+      "path": "/mosc/the-church/church-calendar",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/the-church/church-calendar/page.tsx"
+    },
+    {
+      "path": "/mosc/the-church/church-history",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/the-church/church-history/page.tsx"
+    },
+    {
+      "path": "/mosc/the-church/liturgy-worship",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/the-church/liturgy-worship/page.tsx"
+    },
+    {
+      "path": "/mosc/the-church/orthodox-faith",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/the-church/orthodox-faith/page.tsx"
+    },
+    {
+      "path": "/mosc/the-church/sacraments",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/the-church/sacraments/page.tsx"
+    },
+    {
+      "path": "/mosc/the-church/what-do-we-believe",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/the-church/what-do-we-believe/page.tsx"
+    },
+    {
+      "path": "/mosc/theological-seminaries",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/theological-seminaries/page.tsx"
+    },
+    {
+      "path": "/mosc/theological-seminaries/st-thomas-orthodox-theological-seminary-nagpur",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/theological-seminaries/st-thomas-orthodox-theological-seminary-nagpur/page.tsx"
+    },
+    {
+      "path": "/mosc/theological-seminaries/the-orthodox-theological-seminary",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/theological-seminaries/the-orthodox-theological-seminary/page.tsx"
+    },
+    {
+      "path": "/mosc/training",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/training/page.tsx"
+    },
+    {
+      "path": "/mosc/training/divyabodhanam",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/training/divyabodhanam/page.tsx"
+    },
+    {
+      "path": "/mosc/training/sruti-school-of-liturgical-music",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/training/sruti-school-of-liturgical-music/page.tsx"
+    },
+    {
+      "path": "/mosc/training/st-basil-bible-school",
+      "kind": "mosc",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc/training/st-basil-bible-school/page.tsx"
+    },
+    {
+      "path": "/philanthrop",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/philanthrop/page.tsx"
+    },
+    {
+      "path": "/polls",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/polls/page.tsx"
+    },
+    {
+      "path": "/polls/[id]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/polls/[id]/page.tsx"
+    },
+    {
+      "path": "/polls/vote-success",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/polls/vote-success/page.tsx"
+    },
+    {
+      "path": "/pricing",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/pricing/page.tsx"
+    },
+    {
+      "path": "/privacy",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/privacy/page.tsx"
+    },
+    {
+      "path": "/profile",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/profile/page.tsx"
+    },
+    {
+      "path": "/resubscribe-email",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/resubscribe-email/page.tsx"
+    },
+    {
+      "path": "/scrollbar-demo",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/scrollbar-demo/page.tsx"
+    },
+    {
+      "path": "/settings",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/settings/page.tsx"
+    },
+    {
+      "path": "/sign-in-backend",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/(auth)/sign-in-backend/page.tsx"
+    },
+    {
+      "path": "/sign-in/[[...sign-in]]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "sign-in"
+      ],
+      "sourceFile": "src/app/(auth)/sign-in/[[...sign-in]]/page.tsx"
+    },
+    {
+      "path": "/sign-up-backend",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/(auth)/sign-up-backend/page.tsx"
+    },
+    {
+      "path": "/sign-up/[[...sign-up]]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "sign-up"
+      ],
+      "sourceFile": "src/app/(auth)/sign-up/[[...sign-up]]/page.tsx"
+    },
+    {
+      "path": "/sponsors",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/sponsors/page.tsx"
+    },
+    {
+      "path": "/sponsors/[id]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/sponsors/[id]/page.tsx"
+    },
+    {
+      "path": "/sso-callback",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/sso-callback/page.tsx"
+    },
+    {
+      "path": "/syro",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/page.tsx"
+    },
+    {
+      "path": "/syro/administration",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/administration/page.tsx"
+    },
+    {
+      "path": "/syro/calendar",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/calendar/page.tsx"
+    },
+    {
+      "path": "/syro/catholicate",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/catholicate/page.tsx"
+    },
+    {
+      "path": "/syro/dioceses",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/dioceses/page.tsx"
+    },
+    {
+      "path": "/syro/directory",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/directory/page.tsx"
+    },
+    {
+      "path": "/syro/downloads",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/downloads/page.tsx"
+    },
+    {
+      "path": "/syro/ecumenical",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/ecumenical/page.tsx"
+    },
+    {
+      "path": "/syro/gallery",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/gallery/page.tsx"
+    },
+    {
+      "path": "/syro/holy-synod",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/holy-synod/page.tsx"
+    },
+    {
+      "path": "/syro/institutions",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/institutions/page.tsx"
+    },
+    {
+      "path": "/syro/lectionary",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/lectionary/page.tsx"
+    },
+    {
+      "path": "/syro/publications",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/publications/page.tsx"
+    },
+    {
+      "path": "/syro/saints",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/saints/page.tsx"
+    },
+    {
+      "path": "/syro/spiritual-organizations",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/spiritual-organizations/page.tsx"
+    },
+    {
+      "path": "/syro/the-church",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/the-church/page.tsx"
+    },
+    {
+      "path": "/syro/theological-seminaries",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/theological-seminaries/page.tsx"
+    },
+    {
+      "path": "/syro/training",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/syro/training/page.tsx"
+    },
+    {
+      "path": "/tasks",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/tasks/page.tsx"
+    },
+    {
+      "path": "/tasks/[id]/edit",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/tasks/[id]/edit/page.tsx"
+    },
+    {
+      "path": "/tasks/new",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/tasks/new/page.tsx"
+    },
+    {
+      "path": "/team",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/team/page.tsx"
+    },
+    {
+      "path": "/terms",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/terms/page.tsx"
+    },
+    {
+      "path": "/termsofservice",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/termsofservice/page.tsx"
+    },
+    {
+      "path": "/test-mobile",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/test-mobile/page.tsx"
+    },
+    {
+      "path": "/unsubscribe-email",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/unsubscribe-email/page.tsx"
+    }
+  ]
+}

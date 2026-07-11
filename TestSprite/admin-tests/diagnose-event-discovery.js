@@ -38,7 +38,7 @@ function loadAuthConfig() {
   return {
     email: config.email,
     password: config.password,
-    baseUrl: resolveAdminTestBaseUrl(config.baseUrl) || 'http://localhost:3000',
+    baseUrl: resolveAdminTestBaseUrl(config.baseUrl) || 'http://localhost:3001',
   };
 }
 

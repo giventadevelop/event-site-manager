@@ -9,7 +9,7 @@
  *   2. Fill in your admin credentials
  *   3. Run: node TestSprite/admin-tests/comprehensive-admin-test-suite.js
  *
- * Base URL (default http://localhost:3000 from auth.json):
+ * Base URL (default http://localhost:3001 from auth.json / --port=):
  *   npm run test:admin -- --port=3001
  *   npm run test:admin -- --base-url=http://127.0.0.1:3001
  *   Env: TEST_BASE_URL, TEST_PORT, or PORT (see resolve-admin-test-base-url.js)
@@ -68,7 +68,7 @@ function loadAuthConfig() {
     return {
       email: config.email,
       password: config.password,
-      baseUrl: resolveAdminTestBaseUrl(config.baseUrl) || 'http://localhost:3000',
+      baseUrl: resolveAdminTestBaseUrl(config.baseUrl) || 'http://localhost:3001',
       tenantId: resolveTestTenantId(config),
       timeout: config.timeout || 30000,
       headless: config.headless !== undefined ? config.headless : true, // Default to headless for CI/CD
