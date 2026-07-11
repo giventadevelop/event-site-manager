@@ -742,58 +742,77 @@ export default function ManageUsageClient({ adminProfile }: { adminProfile: User
 
       {/* Filter and Action Controls */}
       <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 items-end">
           {/* Tenant ID Filter – combine with other fields for "e.g. first name in this tenant" */}
           <AdminTenantFilterField />
+
           {/* Search Input */}
-          <div className="flex items-center gap-2">
-            <select
-              value={searchField}
-              onChange={(e) => setSearchField(e.target.value)}
-              className="border border-gray-400 rounded-l-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base min-h-[48px]"
-            >
-              {SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-            </select>
-            <input
-              type="text"
-              placeholder={`Search by ${SEARCH_FIELDS.find(f => f.value === searchField)?.label}...`}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="block w-full border border-gray-400 rounded-r-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base min-h-[48px]"
-            />
+          <div className="flex flex-col min-w-0">
+            <label className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap leading-5">
+              Search
+            </label>
+            <div className="flex h-12 min-w-0">
+              <select
+                value={searchField}
+                onChange={(e) => setSearchField(e.target.value)}
+                className="box-border h-12 shrink-0 border border-gray-400 border-r-0 rounded-l-xl focus:ring-blue-500 focus:border-blue-500 px-3 text-base bg-white"
+                aria-label="Search by field"
+              >
+                {SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+              </select>
+              <input
+                type="text"
+                placeholder={`Search by ${SEARCH_FIELDS.find(f => f.value === searchField)?.label}...`}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="box-border block h-12 w-full min-w-0 border border-gray-400 rounded-r-xl focus:ring-blue-500 focus:border-blue-500 px-4 text-base bg-white"
+              />
+            </div>
           </div>
 
           {/* Status Filter (tenant-scoped) */}
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base min-h-[48px]"
-          >
-            <option value="">All Statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-            <option value="PENDING_APPROVAL">Pending Approval</option>
-            <option value="SUSPENDED">Suspended</option>
-            <option value="BANNED">Banned</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="APPROVED">Approved</option>
-          </select>
+          <div className="flex flex-col min-w-0">
+            <label htmlFor="manage-usage-status" className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap leading-5">
+              Status
+            </label>
+            <select
+              id="manage-usage-status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="box-border block w-full h-12 border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 text-base bg-white"
+            >
+              <option value="">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="PENDING_APPROVAL">Pending Approval</option>
+              <option value="SUSPENDED">Suspended</option>
+              <option value="BANNED">Banned</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="APPROVED">Approved</option>
+            </select>
+          </div>
 
           {/* Role Filter (tenant-scoped) */}
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base min-h-[48px]"
-          >
-            <option value="">All Roles</option>
-            <option value="SUPER_ADMIN">Super Admin</option>
-            <option value="ADMIN">Admin</option>
-            <option value="GAS_STATION_ADMIN">Gas Station Admin</option>
-            <option value="GAS_STATION_MANAGER">Gas Station Manager</option>
-            <option value="ORGANIZER">Organizer</option>
-            <option value="VOLUNTEER">Volunteer</option>
-            <option value="MEMBER">Member</option>
-          </select>
+          <div className="flex flex-col min-w-0">
+            <label htmlFor="manage-usage-role" className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap leading-5">
+              Role
+            </label>
+            <select
+              id="manage-usage-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="box-border block w-full h-12 border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 text-base bg-white"
+            >
+              <option value="">All Roles</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+              <option value="ADMIN">Admin</option>
+              <option value="GAS_STATION_ADMIN">Gas Station Admin</option>
+              <option value="GAS_STATION_MANAGER">Gas Station Manager</option>
+              <option value="ORGANIZER">Organizer</option>
+              <option value="VOLUNTEER">Volunteer</option>
+              <option value="MEMBER">Member</option>
+            </select>
+          </div>
         </div>
         {bulkMessage && <p className="mt-2 text-sm text-center text-red-600">{bulkMessage}</p>}
       </div>

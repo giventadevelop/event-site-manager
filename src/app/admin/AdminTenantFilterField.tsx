@@ -90,7 +90,7 @@ export default function AdminTenantFilterField() {
 
   return (
     <div className="flex flex-col min-w-0">
-      <label htmlFor="admin-filter-tenant-id" className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap">
+      <label htmlFor="admin-filter-tenant-id" className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap leading-5">
         Tenant ID
       </label>
       <input
@@ -100,7 +100,7 @@ export default function AdminTenantFilterField() {
         onChange={handleChange}
         onBlur={handleBlur}
         placeholder="Search by Tenant ID (optional)"
-        className="block w-full border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-base min-h-[48px]"
+        className="box-border block w-full h-12 border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 text-base bg-white"
         aria-label="Filter by Tenant ID"
         title="Filter results by tenant ID. Leave empty for all tenants."
         autoComplete="off"

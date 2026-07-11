@@ -1,12 +1,61 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import type { GalleryAlbumDTO } from '@/types';
-import { fetchAlbumsServer, deleteAlbumServer, createAlbumServer } from './ApiServerActions';
+import {
+  fetchAlbumsServer,
+  deleteAlbumServer,
+  createAlbumServer,
+  type GalleryAlbumListFilters,
+} from './ApiServerActions';
 import Image from 'next/image';
 import { Modal } from '@/components/Modal';
+import AdminTenantFilterField from '../../AdminTenantFilterField';
+import { useAdminTenantId } from '../../AdminTenantContext';
+
+type SearchField = 'title' | 'description' | 'id';
+type VisibilityFilter = 'all' | 'public' | 'private';
+
+const SEARCH_FIELDS: { value: SearchField; label: string }[] = [
+  { value: 'title', label: 'Title' },
+  { value: 'description', label: 'Description' },
+  { value: 'id', label: 'Album ID' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'displayOrder,asc', label: 'Display order (asc)' },
+  { value: 'displayOrder,desc', label: 'Display order (desc)' },
+  { value: 'title,asc', label: 'Title (A–Z)' },
+  { value: 'title,desc', label: 'Title (Z–A)' },
+  { value: 'createdAt,desc', label: 'Newest first' },
+  { value: 'createdAt,asc', label: 'Oldest first' },
+  { value: 'updatedAt,desc', label: 'Recently updated' },
+];
+
+function buildAlbumListFilters(
+  tenantId: string | undefined,
+  searchField: SearchField,
+  searchQuery: string,
+  visibility: VisibilityFilter,
+  sort: string
+): GalleryAlbumListFilters {
+  const filters: GalleryAlbumListFilters = {
+    tenantId,
+    sort: sort.trim() || 'displayOrder,asc',
+  };
+  if (visibility === 'public') filters.isPublic = true;
+  else if (visibility === 'private') filters.isPublic = false;
+
+  const q = searchQuery.trim();
+  if (!q) return filters;
+
+  if (searchField === 'id') filters.id = q;
+  else if (searchField === 'title') filters.title = q;
+  else if (searchField === 'description') filters.description = q;
+
+  return filters;
+}
 
 interface AdminAlbumListClientProps {
   initialAlbums: GalleryAlbumDTO[];
@@ -15,19 +64,22 @@ interface AdminAlbumListClientProps {
   initialSearchTerm: string;
 }
 
-export default function AdminAlbumListClient({
+function AdminAlbumListClientInner({
   initialAlbums,
   initialTotalCount,
   initialPage,
   initialSearchTerm,
 }: AdminAlbumListClientProps) {
-  const router = useRouter();
+  const tenantId = useAdminTenantId();
   const [albums, setAlbums] = useState<GalleryAlbumDTO[]>(initialAlbums);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(initialTotalCount);
   const [currentPage, setCurrentPage] = useState(initialPage);
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const [searchField, setSearchField] = useState<SearchField>('title');
+  const [searchQuery, setSearchQuery] = useState(initialSearchTerm);
+  const [visibility, setVisibility] = useState<VisibilityFilter>('all');
+  const [sort, setSort] = useState('displayOrder,asc');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -40,36 +92,47 @@ export default function AdminAlbumListClient({
   });
   const pageSize = 12;
 
-  // Load albums
-  const loadAlbums = async (page: number, search: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fetchAlbumsServer(page, pageSize, search);
-      setAlbums(result.albums);
-      setTotalCount(result.totalCount);
-      setCurrentPage(page);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load albums');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filterSignatureRef = useRef('');
+  const filterSignature = [tenantId ?? '', searchField, searchQuery, visibility, sort].join('|');
 
-  // Handle search
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push(`/admin/gallery/albums?page=0&search=${encodeURIComponent(searchTerm)}`);
-    loadAlbums(0, searchTerm);
-  };
+  useEffect(() => {
+    if (filterSignatureRef.current === filterSignature) return;
+    filterSignatureRef.current = filterSignature;
+    setCurrentPage(0);
+  }, [filterSignature]);
 
-  // Handle page change
+  const loadAlbumsAt = useCallback(
+    async (page: number) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const filters = buildAlbumListFilters(
+          tenantId ?? undefined,
+          searchField,
+          searchQuery,
+          visibility,
+          sort
+        );
+        const result = await fetchAlbumsServer(page, pageSize, filters);
+        setAlbums(result.albums);
+        setTotalCount(result.totalCount);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load albums');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [tenantId, searchField, searchQuery, visibility, sort, pageSize]
+  );
+
+  useEffect(() => {
+    void loadAlbumsAt(currentPage);
+  }, [currentPage, loadAlbumsAt]);
+
   const handlePageChange = (newPage: number) => {
-    router.push(`/admin/gallery/albums?page=${newPage}&search=${encodeURIComponent(searchTerm)}`);
-    loadAlbums(newPage, searchTerm);
+    setCurrentPage(newPage);
   };
 
-  // Handle delete
   const handleDelete = async (albumId: number) => {
     if (!confirm(`Are you sure you want to delete album "${albums.find(a => a.id === albumId)?.title}"? This action cannot be undone.`)) {
       return;
@@ -77,21 +140,21 @@ export default function AdminAlbumListClient({
 
     try {
       await deleteAlbumServer(albumId);
-      // Refresh the list
-      loadAlbums(currentPage, searchTerm);
+      const nextPage = albums.length <= 1 && currentPage > 0 ? currentPage - 1 : currentPage;
+      if (nextPage !== currentPage) setCurrentPage(nextPage);
+      else void loadAlbumsAt(currentPage);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete album');
     }
   };
 
-  // Handle create album
   const handleCreateAlbum = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateLoading(true);
     setCreateError(null);
 
     try {
-      const newAlbum = await createAlbumServer({
+      await createAlbumServer({
         title: formData.title,
         description: formData.description || undefined,
         coverImageUrl: formData.coverImageUrl || undefined,
@@ -99,7 +162,6 @@ export default function AdminAlbumListClient({
         displayOrder: formData.displayOrder,
       });
 
-      // Reset form and close modal
       setFormData({
         title: '',
         description: '',
@@ -109,8 +171,8 @@ export default function AdminAlbumListClient({
       });
       setIsCreateModalOpen(false);
 
-      // Refresh the list
-      await loadAlbums(currentPage, searchTerm);
+      if (currentPage === 0) void loadAlbumsAt(0);
+      else setCurrentPage(0);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create album');
     } finally {
@@ -118,7 +180,6 @@ export default function AdminAlbumListClient({
     }
   };
 
-  // Reset form when modal closes
   const handleCloseModal = () => {
     setIsCreateModalOpen(false);
     setFormData({
@@ -131,16 +192,15 @@ export default function AdminAlbumListClient({
     setCreateError(null);
   };
 
-  // Calculate pagination
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
   const hasPrevPage = currentPage > 0;
   const hasNextPage = currentPage < totalPages - 1;
   const startItem = totalCount > 0 ? currentPage * pageSize + 1 : 0;
   const endItem = Math.min(currentPage * pageSize + albums.length, totalCount);
+  const searchFieldLabel = SEARCH_FIELDS.find((f) => f.value === searchField)?.label ?? 'Title';
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb Navigation */}
       <nav className="flex mb-8" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 md:space-x-3">
           <li className="inline-flex items-center">
@@ -177,7 +237,6 @@ export default function AdminAlbumListClient({
         </ol>
       </nav>
 
-      {/* Page Header */}
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
@@ -203,35 +262,77 @@ export default function AdminAlbumListClient({
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <form onSubmit={handleSearch} className="flex gap-2">
-          <div className="flex-1 relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+      <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-6">
+        <div className="text-base font-semibold text-blue-800 mb-4">Search &amp; filters</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 items-end">
+          <AdminTenantFilterField />
+
+          <div className="flex flex-col min-w-0">
+            <label className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap leading-5">
+              Search
+            </label>
+            <div className="flex h-12 min-w-0">
+              <select
+                value={searchField}
+                onChange={(e) => setSearchField(e.target.value as SearchField)}
+                className="box-border h-12 shrink-0 border border-gray-400 border-r-0 rounded-l-xl focus:ring-blue-500 focus:border-blue-500 px-3 text-base bg-white"
+                aria-label="Search by field"
+              >
+                {SEARCH_FIELDS.map((f) => (
+                  <option key={f.value} value={f.value}>{f.label}</option>
+                ))}
+              </select>
+              <input
+                type={searchField === 'id' ? 'number' : 'text'}
+                placeholder={
+                  searchField === 'id'
+                    ? 'Numeric album ID...'
+                    : `Search by ${searchFieldLabel}...`
+                }
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="box-border block h-12 w-full min-w-0 border border-gray-400 rounded-r-xl focus:ring-blue-500 focus:border-blue-500 px-4 text-base bg-white"
+                disabled={loading}
+              />
             </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search albums by title..."
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              disabled={loading}
-            />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Search
-          </button>
-        </form>
+
+          <div className="flex flex-col min-w-0">
+            <label htmlFor="album-visibility" className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap leading-5">
+              Visibility
+            </label>
+            <select
+              id="album-visibility"
+              value={visibility}
+              onChange={(e) => setVisibility(e.target.value as VisibilityFilter)}
+              className="box-border block w-full h-12 border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 text-base bg-white"
+              aria-label="Visibility filter"
+            >
+              <option value="all">All Visibility</option>
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col min-w-0">
+            <label htmlFor="album-sort" className="block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap leading-5">
+              Sort
+            </label>
+            <select
+              id="album-sort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="box-border block w-full h-12 border border-gray-400 rounded-xl focus:ring-blue-500 focus:border-blue-500 px-4 text-base bg-white"
+              aria-label="Sort albums"
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* Error State */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
@@ -250,7 +351,6 @@ export default function AdminAlbumListClient({
         </div>
       )}
 
-      {/* Albums Grid */}
       {loading && albums.length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="animate-pulse">
@@ -269,20 +369,19 @@ export default function AdminAlbumListClient({
           </svg>
           <h3 className="mt-2 text-sm font-medium text-gray-900">No albums found</h3>
           <p className="mt-1 text-sm text-gray-500">
-            {searchTerm ? 'Try adjusting your search terms.' : 'Get started by creating a new album.'}
+            {searchQuery || visibility !== 'all' || tenantId
+              ? 'Try adjusting your search filters.'
+              : 'Get started by creating a new album.'}
           </p>
         </div>
       ) : (
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-700 via-gray-800 to-gray-700 border border-gray-600/30 shadow-2xl mb-8">
-          {/* Medium Dark Radial Gradient Overlay */}
           <div className="absolute inset-0 pointer-events-none opacity-60" style={{ backgroundImage: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), transparent 55%)' }} />
 
-          {/* Grid Content */}
           <div className="relative px-6 py-10 sm:px-10 lg:px-14">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {albums.map((album) => (
                 <div key={album.id} className="bg-white rounded-lg shadow-md overflow-hidden group flex flex-col">
-                  {/* Album Cover Image */}
                   <div className="relative h-48 bg-gray-200">
                     {album.coverImageUrl ? (
                       <Image
@@ -301,7 +400,6 @@ export default function AdminAlbumListClient({
                     )}
                   </div>
 
-                  {/* Album Info */}
                   <div className="p-4 flex-1 flex flex-col">
                     <h3 className="font-semibold text-lg text-gray-900 truncate mb-1">{album.title}</h3>
                     {album.description && (
@@ -313,7 +411,6 @@ export default function AdminAlbumListClient({
                       </span>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="mt-auto pt-3 flex justify-end gap-2">
                       <Link
                         href={`/admin/gallery/albums/${album.id}/media`}
@@ -332,7 +429,7 @@ export default function AdminAlbumListClient({
                         aria-label="Edit Album"
                       >
                         <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002-2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </Link>
                       <button
@@ -355,56 +452,62 @@ export default function AdminAlbumListClient({
         </div>
       )}
 
-      {/* Pagination */}
-      {totalCount > 0 && (
-        <div className="mt-8">
-          <div className="flex justify-between items-center">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={!hasPrevPage || loading}
-              className="px-5 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg shadow-sm border-2 border-blue-400 hover:border-blue-500 disabled:bg-blue-100 disabled:border-blue-300 disabled:text-blue-500 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-md"
-              title="Previous Page"
-              aria-label="Previous Page"
-              type="button"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span>Previous</span>
-            </button>
+      <div className="mt-8">
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={!hasPrevPage || loading}
+            className="px-5 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg shadow-sm border-2 border-blue-400 hover:border-blue-500 disabled:bg-blue-100 disabled:border-blue-300 disabled:text-blue-500 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-md"
+            title="Previous Page"
+            aria-label="Previous Page"
+            type="button"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>Previous</span>
+          </button>
 
-            <div className="px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
-              <span className="text-sm font-bold text-blue-700">
-                Page <span className="text-blue-600">{currentPage + 1}</span> of <span className="text-blue-600">{totalPages}</span>
-              </span>
-            </div>
-
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={!hasNextPage || loading}
-              className="px-5 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg shadow-sm border-2 border-blue-400 hover:border-blue-500 disabled:bg-blue-100 disabled:border-blue-300 disabled:text-blue-500 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-md"
-              title="Next Page"
-              aria-label="Next Page"
-              type="button"
-            >
-              <span>Next</span>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+          <div className="px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+            <span className="text-sm font-bold text-blue-700">
+              Page <span className="text-blue-600">{currentPage + 1}</span> of <span className="text-blue-600">{totalPages}</span>
+            </span>
           </div>
 
-          <div className="text-center mt-3">
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={!hasNextPage || loading}
+            className="px-5 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg shadow-sm border-2 border-blue-400 hover:border-blue-500 disabled:bg-blue-100 disabled:border-blue-300 disabled:text-blue-500 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-md"
+            title="Next Page"
+            aria-label="Next Page"
+            type="button"
+          >
+            <span>Next</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="text-center mt-3">
+          {totalCount > 0 ? (
             <div className="inline-flex items-center px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
               <span className="text-sm text-gray-700">
                 Showing <span className="font-bold text-blue-600">{startItem}</span> to <span className="font-bold text-blue-600">{endItem}</span> of <span className="font-bold text-blue-600">{totalCount}</span> albums
               </span>
             </div>
-          </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 border-2 border-orange-300 rounded-lg shadow-sm">
+              <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm font-medium text-orange-700">No albums found</span>
+              <span className="text-sm text-orange-600">[No albums match your criteria]</span>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Create Album Modal */}
       <Modal
         open={isCreateModalOpen}
         onClose={handleCloseModal}
@@ -550,3 +653,23 @@ export default function AdminAlbumListClient({
   );
 }
 
+export default function AdminAlbumListClient(props: AdminAlbumListClientProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="h-64 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <AdminAlbumListClientInner {...props} />
+    </Suspense>
+  );
+}

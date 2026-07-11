@@ -1,11 +1,21 @@
 'use server';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getApiBaseUrl } from '@/lib/env';
+import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import type { GalleryAlbumDTO, EventMediaDTO } from '@/types';
 
 const API_BASE_URL = getApiBaseUrl();
+
+/** Optional filters for admin album list; tenant only when ?tenant= is passed. */
+export type GalleryAlbumListFilters = {
+  tenantId?: string;
+  title?: string;
+  description?: string;
+  id?: string;
+  isPublic?: boolean;
+  sort?: string;
+};
 
 /**
  * Create new album
@@ -42,27 +52,49 @@ export async function createAlbumServer(
 }
 
 /**
- * Fetch albums with pagination and filtering
+ * Fetch albums with pagination and filtering.
+ * Accepts either a legacy searchTerm string or a GalleryAlbumListFilters object.
  */
 export async function fetchAlbumsServer(
   page: number = 0,
   size: number = 12,
-  searchTerm?: string,
+  searchTermOrFilters?: string | GalleryAlbumListFilters,
   isPublic?: boolean
 ): Promise<{ albums: GalleryAlbumDTO[]; totalCount: number }> {
   try {
+    const filters: GalleryAlbumListFilters =
+      typeof searchTermOrFilters === 'string'
+        ? {
+            title: searchTermOrFilters || undefined,
+            isPublic,
+          }
+        : searchTermOrFilters ?? { isPublic };
+
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('size', size.toString());
-    params.append('sort', 'displayOrder,asc');
-    params.append('sort', 'createdAt,desc');
 
-    if (searchTerm) {
-      params.append('title.contains', searchTerm);
+    appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
+
+    const titleQ = filters.title?.trim();
+    if (titleQ) params.append('title.contains', titleQ);
+
+    const descQ = filters.description?.trim();
+    if (descQ) params.append('description.contains', descQ);
+
+    const idQ = filters.id?.trim();
+    if (idQ && !Number.isNaN(Number(idQ))) {
+      params.append('id.equals', String(Number(idQ)));
     }
 
-    if (typeof isPublic === 'boolean') {
-      params.append('isPublic.equals', isPublic.toString());
+    if (typeof filters.isPublic === 'boolean') {
+      params.append('isPublic.equals', filters.isPublic.toString());
+    }
+
+    const sort = filters.sort?.trim() || 'displayOrder,asc';
+    params.append('sort', sort);
+    if (!sort.startsWith('createdAt')) {
+      params.append('sort', 'createdAt,desc');
     }
 
     const url = `${API_BASE_URL}/api/gallery-albums?${params.toString()}`;

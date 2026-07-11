@@ -10,7 +10,10 @@ export default async function AdminAlbumsPage({
   const page = typeof searchParams?.page === 'string' ? parseInt(searchParams.page, 10) : 0;
   const searchTerm = typeof searchParams?.search === 'string' ? searchParams.search : '';
 
-  const { albums, totalCount } = await fetchAlbumsServer(page, 12, searchTerm);
+  // Initial SSR load; client re-fetches with full filters (tenant, search field, visibility, sort).
+  const { albums, totalCount } = await fetchAlbumsServer(page, 12, {
+    title: searchTerm || undefined,
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -26,4 +29,3 @@ export default async function AdminAlbumsPage({
     </div>
   );
 }
-
