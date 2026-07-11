@@ -88,6 +88,8 @@ TestSprite/admin-tests/screenshots/
 
 # TestSprite generated output and local MCP config (may contain API keys)
 testsprite_tests/tmp/
+# Accumulating E2E coverage JSON/HTML + LOOP_LOG (do not commit)
+TestSprite/reports/
 TestSprite/**/*-report.html
 TestSprite/**/test-report.html
 TestSprite/**/comprehensive-test-report.html
