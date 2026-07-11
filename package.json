@@ -31,6 +31,7 @@
     "test:smoke:admin": "node TestSprite/sanity-tests/run-inventory-smoke-crawl.js --kind=admin",
     "test:smoke:public": "node TestSprite/sanity-tests/run-inventory-smoke-crawl.js --kind=public",
     "test:coverage:html": "node TestSprite/tools/coverage-json-to-html.js",
+    "test:coverage:consolidated": "node TestSprite/tools/write-consolidated-coverage-report.js",
     "test:admin": "node TestSprite/admin-tests/comprehensive-admin-test-suite.js",
     "test:admin:dynamic": "node TestSprite/admin-tests/dynamic-event-test-suite.js",
     "test:admin:crud": "node TestSprite/admin-tests/admin-crud-demo-tenant-suite.js",
@@ -40,7 +41,9 @@
     "test:e2e:quick": "node TestSprite/run-e2e-full.js --quick",
     "test:install-playwright": "npx playwright install chromium",
     "record:scroll-video": "node scripts/record-mosc-scroll-video.js",
-    "record:screenshot-scroll": "node scripts/record-screenshot-scroll-video.js"
+    "record:screenshot-scroll": "node scripts/record-screenshot-scroll-video.js",
+    "gallery:migrate-covers": "node scripts/gallery-porting/migrate-local-album-covers-to-s3.mjs",
+    "gallery:migrate-covers:dry": "node scripts/gallery-porting/migrate-local-album-covers-to-s3.mjs --dry-run"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.5",

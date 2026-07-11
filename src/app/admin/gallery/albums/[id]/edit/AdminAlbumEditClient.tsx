@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { GalleryAlbumDTO } from '@/types';
-import { updateAlbumServer, deleteAlbumServer } from '../../ApiServerActions';
+import type { GalleryAlbumDTO, GalleryCategoryDTO } from '@/types';
+import {
+  updateAlbumServer,
+  deleteAlbumServer,
+  fetchGalleryCategoriesServer,
+} from '../../ApiServerActions';
 import { Modal } from '@/components/Modal';
+import GalleryAlbumCoverImageUpload from '@/components/admin/gallery/GalleryAlbumCoverImageUpload';
 
 interface AdminAlbumEditClientProps {
   initialAlbum: GalleryAlbumDTO;
@@ -14,15 +19,45 @@ interface AdminAlbumEditClientProps {
 export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [showAdvancedCoverUrl, setShowAdvancedCoverUrl] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categories, setCategories] = useState<GalleryCategoryDTO[]>([]);
   const [formData, setFormData] = useState({
     title: initialAlbum.title || '',
     description: initialAlbum.description || '',
     coverImageUrl: initialAlbum.coverImageUrl || '',
     isPublic: initialAlbum.isPublic ?? true,
     displayOrder: initialAlbum.displayOrder || 0,
+    galleryCategoryId: initialAlbum.galleryCategoryId
+      ? String(initialAlbum.galleryCategoryId)
+      : initialAlbum.galleryCategory?.id
+        ? String(initialAlbum.galleryCategory.id)
+        : '',
   });
+
+  const albumTenantId = initialAlbum.tenantId?.trim() || '';
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCategories() {
+      try {
+        const list = await fetchGalleryCategoriesServer(initialAlbum.tenantId);
+        if (!cancelled) setCategories(list);
+      } catch {
+        if (!cancelled) setCategories([]);
+      }
+    }
+    void loadCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialAlbum.tenantId]);
+
+  const albumsListHref = initialAlbum.tenantId
+    ? `/admin/gallery/albums?tenant=${encodeURIComponent(initialAlbum.tenantId)}`
+    : '/admin/gallery/albums';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,16 +65,22 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
     setError(null);
 
     try {
-      await updateAlbumServer(initialAlbum.id!, {
-        title: formData.title,
-        description: formData.description || undefined,
-        coverImageUrl: formData.coverImageUrl || undefined,
-        isPublic: formData.isPublic,
-        displayOrder: formData.displayOrder,
-      });
+      await updateAlbumServer(
+        initialAlbum.id!,
+        {
+          title: formData.title,
+          description: formData.description || undefined,
+          coverImageUrl: formData.coverImageUrl || undefined,
+          isPublic: formData.isPublic,
+          displayOrder: formData.displayOrder,
+          galleryCategoryId: formData.galleryCategoryId
+            ? Number(formData.galleryCategoryId)
+            : null,
+        },
+        initialAlbum.tenantId,
+      );
 
-      // Redirect to album list
-      router.push('/admin/gallery/albums');
+      router.push(albumsListHref);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update album');
     } finally {
@@ -51,8 +92,8 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
     if (!initialAlbum.id) return;
 
     try {
-      await deleteAlbumServer(initialAlbum.id);
-      router.push('/admin/gallery/albums');
+      await deleteAlbumServer(initialAlbum.id, initialAlbum.tenantId);
+      router.push(albumsListHref);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete album');
     }
@@ -83,7 +124,7 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
               <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
               </svg>
-              <Link href="/admin/gallery/albums" className="ml-1 text-sm font-medium text-gray-500 md:ml-2 hover:text-gray-700">
+              <Link href={albumsListHref} className="ml-1 text-sm font-medium text-gray-500 md:ml-2 hover:text-gray-700">
                 Albums
               </Link>
             </div>
@@ -105,6 +146,26 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
         <p className="mt-2 text-sm text-gray-600">
           Update album details and settings
         </p>
+        {albumTenantId ? (
+          <div
+            className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-xl border-2 border-sky-300 bg-sky-50 px-4 py-3 shadow-sm"
+            title="Tenant that owns this album"
+            aria-label={`Tenant ID ${albumTenantId}`}
+          >
+            <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+              Tenant ID
+            </span>
+            <code className="rounded-lg bg-white px-3 py-1.5 text-sm font-bold text-sky-900 border border-sky-200 break-all">
+              {albumTenantId}
+            </code>
+          </div>
+        ) : (
+          <div className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 shadow-sm">
+            <span className="text-sm font-medium text-amber-800">
+              Tenant ID is not set on this album record.
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Error State */}
@@ -159,20 +220,56 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="coverImageUrl">
-              Cover Image URL
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Cover Image
             </label>
-            <input
-              id="coverImageUrl"
-              type="url"
-              value={formData.coverImageUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, coverImageUrl: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="https://example.com/image.jpg (optional)"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              URL to the cover image for this album. You can also select a cover image from the media management page.
+            {initialAlbum.id != null && (
+              <GalleryAlbumCoverImageUpload
+                albumId={initialAlbum.id}
+                tenantId={albumTenantId || undefined}
+                currentImageUrl={formData.coverImageUrl || undefined}
+                onImageUploaded={(url) => setFormData((prev) => ({ ...prev, coverImageUrl: url }))}
+                onError={() => {}}
+                onUploadingChange={setCoverUploading}
+                disabled={loading}
+              />
+            )}
+            <p className="mt-2 text-xs text-gray-500">
+              Upload saves the cover immediately (S3). You can also set a cover from the{' '}
+              <Link
+                href={`/admin/gallery/albums/${initialAlbum.id}/media${
+                  albumTenantId ? `?tenant=${encodeURIComponent(albumTenantId)}` : ''
+                }`}
+                className="text-blue-600 hover:underline"
+              >
+                media management page
+              </Link>
+              .
             </p>
+            <button
+              type="button"
+              onClick={() => setShowAdvancedCoverUrl((v) => !v)}
+              className="mt-2 text-xs text-blue-600 hover:underline"
+            >
+              {showAdvancedCoverUrl ? 'Hide' : 'Show'} advanced: paste cover URL
+            </button>
+            {showAdvancedCoverUrl && (
+              <div className="mt-2">
+                <input
+                  id="coverImageUrl"
+                  type="url"
+                  value={formData.coverImageUrl}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, coverImageUrl: e.target.value }))
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://example.com/image.jpg (optional)"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Manual URL is saved when you click Save Changes below.
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
@@ -193,17 +290,48 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
             </p>
           </div>
 
-          <div className="flex items-center">
-            <input
-              id="isPublic"
-              type="checkbox"
-              checked={formData.isPublic}
-              onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="isPublic" className="ml-2 block text-sm text-gray-700">
-              Make this album public (visible in gallery)
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="visibility">
+              Visibility
             </label>
+            <select
+              id="visibility"
+              value={formData.isPublic ? 'public' : 'private'}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, isPublic: e.target.value === 'public' }))
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="public">Public — visible in gallery</option>
+              <option value="private">Private — hidden from public gallery</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Uses the album <code className="text-xs">isPublic</code> flag. Private albums stay in admin but are hidden on the public site.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="galleryCategoryId">
+              Category
+            </label>
+            <select
+              id="galleryCategoryId"
+              value={formData.galleryCategoryId}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, galleryCategoryId: e.target.value }))
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Uncategorized</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={String(cat.id)}>
+                  {cat.displayName || cat.slug || `Category ${cat.id}`}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Optional gallery grouping (e.g. Ecumenical Visits, Major Events).
+            </p>
           </div>
 
           <div className="flex justify-between items-center pt-4 border-t border-gray-200">
@@ -216,7 +344,7 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
             </button>
             <div className="flex gap-3">
               <Link
-                href="/admin/gallery/albums"
+                href={albumsListHref}
                 className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
               >
                 Cancel
@@ -224,9 +352,9 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading}
+                disabled={loading || coverUploading}
               >
-                {loading ? 'Saving...' : 'Save Changes'}
+                {loading ? 'Saving...' : coverUploading ? 'Uploading cover...' : 'Save Changes'}
               </button>
             </div>
           </div>

@@ -7,12 +7,14 @@ import {
   fetchAlbumsServer,
   deleteAlbumServer,
   createAlbumServer,
+  fetchGalleryCategoriesServer,
   type GalleryAlbumListFilters,
 } from './ApiServerActions';
 import Image from 'next/image';
 import { Modal } from '@/components/Modal';
 import AdminTenantFilterField from '../../AdminTenantFilterField';
 import { useAdminTenantId } from '../../AdminTenantContext';
+import type { GalleryCategoryDTO } from '@/types';
 
 type SearchField = 'title' | 'description' | 'id';
 type VisibilityFilter = 'all' | 'public' | 'private';
@@ -89,7 +91,9 @@ function AdminAlbumListClientInner({
     coverImageUrl: '',
     isPublic: true,
     displayOrder: 0,
+    galleryCategoryId: '' as string,
   });
+  const [categories, setCategories] = useState<GalleryCategoryDTO[]>([]);
   const pageSize = 12;
 
   const filterSignatureRef = useRef('');
@@ -129,6 +133,22 @@ function AdminAlbumListClientInner({
     void loadAlbumsAt(currentPage);
   }, [currentPage, loadAlbumsAt]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCategories() {
+      try {
+        const list = await fetchGalleryCategoriesServer(tenantId);
+        if (!cancelled) setCategories(list);
+      } catch {
+        if (!cancelled) setCategories([]);
+      }
+    }
+    void loadCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
   };
@@ -139,7 +159,7 @@ function AdminAlbumListClientInner({
     }
 
     try {
-      await deleteAlbumServer(albumId);
+      await deleteAlbumServer(albumId, tenantId);
       const nextPage = albums.length <= 1 && currentPage > 0 ? currentPage - 1 : currentPage;
       if (nextPage !== currentPage) setCurrentPage(nextPage);
       else void loadAlbumsAt(currentPage);
@@ -154,13 +174,20 @@ function AdminAlbumListClientInner({
     setCreateError(null);
 
     try {
-      await createAlbumServer({
-        title: formData.title,
-        description: formData.description || undefined,
-        coverImageUrl: formData.coverImageUrl || undefined,
-        isPublic: formData.isPublic,
-        displayOrder: formData.displayOrder,
-      });
+      await createAlbumServer(
+        {
+          title: formData.title,
+          description: formData.description || undefined,
+          coverImageUrl: formData.coverImageUrl || undefined,
+          isPublic: formData.isPublic,
+          displayOrder: formData.displayOrder,
+          galleryCategoryId: formData.galleryCategoryId
+            ? Number(formData.galleryCategoryId)
+            : null,
+          ...(tenantId ? { tenantId } : {}),
+        },
+        tenantId,
+      );
 
       setFormData({
         title: '',
@@ -168,6 +195,7 @@ function AdminAlbumListClientInner({
         coverImageUrl: '',
         isPublic: true,
         displayOrder: 0,
+        galleryCategoryId: '',
       });
       setIsCreateModalOpen(false);
 
@@ -188,6 +216,7 @@ function AdminAlbumListClientInner({
       coverImageUrl: '',
       isPublic: true,
       displayOrder: 0,
+      galleryCategoryId: '',
     });
     setCreateError(null);
   };
@@ -405,41 +434,75 @@ function AdminAlbumListClientInner({
                     {album.description && (
                       <p className="text-gray-600 text-sm h-10 overflow-hidden mb-3">{album.description}</p>
                     )}
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                      <span className={`px-2 py-1 rounded-full ${album.isPublic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                    <div className="flex flex-wrap items-center gap-2 text-xs mb-3">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full font-semibold ${
+                          album.isPublic
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                        title={
+                          album.isPublic
+                            ? 'Visible on the public gallery'
+                            : 'Hidden from the public gallery'
+                        }
+                      >
                         {album.isPublic ? 'Public' : 'Private'}
                       </span>
+                      {album.galleryCategory?.displayName ? (
+                        <span
+                          className="inline-flex items-center px-2.5 py-1 rounded-full font-semibold bg-purple-100 text-purple-800"
+                          title="Gallery category"
+                        >
+                          {album.galleryCategory.displayName}
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center px-2.5 py-1 rounded-full font-medium bg-gray-100 text-gray-500"
+                          title="No gallery category assigned"
+                        >
+                          Uncategorized
+                        </span>
+                      )}
                     </div>
 
                     <div className="mt-auto pt-3 flex justify-end gap-2">
                       <Link
-                        href={`/admin/gallery/albums/${album.id}/media`}
-                        className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 hover:bg-green-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                        href={`/admin/gallery/albums/${album.id}/media${
+                          (album.tenantId || tenantId)
+                            ? `?tenant=${encodeURIComponent(album.tenantId || tenantId || '')}`
+                            : ''
+                        }`}
+                        className="flex-shrink-0 w-14 h-14 rounded-xl bg-green-100 hover:bg-green-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
                         title="Manage Media"
                         aria-label="Manage Media"
                       >
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </Link>
                       <Link
-                        href={`/admin/gallery/albums/${album.id}/edit`}
-                        className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                        href={`/admin/gallery/albums/${album.id}/edit${
+                          (album.tenantId || tenantId)
+                            ? `?tenant=${encodeURIComponent(album.tenantId || tenantId || '')}`
+                            : ''
+                        }`}
+                        className="flex-shrink-0 w-14 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
                         title="Edit Album"
                         aria-label="Edit Album"
                       >
-                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002-2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </Link>
                       <button
                         onClick={() => album.id && handleDelete(album.id)}
-                        className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                        className="flex-shrink-0 w-14 h-14 rounded-xl bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
                         title="Delete Album"
                         aria-label="Delete Album"
                         type="button"
                       >
-                        <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
@@ -596,17 +659,45 @@ function AdminAlbumListClientInner({
             </p>
           </div>
 
-          <div className="flex items-center">
-            <input
-              id="isPublic"
-              type="checkbox"
-              checked={formData.isPublic}
-              onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="isPublic" className="ml-2 block text-sm text-gray-700">
-              Make this album public (visible in gallery)
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="create-visibility">
+              Visibility
             </label>
+            <select
+              id="create-visibility"
+              value={formData.isPublic ? 'public' : 'private'}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, isPublic: e.target.value === 'public' }))
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="public">Public — visible in gallery</option>
+              <option value="private">Private — hidden from public gallery</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="create-category">
+              Category
+            </label>
+            <select
+              id="create-category"
+              value={formData.galleryCategoryId}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, galleryCategoryId: e.target.value }))
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Uncategorized</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={String(cat.id)}>
+                  {cat.displayName || cat.slug || `Category ${cat.id}`}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Optional grouping for the public gallery (e.g. Ecumenical Visits, Major Events).
+            </p>
           </div>
 
           <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">

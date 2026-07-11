@@ -87,6 +87,10 @@ export async function fetchTenantOrganizations(
     if (filters.search) {
       params.append('organizationName.contains', filters.search);
     }
+    // Partial tenant ID match for typeahead (distinct from tenantId.equals scoping)
+    if (filters.tenantIdContains?.trim()) {
+      params.append('tenantId.contains', filters.tenantIdContains.trim());
+    }
     appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
     if (filters.subscriptionStatus) {
       params.append('subscriptionStatus.equals', filters.subscriptionStatus);

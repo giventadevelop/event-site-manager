@@ -274,6 +274,21 @@ export interface OfficialDocumentYearBundleDTO {
 }
 
 /**
+ * Gallery album category (nested on GalleryAlbumDTO / list from /api/gallery-categories).
+ */
+export interface GalleryCategoryDTO {
+  id?: number;
+  tenantId?: string | null;
+  slug?: string;
+  displayName?: string;
+  description?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+/**
  * DTO for gallery album, matches backend schema.
  */
 export interface GalleryAlbumDTO {
@@ -282,11 +297,18 @@ export interface GalleryAlbumDTO {
   title: string;
   description?: string;
   coverImageUrl?: string;
+  /** When true, album is visible on the public gallery. */
   isPublic?: boolean;
   displayOrder?: number;
   createdAt: string;
   updatedAt: string;
   createdById?: number;
+  albumYear?: number | null;
+  galleryCategoryId?: number | null;
+  galleryCategory?: GalleryCategoryDTO | null;
+  eventDateStart?: string | null;
+  eventDateEnd?: string | null;
+  eventLocation?: string | null;
 }
 
 /**

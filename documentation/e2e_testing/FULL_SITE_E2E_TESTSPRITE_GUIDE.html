@@ -142,8 +142,10 @@
         <pre class="command-content">cmd /c "set TEST_BASE_URL=http://localhost:3000&& node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3000"</pre>
         <div class="success">
           Look for <code class="code-highlight">[e2e-full] Mode: QUICK</code> and step banners. Reports land in <code class="script-name">TestSprite/reports/</code>.
+          At the end, open <code class="script-name">TestSprite/reports/coverage-global-latest.html</code> for the global SUCCESS/FAILED rollup (all suites).
           <code class="script-name">admin-test-report.html</code> is only from <code class="script-name">npm run test:admin:all</code>.
-          Default base URL is <code class="code-highlight">http://localhost:3001</code>. Override with <code>--port=</code>, <code>--base-url=</code>, or <code>TEST_BASE_URL</code>. Fallback probe order: 3001 → 3000 → 3002.
+          Default base URL is <code class="code-highlight">http://localhost:3001</code>. Override with <code>--port=</code>, <code>--base-url=</code>, or <code>TEST_BASE_URL</code>.
+          Report rotation: keep newest 5 per suite; delete coverage files older than 5 days (<code>E2E_REPORT_MAX_AGE_DAYS</code>).
         </div>
       </div>
     </div>
@@ -159,13 +161,16 @@
           <tbody>
             <tr><td>Coverage JSON</td><td><code class="script-name">TestSprite/reports/coverage-*.json</code></td></tr>
             <tr><td>Coverage HTML</td><td><code class="script-name">TestSprite/reports/coverage-*.html</code> — open in a browser</td></tr>
+            <tr><td><strong>Global consolidated</strong></td><td><code class="script-name">coverage-global-latest.html</code> (+ <code class="script-name">coverage-global-consolidated-&lt;stamp&gt;.html</code>)</td></tr>
             <tr><td>Smoke (admin+public)</td><td><code class="script-name">coverage-smoke-admin+public-&lt;stamp&gt;.html</code></td></tr>
             <tr><td>CRUD</td><td><code class="script-name">coverage-admin-crud-&lt;stamp&gt;.html</code></td></tr>
             <tr><td>Loop log</td><td><code class="script-name">TestSprite/reports/LOOP_LOG.md</code></td></tr>
           </tbody>
         </table>
         <div class="info">
-          Console prints <code class="code-highlight">[harness] HTML report: …</code> next to the JSON path.
+          Console prints <code class="code-highlight">[harness] HTML report: …</code> and
+          <code class="code-highlight">[harness] Global latest (stable name): …coverage-global-latest.html</code>.
+          Regenerate rollup alone: <code class="script-name">npm run test:coverage:consolidated</code>.
           Older JSON-only files: <code class="script-name">npm run test:coverage:html</code>.
         </div>
       </div>

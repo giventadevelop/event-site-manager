@@ -157,14 +157,21 @@ export default function EventSearchSelect({
           value={searchTerm}
           onChange={handleSearchChange}
           onFocus={() => setIsOpen(true)}
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
           placeholder={searchType === 'id' ? 'Enter Event ID...' : 'Search events by title...'}
           className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 pl-10 pr-10 px-4 py-2 text-base"
+          autoComplete="off"
         />
         {selectedEvent && (
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={handleClear}
             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            title="Clear event selection"
+            aria-label="Clear event selection"
           >
             ×
           </button>
@@ -173,7 +180,11 @@ export default function EventSearchSelect({
 
       {/* Dropdown Results */}
       {isOpen && (filteredEvents.length > 0 || loading) && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg" style={{ maxHeight: 'calc(7 * 3.5rem)', overflowY: 'auto' }}>
+        <div
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg"
+          style={{ maxHeight: 'calc(7 * 3.5rem)', overflowY: 'auto' }}
+          role="listbox"
+        >
           {loading ? (
             <div className="p-4 text-center text-gray-500">Loading events...</div>
           ) : filteredEvents.length === 0 ? (
@@ -181,19 +192,20 @@ export default function EventSearchSelect({
           ) : (
             <ul className="py-1">
               {filteredEvents.map((event) => (
-                <li
-                  key={event.id}
-                  onClick={() => handleSelectEvent(event)}
-                  className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
-                    selectedEvent?.id === event.id ? 'bg-blue-100' : ''
-                  }`}
-                >
-                  <div className="font-medium text-gray-900">
-                    {event.title}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    ID: {event.id} | {event.startDate}
-                  </div>
+                <li key={event.id} role="option" aria-selected={selectedEvent?.id === event.id}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleSelectEvent(event)}
+                    className={`w-full text-left px-4 py-2 cursor-pointer hover:bg-blue-50 ${
+                      selectedEvent?.id === event.id ? 'bg-blue-100' : ''
+                    }`}
+                  >
+                    <div className="font-medium text-gray-900">{event.title}</div>
+                    <div className="text-sm text-gray-500">
+                      ID: {event.id} | {event.startDate}
+                    </div>
+                  </button>
                 </li>
               ))}
             </ul>

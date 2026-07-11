@@ -3,9 +3,21 @@
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
-import type { GalleryAlbumDTO, EventMediaDTO } from '@/types';
+import type { GalleryAlbumDTO, EventMediaDTO, GalleryCategoryDTO } from '@/types';
 
 const API_BASE_URL = getApiBaseUrl();
+
+/**
+ * When admin UI selects `?tenant=`, override X-Tenant-ID so the backend scopes to that tenant
+ * (same pattern as manage-usage). Without this, fetchWithJwtRetry keeps the platform env tenant.
+ */
+function headersForTenantScope(
+  tenantId: string | undefined,
+  extra: Record<string, string> = {},
+): Record<string, string> {
+  const tid = effectiveTenantId(tenantId);
+  return tid ? { ...extra, 'X-Tenant-ID': tid } : { ...extra };
+}
 
 /** Optional filters for admin album list; tenant only when ?tenant= is passed. */
 export type GalleryAlbumListFilters = {
@@ -17,15 +29,48 @@ export type GalleryAlbumListFilters = {
   sort?: string;
 };
 
+/** Active gallery categories for album create/edit dropdowns. */
+export async function fetchGalleryCategoriesServer(
+  tenantId?: string,
+): Promise<GalleryCategoryDTO[]> {
+  try {
+    const params = new URLSearchParams();
+    params.append('page', '0');
+    params.append('size', '100');
+    params.append('sort', 'sortOrder,asc');
+    params.append('sort', 'displayName,asc');
+    params.append('isActive.equals', 'true');
+    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+
+    const url = `${API_BASE_URL}/api/gallery-categories?${params.toString()}`;
+    const res = await fetchWithJwtRetry(url, {
+      cache: 'no-store',
+      headers: headersForTenantScope(tenantId),
+    });
+    if (!res.ok) {
+      console.error('[fetchGalleryCategoriesServer] Failed:', res.status, res.statusText);
+      return [];
+    }
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error('[fetchGalleryCategoriesServer]', error);
+    return [];
+  }
+}
+
 /**
- * Create new album
+ * Create new album (pass tenantId from ?tenant= when creating under a selected tenant).
  */
 export async function createAlbumServer(
-  album: Omit<GalleryAlbumDTO, 'id' | 'createdAt' | 'updatedAt'>
+  album: Omit<GalleryAlbumDTO, 'id' | 'createdAt' | 'updatedAt'>,
+  tenantId?: string,
 ): Promise<GalleryAlbumDTO> {
   try {
+    const tid = effectiveTenantId(tenantId) ?? effectiveTenantId(album.tenantId);
     const payload = withTenantId({
       ...album,
+      ...(tid ? { tenantId: tid } : {}),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -33,7 +78,7 @@ export async function createAlbumServer(
     const url = `${API_BASE_URL}/api/gallery-albums`;
     const res = await fetchWithJwtRetry(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
       body: JSON.stringify(payload),
       cache: 'no-store',
     });
@@ -98,7 +143,10 @@ export async function fetchAlbumsServer(
     }
 
     const url = `${API_BASE_URL}/api/gallery-albums?${params.toString()}`;
-    const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
+    const res = await fetchWithJwtRetry(url, {
+      cache: 'no-store',
+      headers: headersForTenantScope(filters.tenantId),
+    });
 
     if (!res.ok) {
       console.error('Failed to fetch albums:', res.status, res.statusText);
@@ -119,10 +167,21 @@ export async function fetchAlbumsServer(
 /**
  * Fetch album by ID
  */
-export async function fetchAlbumServer(albumId: number): Promise<GalleryAlbumDTO | null> {
+/**
+ * Fetch a single album by ID.
+ * Pass tenantId when loading under platform all-tenants admin so X-Tenant-ID matches the album.
+ */
+export async function fetchAlbumServer(
+  albumId: number,
+  tenantId?: string,
+): Promise<GalleryAlbumDTO | null> {
   try {
+    const tid = effectiveTenantId(tenantId);
     const url = `${API_BASE_URL}/api/gallery-albums/${albumId}`;
-    const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
+    const res = await fetchWithJwtRetry(url, {
+      cache: 'no-store',
+      headers: headersForTenantScope(tid),
+    });
 
     if (!res.ok) {
       if (res.status === 404) {
@@ -144,19 +203,22 @@ export async function fetchAlbumServer(albumId: number): Promise<GalleryAlbumDTO
  */
 export async function updateAlbumServer(
   albumId: number,
-  updates: Partial<GalleryAlbumDTO>
+  updates: Partial<GalleryAlbumDTO>,
+  tenantId?: string,
 ): Promise<GalleryAlbumDTO> {
   try {
+    const tid = effectiveTenantId(tenantId) ?? effectiveTenantId(updates.tenantId);
     const payload = withTenantId({
       ...updates,
       id: albumId,
+      ...(tid ? { tenantId: tid } : {}),
       updatedAt: new Date().toISOString(),
     });
 
     const url = `${API_BASE_URL}/api/gallery-albums/${albumId}`;
     const res = await fetchWithJwtRetry(url, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/merge-patch+json' },
+      headers: headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
       body: JSON.stringify(payload),
       cache: 'no-store',
     });
@@ -177,12 +239,13 @@ export async function updateAlbumServer(
 /**
  * Delete album
  */
-export async function deleteAlbumServer(albumId: number): Promise<void> {
+export async function deleteAlbumServer(albumId: number, tenantId?: string): Promise<void> {
   try {
     const url = `${API_BASE_URL}/api/gallery-albums/${albumId}`;
     const res = await fetchWithJwtRetry(url, {
       method: 'DELETE',
       cache: 'no-store',
+      headers: headersForTenantScope(tenantId),
     });
 
     if (!res.ok) {

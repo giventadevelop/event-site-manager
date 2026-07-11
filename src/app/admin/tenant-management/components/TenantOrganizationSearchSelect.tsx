@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { TenantOrganizationDTO } from '@/app/admin/tenant-management/types';
 import {
   fetchRecentTenantOrganizationsForSelectServer,
@@ -46,6 +46,7 @@ export default function TenantOrganizationSearchSelect({
   required = true,
 }: TenantOrganizationSearchSelectProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cachedOrganizations, setCachedOrganizations] = useState<TenantOrganizationDTO[]>(
     initialOrganizations,
@@ -115,32 +116,46 @@ export default function TenantOrganizationSearchSelect({
     syncSelectedFromValue(cachedOrganizations, value);
   }, [value, cachedOrganizations, syncSelectedFromValue]);
 
-  // Resolve preselected tenantId (e.g. ?tenantId=...) when not in the recent-20 cache
+  // Resolve preselected tenantId once per value (ref-guarded; exact match only — no results[0] fallback)
+  const resolveAttemptedRef = useRef<string | null>(null);
+  const cachedOrganizationsRef = useRef(cachedOrganizations);
+  cachedOrganizationsRef.current = cachedOrganizations;
+
   useEffect(() => {
-    if (!value?.trim() || selectedOrg?.tenantId === value) return;
+    const tid = value?.trim() ?? '';
+    if (!tid) {
+      resolveAttemptedRef.current = null;
+      return;
+    }
+    if (selectedOrg?.tenantId === tid) {
+      resolveAttemptedRef.current = tid;
+      return;
+    }
+    if (cachedOrganizationsRef.current.some((org) => org.tenantId === tid)) {
+      resolveAttemptedRef.current = tid;
+      return;
+    }
+    if (resolveAttemptedRef.current === tid) return;
 
-    const inCache = cachedOrganizations.some((org) => org.tenantId === value);
-    if (inCache) return;
-
+    resolveAttemptedRef.current = tid;
     let cancelled = false;
 
     async function resolvePreselected() {
       setLoading(true);
       try {
-        const results = await searchTenantOrganizationsForSelectServer(value);
+        const results = await searchTenantOrganizationsForSelectServer(tid);
         if (cancelled) return;
-        const match = results.find((org) => org.tenantId === value) ?? results[0];
-        if (match) {
-          setCachedOrganizations((prev) => {
-            const byId = new Map<number, TenantOrganizationDTO>();
-            for (const org of [match, ...prev]) {
-              if (org.id != null) byId.set(org.id, org);
-            }
-            return Array.from(byId.values()).slice(0, TENANT_ORG_SELECT_LIMIT);
-          });
-          setSelectedOrg(match);
-          setSearchTerm(formatOrgLabel(match));
-        }
+        const match = results.find((org) => org.tenantId === tid);
+        if (!match) return;
+        setCachedOrganizations((prev) => {
+          const byId = new Map<number, TenantOrganizationDTO>();
+          for (const org of [match, ...prev]) {
+            if (org.id != null) byId.set(org.id, org);
+          }
+          return Array.from(byId.values()).slice(0, TENANT_ORG_SELECT_LIMIT);
+        });
+        setSelectedOrg(match);
+        setSearchTerm(formatOrgLabel(match));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -150,7 +165,7 @@ export default function TenantOrganizationSearchSelect({
     return () => {
       cancelled = true;
     };
-  }, [value, cachedOrganizations, selectedOrg?.tenantId]);
+  }, [value, selectedOrg?.tenantId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -190,14 +205,19 @@ export default function TenantOrganizationSearchSelect({
         setLoading(true);
         try {
           const results = await searchTenantOrganizationsForSelectServer(trimmed);
-          setDisplayOrganizations(results.slice(0, TENANT_ORG_SELECT_LIMIT));
+          const byKey = new Map<string, TenantOrganizationDTO>();
+          for (const org of [...results, ...localMatches]) {
+            const key = String(org.id ?? org.tenantId ?? '');
+            if (key && !byKey.has(key)) byKey.set(key, org);
+          }
+          setDisplayOrganizations(Array.from(byKey.values()).slice(0, TENANT_ORG_SELECT_LIMIT));
           if (results.length > 0) {
             setCachedOrganizations((prev) => {
               const byId = new Map<number, TenantOrganizationDTO>();
               for (const org of [...results, ...prev]) {
                 if (org.id != null) byId.set(org.id, org);
               }
-              return Array.from(byId.values()).slice(0, TENANT_ORG_SELECT_LIMIT);
+              return Array.from(byId.values()).slice(0, TENANT_ORG_SELECT_LIMIT * 2);
             });
           }
         } catch {
@@ -205,7 +225,7 @@ export default function TenantOrganizationSearchSelect({
         } finally {
           setLoading(false);
         }
-      }, 300);
+      }, 280);
     },
     [cachedOrganizations],
   );
@@ -243,6 +263,20 @@ export default function TenantOrganizationSearchSelect({
     setIsOpen(true);
   };
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (displayOrganizations.length === 1) {
+        handleSelect(displayOrganizations[0]);
+      }
+    } else if (event.key === 'Escape') {
+      setIsOpen(false);
+      if (selectedOrg) {
+        setSearchTerm(formatOrgLabel(selectedOrg));
+      }
+    }
+  };
+
   return (
     <div ref={containerRef} className="relative">
       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -270,21 +304,25 @@ export default function TenantOrganizationSearchSelect({
         </svg>
         <input
           type="text"
+          role="combobox"
           value={searchTerm}
           onChange={handleSearchChange}
           onFocus={() => setIsOpen(true)}
+          onKeyDown={handleKeyDown}
           placeholder="Search organizations..."
           className={`mt-1 block w-full border rounded-xl focus:ring-blue-500 pl-10 pr-10 px-4 py-3 text-base ${
             error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-400 focus:border-blue-500'
           }`}
           aria-label="Search tenant organization"
           aria-expanded={isOpen}
+          aria-controls={listboxId}
           aria-autocomplete="list"
           autoComplete="off"
         />
         {(selectedOrg || searchTerm) && (
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={handleClear}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             title="Clear selection"
@@ -297,6 +335,7 @@ export default function TenantOrganizationSearchSelect({
 
       {isOpen && (
         <div
+          id={listboxId}
           className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-72 overflow-y-auto"
           role="listbox"
         >
@@ -312,6 +351,7 @@ export default function TenantOrganizationSearchSelect({
                 <li key={org.id ?? org.tenantId}>
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handleSelect(org)}
                     className={`w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors ${
                       value === org.tenantId ? 'bg-blue-100' : ''

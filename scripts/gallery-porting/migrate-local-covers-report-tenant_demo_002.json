@@ -1,0 +1,282 @@
+{
+  "startedAt": "2026-07-11T15:48:56.448Z",
+  "tenantId": "tenant_demo_002",
+  "dryRun": false,
+  "publicRoot": "F:\\project_workspace\\event-site-manager\\public",
+  "fallbackPublicRoot": "F:\\project_workspace\\mosc-temp\\public",
+  "totals": {
+    "albums": 31,
+    "localCovers": 29,
+    "alreadyRemote": 1,
+    "noCover": 1,
+    "processed": 29,
+    "migrated": 29,
+    "errors": 0,
+    "missingFile": 0,
+    "dryRun": 0
+  },
+  "results": [
+    {
+      "albumId": 6,
+      "title": "VATICAN VISIT OF HIS HOLINESS",
+      "oldCoverUrl": "/images/mosc/gallery/vatican-visit/00186_11092023-1024x683.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\vatican-visit\\00186_11092023-1024x683.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/6/cover_1783784936457_2a5b62ca.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 7,
+      "title": "ENTHRONEMENT CEREMONY OF HIS HOLINESS BASELIOS MARTHOMA MATHEWS III",
+      "oldCoverUrl": "/images/mosc/gallery/enthronement-mathews-iii/C24-768x1105.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\enthronement-mathews-iii\\C24-768x1105.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/7/cover_1783784937249_3a2eaf28.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 8,
+      "title": "RECEPTION TO HIS HOLINESS BASELIOS MARTHOMA MATHEWS III",
+      "oldCoverUrl": "/images/mosc/gallery/reception-mathews-iii/R15-2.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\reception-mathews-iii\\R15-2.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/8/cover_1783784937851_11abbd5c.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 9,
+      "title": "H.H Baselios Marthoma Paulose II With Kiril Patriarch",
+      "oldCoverUrl": "/images/mosc/gallery/paulose-ii-with-kiril/IMG-20190916-WA0042-200x300.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\paulose-ii-with-kiril\\IMG-20190916-WA0042-200x300.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/9/cover_1783784938389_9571b9b4.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 10,
+      "title": "His Holiness the Catholicos paying his respects at the relics of St. Matrona of Moscow",
+      "oldCoverUrl": "/images/mosc/gallery/st-matrona-relics/IMG-20190916-WA0017.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\st-matrona-relics\\IMG-20190916-WA0017.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/10/cover_1783784938916_b73672f6.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 11,
+      "title": "Official reception at the main Chapel of St. Cyril and Methodius Institute of Post-Graduate Studies",
+      "oldCoverUrl": "/images/mosc/gallery/st-cyril-methodius/IMG-20190916-WA0018-1024x682.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\st-cyril-methodius\\IMG-20190916-WA0018-1024x682.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/11/cover_1783784939440_a7d189ad.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 12,
+      "title": "The great shepherd of Malankara, prayerfully in Pokrovsky Monastery Chapel",
+      "oldCoverUrl": "/images/mosc/gallery/pokrovsky-monastery/IMG-20190916-WA0088-200x300.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\pokrovsky-monastery\\IMG-20190916-WA0088-200x300.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/12/cover_1783784939980_8ba6f8a7.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 13,
+      "title": "Mother Feofania and the little flowers of the Convent where St. Matrona is interred",
+      "oldCoverUrl": "/images/mosc/gallery/mother-feofania/IMG-20190916-WA0036-300x200.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\mother-feofania\\IMG-20190916-WA0036-300x200.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/13/cover_1783784940508_7e1ffb74.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 14,
+      "title": "Ceremonial Reception given to H.H The Catholicos of India by the Russian Orthodox Church",
+      "oldCoverUrl": "/images/mosc/gallery/ceremonial-reception-russian-orthodox/IMG-20190916-WA0023-300x200.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\ceremonial-reception-russian-orthodox\\IMG-20190916-WA0023-300x200.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/14/cover_1783784941032_80ce1388.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 15,
+      "title": "Offering incense at the Relics of St.Thomas (Devalokam Aramana)",
+      "oldCoverUrl": "/images/mosc/gallery/offering-incense-st-thomas/IMG_9820-1-300x200.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\offering-incense-st-thomas\\IMG_9820-1-300x200.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/15/cover_1783784941560_01dba8d9.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 16,
+      "title": "Order of St.Thomas to His Holiness Abune Mathias Patriarch Ethiopian Orthodox Tewahedo Church",
+      "oldCoverUrl": "/images/mosc/gallery/order-st-thomas-abune-mathias/MG_2774-300x200.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\order-st-thomas-abune-mathias\\MG_2774-300x200.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/16/cover_1783784942097_4519c505.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 17,
+      "title": "Visit of His Holiness Abune Mathias Patriarch Ethiopian Orthodox Tewahedo Church",
+      "oldCoverUrl": "/images/mosc/gallery/visit-abune-mathias/MG_2509-300x184.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\visit-abune-mathias\\MG_2509-300x184.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/17/cover_1783784942666_07f1beb9.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 18,
+      "title": "Reception to H.B.Tikon at Puthupally Church",
+      "oldCoverUrl": "/images/mosc/gallery/reception-tikon-puthupally/IMG_9166-150x150.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\reception-tikon-puthupally\\IMG_9166-150x150.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/18/cover_1783784943204_e6bc280e.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 19,
+      "title": "Official Website Inauguration, Devalokam Aramana",
+      "oldCoverUrl": "/images/mosc/gallery/website-inauguration/IMG_9248-300x169.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\website-inauguration\\IMG_9248-300x169.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/19/cover_1783784943761_5a7bd006.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 20,
+      "title": "Private Audience with H.B.Tikon at Devalokam Aramana",
+      "oldCoverUrl": "/images/mosc/gallery/private-audience-tikon-devalokam/IMG_9167-1024x575.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\private-audience-tikon-devalokam\\IMG_9167-1024x575.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/20/cover_1783784944287_2aeb7beb.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 21,
+      "title": "H.H Visit to Canberra",
+      "oldCoverUrl": "/images/mosc/gallery/canberra-visit/IMG_3553.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\canberra-visit\\IMG_3553.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/21/cover_1783784944877_fd98a898.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 22,
+      "title": "3rd International Dharma-Dhamma Conference",
+      "oldCoverUrl": "/images/mosc/gallery/dharma-dhamma-conference/IMG_1234.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\dharma-dhamma-conference\\IMG_1234.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/22/cover_1783784945433_19494455.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 23,
+      "title": "The Fraternity at Vienna",
+      "oldCoverUrl": "/images/mosc/gallery/vienna-fraternity/IMG_3898-1024x683.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\vienna-fraternity\\IMG_3898-1024x683.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/23/cover_1783784945998_83845443.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 24,
+      "title": "Service of Canonization of the Victims of Armenian Genocide",
+      "oldCoverUrl": "/images/mosc/gallery/armenian-genocide-canonization/IMG_3553-1024x683.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\armenian-genocide-canonization\\IMG_3553-1024x683.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/24/cover_1783784946541_d1d1b689.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 25,
+      "title": "His Holiness with Armenian President",
+      "oldCoverUrl": "/images/mosc/gallery/armenian-president/IMG_3660-300x200.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\armenian-president\\IMG_3660-300x200.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/25/cover_1783784947083_a37770b9.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 26,
+      "title": "Private Audience with Karekin I Supreme Patriarch and Catholicos of All Armenians",
+      "oldCoverUrl": "/images/mosc/gallery/private-audience-karekin/IMG_3229-1024x683.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\private-audience-karekin\\IMG_3229-1024x683.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/26/cover_1783784947612_869f52eb.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 27,
+      "title": "Enthronement ceremony of the new Coptic Pope",
+      "oldCoverUrl": "/images/mosc/gallery/enthronement-coptic-pope/et.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\enthronement-coptic-pope\\et.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/27/cover_1783784948151_179f5299.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 28,
+      "title": "Blessing of Holy Myron",
+      "oldCoverUrl": "/images/mosc/gallery/blessing-holy-myron/Picture-052-680x1024.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\blessing-holy-myron\\Picture-052-680x1024.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/28/cover_1783784948686_4c5cd502.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 29,
+      "title": "Private audience with HH Aram",
+      "oldCoverUrl": "/images/mosc/gallery/private-audience-aram/IMG_0902-150x150.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\private-audience-aram\\IMG_0902-150x150.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/29/cover_1783784949224_8bbf9d11.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 30,
+      "title": "100th anniversary of the Armenian Genocide",
+      "oldCoverUrl": "/images/mosc/gallery/armenian-genocide-100th/dharma-dhama-300x220.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\armenian-genocide-100th\\dharma-dhama-300x220.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/30/cover_1783784949749_90bbd346.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 31,
+      "title": "Ethiopian Visit of His Holiness",
+      "oldCoverUrl": "/images/mosc/gallery/ethiopian-visit/IMG_3745.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\ethiopian-visit\\IMG_3745.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/31/cover_1783784950281_43750274.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 32,
+      "title": "Vatican Visit of His Holiness",
+      "oldCoverUrl": "/images/mosc/gallery/rome-visit/IMG_3909-1024x683.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\rome-visit\\IMG_3909-1024x683.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/32/cover_1783784950848_6c17ec40.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 61,
+      "title": "Russia visit of H.H Baselios Marthoma Mathews III",
+      "oldCoverUrl": "/images/mosc/gallery/russia-visit/cross-200x300.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\russia-visit\\cross-200x300.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/61/cover_1783784951403_a8859da4.jpg",
+      "status": "migrated",
+      "error": null
+    },
+    {
+      "albumId": 62,
+      "title": "Metropolitan Hilarion receiving His Holiness to St. Cyril and Methodius Institute of Post-Graduate Studies",
+      "oldCoverUrl": "/images/mosc/gallery/metropolitan-hilarion/IMG-20190916-WA0025.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\metropolitan-hilarion\\IMG-20190916-WA0025.jpg",
+      "newCoverUrl": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/tenant_demo_002/gallery-album/album-id/62/cover_1783784951927_c2869c72.jpg",
+      "status": "migrated",
+      "error": null
+    }
+  ],
+  "finishedAt": "2026-07-11T15:49:12.452Z"
+}

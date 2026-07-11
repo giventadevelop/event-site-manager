@@ -80,6 +80,7 @@ cmd /c "set TEST_BASE_URL=http://localhost:3000&& node TestSprite\run-e2e-full.j
 | `test:public:dynamic` | Public pages with discovered demo IDs via `/api/proxy` |
 | `test:admin:crud` | `[E2E]` create/update/delete on scoped tenant |
 | `test:coverage:html` | Regenerate HTML from existing `coverage-*.json` |
+| `test:coverage:consolidated` | Global rollup → `coverage-global-latest.html` |
 | `test:e2e:full` | Orchestrated full loop (includes legacy comprehensive + dynamic) |
 | `test:e2e:quick` | Inventory + public dynamic + CRUD + admin/public smoke (**no** comprehensive) |
 
@@ -96,17 +97,30 @@ Each harness suite writes:
 
 - `TestSprite/reports/coverage-<suite>-<stamp>.json`
 - `TestSprite/reports/coverage-<suite>-<stamp>.html` — pass/fail, wall clock, per-module timings
+- **`TestSprite/reports/coverage-global-latest.html`** — consolidated overall SUCCESS/FAILED + all suites (also `coverage-global-consolidated-<stamp>.html`). Written at the end of `run-e2e-full.js` / `npm run test:coverage:consolidated`.
 - `TestSprite/reports/LOOP_LOG.md`
 
 Console prints `[harness] HTML report: …`.
 
+**Rotation:** on each write, old coverage files are pruned — keep newest `E2E_REPORT_KEEP` per suite (default **5**), delete files older than `E2E_REPORT_MAX_AGE_DAYS` (default **5**). `LOOP_LOG.md` and `coverage-global-latest.html` are kept. The folder is gitignored.
+
+**Note:** `TestSprite/admin-tests/admin-test-report.html` is only from `test:admin` / comprehensive — not the harness `reports/` folder. If you chain steps with all `&&` and comprehensive fails, CRUD/smoke never run and nothing new appears under `reports/`.
+
 ## Recommended ladder (admin + public)
 
 ```bat
-cmd /c "set TEST_TENANT_ID=tenant_demo_002&& set E2E_TENANT_ID=tenant_demo_002&& set E2E_EXPECTED_TENANT=tenant_demo_002&& set TEST_BASE_URL=http://localhost:3001&& node TestSprite\tools\generate-route-inventory.js & node TestSprite\admin-tests\comprehensive-admin-test-suite.js --port=3001 & node TestSprite\admin-tests\admin-crud-demo-tenant-suite.js --tenant=tenant_demo_002 --port=3001 & node TestSprite\sanity-tests\run-inventory-smoke-crawl.js --kind=admin,public --tenant=tenant_demo_002 --port=3001"
+cmd /c "set TEST_TENANT_ID=tenant_demo_002&& set E2E_TENANT_ID=tenant_demo_002&& set E2E_EXPECTED_TENANT=tenant_demo_002&& set TEST_BASE_URL=http://localhost:3001&& node TestSprite\tools\generate-route-inventory.js & node TestSprite\admin-tests\comprehensive-admin-test-suite.js --port=3001 & node TestSprite\admin-tests\admin-crud-demo-tenant-suite.js --tenant=tenant_demo_002 --port=3001 & node TestSprite\sanity-tests\run-inventory-smoke-crawl.js --kind=admin,public --tenant=tenant_demo_002 --port=3001 & node TestSprite\tools\write-consolidated-coverage-report.js"
 ```
 
-Use `&` between Node steps so CRUD/smoke continue if comprehensive exits non-zero.
+Or the quick orchestrator (default port **3001**):
+
+```bat
+cmd /c "set TEST_BASE_URL=http://localhost:3001&& node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3001"
+```
+
+That ends with `coverage-global-latest.html` automatically.
+
+Use `&` between Node steps in the manual ladder so CRUD/smoke continue if comprehensive exits non-zero.
 
 ## Safety
 

@@ -1,0 +1,282 @@
+{
+  "startedAt": "2026-07-11T15:48:54.241Z",
+  "tenantId": "tenant_demo_002",
+  "dryRun": true,
+  "publicRoot": "F:\\project_workspace\\event-site-manager\\public",
+  "fallbackPublicRoot": "F:\\project_workspace\\mosc-temp\\public",
+  "totals": {
+    "albums": 31,
+    "localCovers": 29,
+    "alreadyRemote": 1,
+    "noCover": 1,
+    "processed": 0,
+    "migrated": 0,
+    "errors": 0,
+    "missingFile": 0,
+    "dryRun": 29
+  },
+  "results": [
+    {
+      "albumId": 6,
+      "title": "VATICAN VISIT OF HIS HOLINESS",
+      "oldCoverUrl": "/images/mosc/gallery/vatican-visit/00186_11092023-1024x683.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\vatican-visit\\00186_11092023-1024x683.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 7,
+      "title": "ENTHRONEMENT CEREMONY OF HIS HOLINESS BASELIOS MARTHOMA MATHEWS III",
+      "oldCoverUrl": "/images/mosc/gallery/enthronement-mathews-iii/C24-768x1105.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\enthronement-mathews-iii\\C24-768x1105.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 8,
+      "title": "RECEPTION TO HIS HOLINESS BASELIOS MARTHOMA MATHEWS III",
+      "oldCoverUrl": "/images/mosc/gallery/reception-mathews-iii/R15-2.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\reception-mathews-iii\\R15-2.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 9,
+      "title": "H.H Baselios Marthoma Paulose II With Kiril Patriarch",
+      "oldCoverUrl": "/images/mosc/gallery/paulose-ii-with-kiril/IMG-20190916-WA0042-200x300.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\paulose-ii-with-kiril\\IMG-20190916-WA0042-200x300.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 10,
+      "title": "His Holiness the Catholicos paying his respects at the relics of St. Matrona of Moscow",
+      "oldCoverUrl": "/images/mosc/gallery/st-matrona-relics/IMG-20190916-WA0017.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\st-matrona-relics\\IMG-20190916-WA0017.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 11,
+      "title": "Official reception at the main Chapel of St. Cyril and Methodius Institute of Post-Graduate Studies",
+      "oldCoverUrl": "/images/mosc/gallery/st-cyril-methodius/IMG-20190916-WA0018-1024x682.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\st-cyril-methodius\\IMG-20190916-WA0018-1024x682.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 12,
+      "title": "The great shepherd of Malankara, prayerfully in Pokrovsky Monastery Chapel",
+      "oldCoverUrl": "/images/mosc/gallery/pokrovsky-monastery/IMG-20190916-WA0088-200x300.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\pokrovsky-monastery\\IMG-20190916-WA0088-200x300.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 13,
+      "title": "Mother Feofania and the little flowers of the Convent where St. Matrona is interred",
+      "oldCoverUrl": "/images/mosc/gallery/mother-feofania/IMG-20190916-WA0036-300x200.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\mother-feofania\\IMG-20190916-WA0036-300x200.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 14,
+      "title": "Ceremonial Reception given to H.H The Catholicos of India by the Russian Orthodox Church",
+      "oldCoverUrl": "/images/mosc/gallery/ceremonial-reception-russian-orthodox/IMG-20190916-WA0023-300x200.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\ceremonial-reception-russian-orthodox\\IMG-20190916-WA0023-300x200.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 15,
+      "title": "Offering incense at the Relics of St.Thomas (Devalokam Aramana)",
+      "oldCoverUrl": "/images/mosc/gallery/offering-incense-st-thomas/IMG_9820-1-300x200.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\offering-incense-st-thomas\\IMG_9820-1-300x200.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 16,
+      "title": "Order of St.Thomas to His Holiness Abune Mathias Patriarch Ethiopian Orthodox Tewahedo Church",
+      "oldCoverUrl": "/images/mosc/gallery/order-st-thomas-abune-mathias/MG_2774-300x200.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\order-st-thomas-abune-mathias\\MG_2774-300x200.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 17,
+      "title": "Visit of His Holiness Abune Mathias Patriarch Ethiopian Orthodox Tewahedo Church",
+      "oldCoverUrl": "/images/mosc/gallery/visit-abune-mathias/MG_2509-300x184.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\visit-abune-mathias\\MG_2509-300x184.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 18,
+      "title": "Reception to H.B.Tikon at Puthupally Church",
+      "oldCoverUrl": "/images/mosc/gallery/reception-tikon-puthupally/IMG_9166-150x150.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\reception-tikon-puthupally\\IMG_9166-150x150.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 19,
+      "title": "Official Website Inauguration, Devalokam Aramana",
+      "oldCoverUrl": "/images/mosc/gallery/website-inauguration/IMG_9248-300x169.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\website-inauguration\\IMG_9248-300x169.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 20,
+      "title": "Private Audience with H.B.Tikon at Devalokam Aramana",
+      "oldCoverUrl": "/images/mosc/gallery/private-audience-tikon-devalokam/IMG_9167-1024x575.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\private-audience-tikon-devalokam\\IMG_9167-1024x575.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 21,
+      "title": "H.H Visit to Canberra",
+      "oldCoverUrl": "/images/mosc/gallery/canberra-visit/IMG_3553.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\canberra-visit\\IMG_3553.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 22,
+      "title": "3rd International Dharma-Dhamma Conference",
+      "oldCoverUrl": "/images/mosc/gallery/dharma-dhamma-conference/IMG_1234.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\dharma-dhamma-conference\\IMG_1234.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 23,
+      "title": "The Fraternity at Vienna",
+      "oldCoverUrl": "/images/mosc/gallery/vienna-fraternity/IMG_3898-1024x683.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\vienna-fraternity\\IMG_3898-1024x683.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 24,
+      "title": "Service of Canonization of the Victims of Armenian Genocide",
+      "oldCoverUrl": "/images/mosc/gallery/armenian-genocide-canonization/IMG_3553-1024x683.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\armenian-genocide-canonization\\IMG_3553-1024x683.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 25,
+      "title": "His Holiness with Armenian President",
+      "oldCoverUrl": "/images/mosc/gallery/armenian-president/IMG_3660-300x200.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\armenian-president\\IMG_3660-300x200.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 26,
+      "title": "Private Audience with Karekin I Supreme Patriarch and Catholicos of All Armenians",
+      "oldCoverUrl": "/images/mosc/gallery/private-audience-karekin/IMG_3229-1024x683.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\private-audience-karekin\\IMG_3229-1024x683.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 27,
+      "title": "Enthronement ceremony of the new Coptic Pope",
+      "oldCoverUrl": "/images/mosc/gallery/enthronement-coptic-pope/et.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\enthronement-coptic-pope\\et.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 28,
+      "title": "Blessing of Holy Myron",
+      "oldCoverUrl": "/images/mosc/gallery/blessing-holy-myron/Picture-052-680x1024.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\blessing-holy-myron\\Picture-052-680x1024.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 29,
+      "title": "Private audience with HH Aram",
+      "oldCoverUrl": "/images/mosc/gallery/private-audience-aram/IMG_0902-150x150.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\private-audience-aram\\IMG_0902-150x150.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 30,
+      "title": "100th anniversary of the Armenian Genocide",
+      "oldCoverUrl": "/images/mosc/gallery/armenian-genocide-100th/dharma-dhama-300x220.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\armenian-genocide-100th\\dharma-dhama-300x220.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 31,
+      "title": "Ethiopian Visit of His Holiness",
+      "oldCoverUrl": "/images/mosc/gallery/ethiopian-visit/IMG_3745.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\ethiopian-visit\\IMG_3745.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 32,
+      "title": "Vatican Visit of His Holiness",
+      "oldCoverUrl": "/images/mosc/gallery/rome-visit/IMG_3909-1024x683.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\rome-visit\\IMG_3909-1024x683.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 61,
+      "title": "Russia visit of H.H Baselios Marthoma Mathews III",
+      "oldCoverUrl": "/images/mosc/gallery/russia-visit/cross-200x300.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\russia-visit\\cross-200x300.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    },
+    {
+      "albumId": 62,
+      "title": "Metropolitan Hilarion receiving His Holiness to St. Cyril and Methodius Institute of Post-Graduate Studies",
+      "oldCoverUrl": "/images/mosc/gallery/metropolitan-hilarion/IMG-20190916-WA0025.jpg",
+      "localPath": "F:\\project_workspace\\event-site-manager\\public\\images\\mosc\\gallery\\metropolitan-hilarion\\IMG-20190916-WA0025.jpg",
+      "newCoverUrl": null,
+      "status": "dry-run",
+      "error": null
+    }
+  ],
+  "finishedAt": "2026-07-11T15:48:54.243Z"
+}

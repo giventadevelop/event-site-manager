@@ -153,6 +153,8 @@ export type TenantSettingsFormDTO = Omit<TenantSettingsDTO, 'id' | 'createdAt' |
  */
 export interface TenantOrganizationFilters {
   search?: string;
+  /** Partial match on tenantId (tenantId.contains) — used by typeahead. */
+  tenantIdContains?: string;
   /** When set, scopes list to this tenant (tenantId.equals). */
   tenantId?: string;
   subscriptionStatus?: string;

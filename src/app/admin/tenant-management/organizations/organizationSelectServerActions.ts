@@ -5,6 +5,20 @@ import type { TenantOrganizationDTO } from '@/app/admin/tenant-management/types'
 
 const TENANT_ORG_SELECT_LIMIT = 20;
 
+function mergeOrganizationsByKey(
+  ...lists: TenantOrganizationDTO[][]
+): TenantOrganizationDTO[] {
+  const byKey = new Map<string, TenantOrganizationDTO>();
+  for (const list of lists) {
+    for (const org of list) {
+      const key = String(org.id ?? org.tenantId ?? '');
+      if (!key || byKey.has(key)) continue;
+      byKey.set(key, org);
+    }
+  }
+  return Array.from(byKey.values());
+}
+
 /** Latest organizations for settings create / typeahead (newest first). */
 export async function fetchRecentTenantOrganizationsForSelectServer(): Promise<TenantOrganizationDTO[]> {
   try {
@@ -19,7 +33,10 @@ export async function fetchRecentTenantOrganizationsForSelectServer(): Promise<T
   }
 }
 
-/** Typeahead search — organization name contains query, max 20, newest first. */
+/**
+ * Typeahead search by organization name OR tenant ID (contains), max 20, newest first.
+ * Typing "ten" matches tenant_demo_002; typing "techie" matches Techies US.
+ */
 export async function searchTenantOrganizationsForSelectServer(
   query: string,
 ): Promise<TenantOrganizationDTO[]> {
@@ -29,11 +46,15 @@ export async function searchTenantOrganizationsForSelectServer(
   }
 
   try {
-    const result = await fetchTenantOrganizations(
-      { page: 0, pageSize: TENANT_ORG_SELECT_LIMIT },
-      { search: trimmed, sortBy: 'createdAt', sortOrder: 'desc' },
-    );
-    return result.data;
+    const sort = { sortBy: 'createdAt' as const, sortOrder: 'desc' as const };
+    const page = { page: 0, pageSize: TENANT_ORG_SELECT_LIMIT };
+
+    const [byName, byTenantId] = await Promise.all([
+      fetchTenantOrganizations(page, { search: trimmed, ...sort }),
+      fetchTenantOrganizations(page, { tenantIdContains: trimmed, ...sort }),
+    ]);
+
+    return mergeOrganizationsByKey(byTenantId.data, byName.data).slice(0, TENANT_ORG_SELECT_LIMIT);
   } catch (error) {
     console.error('[searchTenantOrganizationsForSelectServer] Failed:', error);
     return [];

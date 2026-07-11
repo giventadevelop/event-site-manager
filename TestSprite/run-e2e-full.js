@@ -35,6 +35,7 @@ import {
   ensureDir,
   parseTenantCliArg,
   DEFAULT_E2E_BASE_URL,
+  writeConsolidatedCoverageReport,
 } from './lib/e2e-harness.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -94,7 +95,8 @@ function printPlan(baseUrl, tenantId) {
   }
   console.log(`  ${skipLegacyAdmin ? (skipCrud ? '3' : '4') : '6'}. Inventory smoke: admin`);
   console.log(`  ${skipLegacyAdmin ? (skipCrud ? '4' : '5') : '7'}. Inventory smoke: public`);
-  console.log(`[e2e-full] Reports: TestSprite/reports/coverage-*.html (+ LOOP_LOG.md)`);
+  console.log(`  last. Global consolidated → coverage-global-latest.html`);
+  console.log(`[e2e-full] Reports: TestSprite/reports/coverage-*.html (+ coverage-global-latest.html)`);
   console.log(`${'='.repeat(60)}\n`);
 }
 
@@ -164,11 +166,20 @@ async function main() {
     'utf8'
   );
 
+  try {
+    writeConsolidatedCoverageReport();
+  } catch (err) {
+    console.warn(`[e2e-full] Consolidated report skipped: ${err.message || err}`);
+  }
+
   if (failed > 0) {
-    console.error(`\n${failed} suite(s) failed. See TestSprite/reports/ (JSON + HTML).`);
+    console.error(
+      `\n${failed} suite(s) failed. See TestSprite/reports/ (coverage-global-latest.html).`
+    );
     process.exit(1);
   }
   console.log('\nAll orchestrated suites completed successfully.');
+  console.log('Open TestSprite/reports/coverage-global-latest.html for the global rollup.');
 }
 
 main().catch((err) => {
