@@ -82,11 +82,40 @@ export default {
           DEFAULT: "#ff7903",
           bg: "#ffc81533",
         },
+        parchment: {
+          DEFAULT: "#F5EDD8",
+          deep: "#EDE0C4",
+          mid: "#F0E6CC",
+          light: "#FDFAF3",
+        },
+        burgundy: {
+          DEFAULT: "#C0284A",
+          dark: "#8B1030",
+          light: "#E8406A",
+          muted: "#E8899A",
+        },
+        warmGold: {
+          DEFAULT: "#C8860A",
+          dark: "#A06808",
+          light: "#E8A830",
+        },
+        warmGray: {
+          light: "#D4C4C4",
+          DEFAULT: "#9E8080",
+          dark: "#5C3D3D",
+        },
+        "syro-gold": {
+          DEFAULT: "#C8860A",
+          dark: "#A06808",
+          light: "#E8A830",
+        },
       },
       fontFamily: {
         // Syro-Malabar Design System Fonts (namespaced with syro- prefix)
         "syro-primary": ["Poppins", "Arial", "Helvetica", "sans-serif"],
         "syro-display": ["Playfair Display", "serif"],
+        "dm-sans": ["var(--font-dm-sans)", "DM Sans", "ui-sans-serif", "system-ui", "sans-serif"],
+        "anek-malayalam": ["var(--font-anek-malayalam)", "Anek Malayalam", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       fontSize: {
         // Syro-Malabar Design System Font Sizes (namespaced with syro- prefix)

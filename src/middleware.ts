@@ -55,6 +55,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/health(.*)',
   '/api/liturgy(.*)',
   '/mosc(.*)',
+  '/mosc-redesign(.*)',
   '/syro(.*)',
   '/events(.*)',
   '/sponsors(.*)',

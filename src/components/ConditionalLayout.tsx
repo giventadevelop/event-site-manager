@@ -18,6 +18,9 @@ export default function ConditionalLayout({ children, header, footer }: Conditio
   // Check if this is a Syro route
   const isSyroRoute = pathname?.startsWith("/syro") ?? false;
 
+  // MOSC redesign shell (downloads library, etc.)
+  const isMoscRedesignRoute = pathname?.startsWith("/mosc-redesign") ?? false;
+
   // Primary root `/` is a minimal auth-only landing (no main site header/footer).
   // Satellite sign-in still targets `/sign-in` on the primary domain; see RootAuthLanding.
   const isRootAuthOnly = pathname === "/";
@@ -36,6 +39,10 @@ export default function ConditionalLayout({ children, header, footer }: Conditio
 
   // For Syro routes, just render children without main app header/footer
   if (isSyroRoute) {
+    return <>{children}</>;
+  }
+
+  if (isMoscRedesignRoute) {
     return <>{children}</>;
   }
 

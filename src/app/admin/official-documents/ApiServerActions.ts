@@ -163,30 +163,62 @@ export async function fetchOfficialDocumentCategoriesServer(): Promise<OfficialD
   }
 }
 
-/** All matching rows (up to `size`) — used for cover picker and legacy refresh. */
+const OFFICIAL_DOCUMENT_LIST_BATCH_SIZE = 25;
+
+function parseSpringTotalCountHeader(res: Response, fallback: number): number {
+  const raw = res.headers.get('X-Total-Count') ?? res.headers.get('x-total-count');
+  if (raw == null || raw.trim() === '') {
+    return fallback;
+  }
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+/**
+ * All matching rows — used for cover picker and legacy refresh.
+ * Fetches in small batches (25) to avoid OOM from loading full event_media rows in one page.
+ */
 export async function fetchTenantOfficialDocumentsServer(filters?: {
   year?: number;
   officialDocumentCategoryId?: number;
   size?: number;
 }): Promise<EventMediaDTO[]> {
+  const maxRows = filters?.size ?? Number.POSITIVE_INFINITY;
+  const batchSize = OFFICIAL_DOCUMENT_LIST_BATCH_SIZE;
+  const all: EventMediaDTO[] = [];
+  let page = 0;
+  let totalElements = Number.POSITIVE_INFINITY;
+
   try {
-    const params = new URLSearchParams();
-    params.append('tenantId.equals', getTenantId());
-    params.append('isEventManagementOfficialDocument.equals', 'true');
-    params.append('sort', 'createdAt,desc');
-    params.append('size', String(filters?.size ?? 500));
-    if (filters?.year != null) params.append('officialDocumentYear.equals', String(filters.year));
-    if (filters?.officialDocumentCategoryId != null) {
-      params.append('officialDocumentCategoryId.equals', String(filters.officialDocumentCategoryId));
+    while (all.length < maxRows && all.length < totalElements && page < 200) {
+      const params = new URLSearchParams();
+      params.append('tenantId.equals', getTenantId());
+      params.append('isEventManagementOfficialDocument.equals', 'true');
+      params.append('sort', 'createdAt,desc');
+      params.append('page', String(page));
+      params.append('size', String(batchSize));
+      if (filters?.year != null) params.append('officialDocumentYear.equals', String(filters.year));
+      if (filters?.officialDocumentCategoryId != null) {
+        params.append('officialDocumentCategoryId.equals', String(filters.officialDocumentCategoryId));
+      }
+      const url = `${getApiBaseUrl()}/api/event-medias?${params.toString()}`;
+      const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
+      if (!res.ok) break;
+
+      const data = await res.json();
+      const batch = parseSpringPage<EventMediaDTO>(data);
+      const meta = parseSpringPageMeta(data);
+      totalElements = meta.totalElements || parseSpringTotalCountHeader(res, all.length + batch.length);
+
+      all.push(...batch);
+      page += 1;
+      if (batch.length === 0) break;
     }
-    const url = `${getApiBaseUrl()}/api/event-medias?${params.toString()}`;
-    const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return parseSpringPage<EventMediaDTO>(data);
+
+    return Number.isFinite(maxRows) ? all.slice(0, maxRows) : all;
   } catch (e) {
     console.error('[official-documents] fetchTenantOfficialDocumentsServer:', e);
-    return [];
+    return all;
   }
 }
 

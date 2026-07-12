@@ -231,6 +231,14 @@ export interface EventMediaDTO {
    */
   priorityRanking?: number;
   /**
+   * Canonical hierarchy path for official document tree rendering.
+   */
+  hierarchyPath?: string | null;
+  /** Human-friendly top-level category label from legacy folder hierarchy. */
+  hierarchyCategoryLabel?: string | null;
+  /** Display priority for official documents (lower = higher rank). */
+  displayPriority?: number | null;
+  /**
    * Reference to gallery album. Mutually exclusive with eventId (media belongs to either an event OR an album, not both).
    */
   albumId?: number;
@@ -734,6 +742,12 @@ export interface TenantSettingsDTO {
   /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   stateProvince?: string;
   email?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  youtubeUrl?: string;
+  tiktokUrl?: string;
   createdAt: string; // date-time
   updatedAt: string; // date-time
   tenantOrganization?: TenantOrganizationDTO;

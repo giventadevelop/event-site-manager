@@ -246,7 +246,6 @@ export default function OfficialDocumentsClient({
     void fetchTenantOfficialDocumentsServer({
       year,
       officialDocumentCategoryId: selectedCategoryId,
-      size: 500,
     }).then((list) => {
       if (!cancelled) setCoverSourceDocs(list);
     });
@@ -514,7 +513,6 @@ export default function OfficialDocumentsClient({
         const list = await fetchTenantOfficialDocumentsServer({
           year,
           officialDocumentCategoryId: selectedCategoryId,
-          size: 500,
         });
         setCoverSourceDocs(list);
       }
