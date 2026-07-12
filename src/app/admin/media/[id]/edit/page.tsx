@@ -8,6 +8,7 @@ import { useAuth } from "@clerk/nextjs";
 import type { UserProfileDTO } from "@/types";
 import { FaUsers, FaPhotoVideo, FaCalendarAlt } from 'react-icons/fa';
 import Link from "next/link";
+import AdminTenantIdBanner from "@/components/admin/AdminTenantIdBanner";
 
 export default function EditMediaPage() {
   const router = useRouter();
@@ -192,8 +193,13 @@ export default function EditMediaPage() {
         </table>
       </div>
       <div className="flex justify-center">
-        <h1 className="text-2xl font-bold mb-6 text-white bg-blue-600 rounded px-6 py-3 w-full text-center">Edit Media File</h1>
+        <h1 className="text-2xl font-bold mb-2 text-white bg-blue-600 rounded px-6 py-3 w-full text-center">Edit Media File</h1>
       </div>
+      <AdminTenantIdBanner
+        tenantId={media.tenantId}
+        entityLabel="media file"
+        className="mb-6"
+      />
       {error && <div className="bg-red-50 text-red-500 p-3 rounded mb-4">{error}</div>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="hidden" name="eventId" value={media.eventId ?? ''} />

@@ -1,4 +1,4 @@
-import { getAppUrl } from '@/lib/env';
+import { getAppUrl, appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import type { EventPollDTO, EventPollOptionDTO, EventPollResponseDTO } from '@/types';
 
@@ -10,9 +10,12 @@ export async function fetchEventPollsServer(filters?: Record<string, any>) {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          params.append(key, String(value));
+        if (value === undefined || value === null) return;
+        if (key === 'tenantId') {
+          appendTenantIfPresent(params, effectiveTenantId(String(value)));
+          return;
         }
+        params.append(key, String(value));
       });
     }
     

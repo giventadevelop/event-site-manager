@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminMembershipPlansPage(props: {
-  searchParams?: Promise<{ page?: string }> | { page?: string };
+  searchParams?: Promise<{ page?: string; tenant?: string }> | { page?: string; tenant?: string };
 }) {
   const { userId } = await auth();
   if (!userId) {
@@ -26,6 +26,10 @@ export default async function AdminMembershipPlansPage(props: {
   // Parse page from search params (default to 0 for zero-based indexing)
   const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page, 10) : 0;
   const pageSize = 10; // Default page size
+  const tenantId =
+    typeof resolvedSearchParams.tenant === 'string' && resolvedSearchParams.tenant.trim()
+      ? resolvedSearchParams.tenant.trim()
+      : undefined;
 
   let plans: MembershipPlanDTO[] = [];
   let totalCount = 0;
@@ -36,6 +40,7 @@ export default async function AdminMembershipPlansPage(props: {
       page,
       size: pageSize,
       sort: 'createdAt,desc',
+      tenantId,
     });
     plans = result.plans;
     totalCount = result.totalCount;

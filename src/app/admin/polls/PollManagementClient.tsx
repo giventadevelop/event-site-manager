@@ -5,6 +5,7 @@ import { PollList } from './components/PollList';
 import { PollCreationForm } from './components/PollCreationForm';
 import { PollDetailsModal } from './components/PollDetailsModal';
 import { SuccessDialog } from '@/components/ui/SuccessDialog';
+import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
 import { 
   createEventPollServer, 
   updateEventPollServer, 
@@ -29,6 +30,10 @@ export function PollManagementClient({ initialPolls }: PollManagementClientProps
   const [pollOptions, setPollOptions] = useState<EventPollOptionDTO[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState({ title: '', message: '' });
+
+  useEffect(() => {
+    setPolls(initialPolls);
+  }, [initialPolls]);
 
   const showSuccess = (title: string, message: string) => {
     setSuccessMessage({ title, message });
@@ -225,6 +230,10 @@ export function PollManagementClient({ initialPolls }: PollManagementClientProps
           <p className="text-gray-600 mt-2">
             Update poll settings and options
           </p>
+          <AdminTenantIdBanner
+            tenantId={editingPoll.tenantId}
+            entityLabel="poll"
+          />
         </div>
         
         <PollCreationForm

@@ -11,6 +11,7 @@ import type { EventSponsorsDTO, EventMediaDTO } from '@/types';
 import { updateEventSponsorServer, fetchSponsorMediaServer } from '../ApiServerActions';
 import PaginatedMediaList from './PaginatedMediaList';
 import { useAdminTenantId } from '../../AdminTenantContext';
+import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
 
 interface SponsorEditClientProps {
   sponsor: EventSponsorsDTO;
@@ -30,6 +31,7 @@ export default function SponsorEditClient({
   totalPages,
 }: SponsorEditClientProps) {
   const router = useRouter();
+  const tenantId = useAdminTenantId();
   const [sponsor, setSponsor] = useState<EventSponsorsDTO>(initialSponsor);
   const [formData, setFormData] = useState<Partial<EventSponsorsDTO>>(initialSponsor);
   const [loading, setLoading] = useState(false);
@@ -129,9 +131,14 @@ export default function SponsorEditClient({
       </div>
 
       <h1 className="font-heading font-semibold text-3xl text-foreground mb-2">Edit Sponsor</h1>
-      <p className="font-body text-muted-foreground mb-8">
+      <p className="font-body text-muted-foreground mb-2">
         {sponsor.name || 'Sponsor Details'}
       </p>
+      <AdminTenantIdBanner
+        tenantId={sponsor.tenantId}
+        entityLabel="sponsor"
+        className="mb-8"
+      />
 
       <AdminNavigation currentPage="event-sponsors" />
 

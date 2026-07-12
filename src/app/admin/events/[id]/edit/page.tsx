@@ -6,6 +6,7 @@ import type { EventDetailsDTO, EventTypeDetailsDTO } from '@/types';
 import Link from 'next/link';
 import { FaUsers, FaPhotoVideo, FaCalendarAlt, FaTags, FaTicketAlt, FaHome, FaMicrophone, FaAddressBook, FaHandshake, FaEnvelope, FaUserTie, FaClipboardCheck, FaChartLine, FaDollarSign } from 'react-icons/fa';
 import SaveStatusDialog, { type SaveStatus } from '@/components/SaveStatusDialog';
+import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
 
 export default function EditEventPage() {
   const router = useRouter();
@@ -293,7 +294,12 @@ export default function EditEventPage() {
         </div>
       </div>
 
-      <h1 className="text-2xl font-bold mb-4">Edit Event - ID: {eventId}</h1>
+      <h1 className="text-2xl font-bold mb-2">Edit Event - ID: {eventId}</h1>
+      <AdminTenantIdBanner
+        tenantId={event?.tenantId}
+        entityLabel="event"
+        className="mb-4"
+      />
       <div className="border rounded p-4 bg-white shadow-sm min-h-[200px]">
         <EventForm event={event} eventTypes={eventTypes} onSubmit={handleSubmit} loading={loading} />
       </div>

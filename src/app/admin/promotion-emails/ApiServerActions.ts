@@ -114,7 +114,7 @@ export async function createPromotionEmailTemplateServer(
     subject: formData.subject,
     fromEmail: formData.fromEmail.trim(),
     bodyHtml: formData.bodyHtml,
-    footerHtml: null,
+    footerHtml: formData.footerHtml?.trim() ? formData.footerHtml : null,
     headerImageUrl: formData.headerImageUrl || '',
     footerImageUrl: formData.footerImageUrl || '',
     discountCodeId: formData.discountCodeId,
@@ -170,7 +170,9 @@ export async function updatePromotionEmailTemplateServer(
     updatedAt: now,
     templateType: formData.templateType || 'EVENT_PROMOTION',
     ...(formData.fromEmail !== undefined && { fromEmail: formData.fromEmail }),
-    footerHtml: null,
+    ...(formData.footerHtml !== undefined && {
+      footerHtml: formData.footerHtml?.trim() ? formData.footerHtml : null,
+    }),
   };
   if (tid != null) (payload as any).tenantId = tid;
 

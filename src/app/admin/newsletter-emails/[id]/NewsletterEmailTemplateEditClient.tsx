@@ -19,6 +19,11 @@ import {
 } from '../ApiServerActions';
 import { fetchDiscountCodesForEvent } from '@/app/admin/events/[id]/discount-codes/list/ApiServerActions';
 import FromEmailSelect from '@/components/FromEmailSelect';
+import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
+import { useTenantSettings } from '@/components/TenantSettingsProvider';
+import { resolveTenantOrganizationIdentity } from '@/lib/resolveTenantOrganizationIdentity';
+import { buildSiteFooterEmailHtmlFromTenant } from '@/lib/newsletter/siteFooterEmailHtml';
+import type { TenantOrganizationDTO } from '@/types';
 // Event selection is no longer editable for newsletter templates.
 
 interface NewsletterEmailTemplateEditClientProps {
@@ -68,13 +73,17 @@ export default function NewsletterEmailTemplateEditClient({
   const [uploadingFooter, setUploadingFooter] = useState(false);
   const [isDraggingHeader, setIsDraggingHeader] = useState(false);
   const [isDraggingFooter, setIsDraggingFooter] = useState(false);
+  const [addSiteFooter, setAddSiteFooter] = useState(false);
+  const [organization, setOrganization] = useState<TenantOrganizationDTO | null>(null);
   const headerFileInputRef = useRef<HTMLInputElement>(null);
   const footerFileInputRef = useRef<HTMLInputElement>(null);
   const [isEmailListEmpty, setIsEmailListEmpty] = useState(false);
   const [fromEmailError, setFromEmailError] = useState<string | null>(null);
+  const { settings } = useTenantSettings();
 
   useEffect(() => {
     if (template) {
+      setAddSiteFooter(!!(template.footerHtml?.trim()));
       setFormData({
         eventId: template.eventId,
         templateName: template.templateName,
@@ -93,6 +102,45 @@ export default function NewsletterEmailTemplateEditClient({
       }
     }
   }, [template]);
+
+  useEffect(() => {
+    const tenantIdForOrg = settings?.tenantId || tenantId;
+    if (!tenantIdForOrg) {
+      setOrganization(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const params = new URLSearchParams({
+          'tenantId.equals': tenantIdForOrg,
+          size: '1',
+        });
+        const res = await fetch(`/api/proxy/tenant-organizations?${params.toString()}`, {
+          cache: 'no-store',
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const org = Array.isArray(data) ? data[0] : data;
+        if (!cancelled) setOrganization(org || null);
+      } catch (err) {
+        console.warn('[Newsletter] Failed to load tenant organization for site footer:', err);
+        if (!cancelled) setOrganization(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [settings?.tenantId, tenantId]);
+
+  const organizationIdentity = resolveTenantOrganizationIdentity(organization, settings);
+
+  const getSiteFooterHtml = () =>
+    buildSiteFooterEmailHtmlFromTenant(settings, organization, organizationIdentity);
+
+  const handleAddSiteFooterChange = (checked: boolean) => {
+    setAddSiteFooter(checked);
+  };
 
   useEffect(() => {
     if (formData.eventId) {
@@ -374,7 +422,14 @@ export default function NewsletterEmailTemplateEditClient({
     setSaving(true);
 
     try {
-      await updateNewsletterEmailTemplateServer(templateId, formData, tenantId);
+      await updateNewsletterEmailTemplateServer(
+        templateId,
+        {
+          ...formData,
+          footerHtml: addSiteFooter ? getSiteFooterHtml() : '',
+        },
+        tenantId
+      );
 
       // Show success message
       setSaveStatus('success');
@@ -423,9 +478,13 @@ export default function NewsletterEmailTemplateEditClient({
             ← Back to Promotion Emails
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Edit Promotion Email Template
+            Edit Newsletter Email Template
           </h1>
         </div>
+        <AdminTenantIdBanner
+          tenantId={template.tenantId}
+          entityLabel="newsletter template"
+        />
       </div>
 
       {successMessage && (
@@ -682,6 +741,40 @@ export default function NewsletterEmailTemplateEditClient({
             )}
           </div>
 
+          <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-4">
+            <p className="text-sm text-gray-700 mb-3">
+              Upload a footer banner image above, or enable the site footer layout below. You can use both — they are sent separately in the email.
+            </p>
+            <div className="flex items-start gap-4">
+              <label
+                htmlFor="addSiteFooter"
+                className="relative flex items-center justify-center flex-shrink-0 mt-1 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  id="addSiteFooter"
+                  checked={addSiteFooter}
+                  onChange={(e) => handleAddSiteFooterChange(e.target.checked)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="custom-checkbox custom-checkbox--yellow"
+                />
+                <span className="custom-checkbox-tick">
+                  {addSiteFooter && (
+                    <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l5 5L19 7" />
+                    </svg>
+                  )}
+                </span>
+              </label>
+              <label htmlFor="addSiteFooter" className="block cursor-pointer min-w-0">
+                <span className="text-xl font-semibold text-gray-900">Add site footer</span>
+                <span className="block text-base text-gray-600 mt-1">
+                  Inserts your homepage-style footer (tenant name, contact, links) at ~600 px email width when the template is saved or sent.
+                </span>
+              </label>
+            </div>
+          </div>
+
           {/* Body HTML */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -747,16 +840,29 @@ export default function NewsletterEmailTemplateEditClient({
           </div> */}
 
           {/* Active Status */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              name="isActive"
-              id="isActive"
-              checked={formData.isActive}
-              onChange={handleChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
+          <div className="flex items-center gap-4">
+            <label
+              htmlFor="isActive"
+              className="relative flex items-center justify-center flex-shrink-0 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                name="isActive"
+                id="isActive"
+                checked={formData.isActive}
+                onChange={handleChange}
+                onClick={(e) => e.stopPropagation()}
+                className="custom-checkbox custom-checkbox--yellow"
+              />
+              <span className="custom-checkbox-tick">
+                {formData.isActive && (
+                  <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l5 5L19 7" />
+                  </svg>
+                )}
+              </span>
+            </label>
+            <label htmlFor="isActive" className="block cursor-pointer text-xl font-semibold text-gray-900">
               Template is active
             </label>
           </div>

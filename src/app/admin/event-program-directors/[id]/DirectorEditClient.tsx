@@ -8,6 +8,7 @@ import DirectorImageUploadArea from '@/components/directors/DirectorImageUploadA
 import type { EventProgramDirectorsDTO, EventMediaDTO } from '@/types';
 import { updateEventProgramDirectorServer } from '../ApiServerActions';
 import PaginatedMediaList from './PaginatedMediaList';
+import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
 
 interface DirectorEditClientProps {
   director: EventProgramDirectorsDTO;
@@ -88,9 +89,14 @@ export default function DirectorEditClient({
       </div>
 
       <h1 className="font-heading font-semibold text-3xl text-foreground mb-2">Edit Director</h1>
-      <p className="font-body text-muted-foreground mb-8">
+      <p className="font-body text-muted-foreground mb-2">
         {director.name || 'Director Details'}
       </p>
+      <AdminTenantIdBanner
+        tenantId={director.tenantId}
+        entityLabel="director"
+        className="mb-8"
+      />
 
       <AdminNavigation currentPage="event-program-directors" />
 

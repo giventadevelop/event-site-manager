@@ -2,16 +2,30 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { PollManagementClient } from './PollManagementClient';
 import { fetchEventPollsServer } from './ApiServerActions';
+import AdminTenantFilterBar from '@/components/admin/AdminTenantFilterBar';
 
-export default async function PollsPage() {
+export default async function PollsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tenant?: string }> | { tenant?: string };
+}) {
   const { userId } = await auth();
 
   if (!userId) {
     redirect('/sign-in');
   }
 
+  const resolvedSearchParams =
+    typeof searchParams?.then === 'function' ? await searchParams : searchParams;
+  const tenantId =
+    typeof resolvedSearchParams?.tenant === 'string' && resolvedSearchParams.tenant.trim()
+      ? resolvedSearchParams.tenant.trim()
+      : undefined;
+
   // Fetch polls data - API now returns { data, totalCount }
-  const pollsResult = await fetchEventPollsServer();
+  const pollsResult = await fetchEventPollsServer(
+    tenantId ? { tenantId } : undefined
+  );
   const polls = pollsResult.data;
 
   return (
@@ -33,10 +47,11 @@ export default async function PollsPage() {
             Create and manage interactive polls for your events
           </p>
         </div>
-        
+
+        <AdminTenantFilterBar />
+
         <PollManagementClient initialPolls={polls} />
       </div>
     </div>
   );
 }
-

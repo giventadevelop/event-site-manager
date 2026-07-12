@@ -8,8 +8,8 @@ import { createPortal } from "react-dom";
 import Link from 'next/link';
 import { useRouter, useParams } from "next/navigation";
 import { Modal } from "@/components/Modal";
-import { getTenantId } from '@/lib/env';
 import AdminTenantFilterField from '@/app/admin/AdminTenantFilterField';
+import { useAdminTenantId } from '@/app/admin/AdminTenantContext';
 import { formatInTimeZone } from 'date-fns-tz';
 
 // Helper function for timezone-aware date formatting
@@ -454,6 +454,7 @@ export default function EventMediaListPage() {
   const router = useRouter();
   const params = useParams();
   const eventId = params ? (params.id as string) : null;
+  const tenantId = useAdminTenantId();
 
   const [media, setMedia] = useState<EventMediaDTO[]>([]);
   const [eventDetails, setEventDetails] = useState<EventDetailsDTO | null>(null);
@@ -504,7 +505,7 @@ export default function EventMediaListPage() {
             isHomePageHeroImage,
             isFeaturedEventImage,
             isLiveEventImage,
-          });
+          }, tenantId);
           setMedia(mediaResponse.data);
           setTotalCount(mediaResponse.totalCount);
 
@@ -518,7 +519,7 @@ export default function EventMediaListPage() {
       fetchData();
     }, 500); // Debounce search
     return () => clearTimeout(timer);
-  }, [eventId, page, pageSize, searchTerm, eventFlyerOnly, isFeaturedVideo, isHeroImage, isActiveHeroImage, isHomePageHeroImage, isFeaturedEventImage, isLiveEventImage]);
+  }, [eventId, page, pageSize, searchTerm, eventFlyerOnly, isFeaturedVideo, isHeroImage, isActiveHeroImage, isHomePageHeroImage, isFeaturedEventImage, isLiveEventImage, tenantId]);
 
   function handleCellMouseEnter(media: EventMediaDTO, e: React.MouseEvent<HTMLTableCellElement>, type: 'officialDocs' | 'uploadedMedia', serialNumber: number) {
     // Don't show tooltip if it was recently closed

@@ -964,6 +964,79 @@ export function resolveDynamicPath(routePath, ids = {}) {
   return out;
 }
 
+/** Paths that must not be inventory-smoked (redirect loops / intentional navigations). */
+export const SMOKE_SKIP_PATH_PREFIXES = [
+  '/auth/signout-redirect',
+];
+
+/**
+ * Whether an inventory / smoke path should be skipped (prefix match, query stripped).
+ * @param {string} routePath
+ */
+export function shouldSkipSmokePath(routePath) {
+  const p = String(routePath || '').split('?')[0].replace(/\/$/, '') || '/';
+  return SMOKE_SKIP_PATH_PREFIXES.some((prefix) => {
+    const norm = prefix.replace(/\/$/, '');
+    return p === norm || p.startsWith(`${norm}/`);
+  });
+}
+
+/**
+ * True when Playwright aborted a navigation (overlapping goto/click, etc.).
+ * @param {unknown} err
+ */
+export function isNavigationAbortError(err) {
+  const msg = String(err?.message || err || '');
+  return (
+    /ERR_ABORTED/i.test(msg) ||
+    /NS_BINDING_ABORTED/i.test(msg) ||
+    /Navigation interrupted/i.test(msg) ||
+    /interrupted by another navigation/i.test(msg) ||
+    /frame was detached/i.test(msg) ||
+    /Target closed/i.test(msg)
+  );
+}
+
+/**
+ * page.goto with settle + retries on abort / transient navigation errors.
+ * @param {import('playwright').Page} page
+ * @param {string} url
+ * @param {{ timeout?: number, waitUntil?: 'load'|'domcontentloaded'|'networkidle'|'commit', retries?: number, settleMs?: number }} [opts]
+ */
+export async function safeGoto(page, url, opts = {}) {
+  const {
+    timeout = 45000,
+    waitUntil = 'domcontentloaded',
+    retries = 2,
+    settleMs = 250,
+  } = opts;
+
+  let lastErr = null;
+  const attempts = Math.max(1, retries + 1);
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      // Let any prior navigation settle before starting another goto
+      await page.waitForLoadState('domcontentloaded', { timeout: 2500 }).catch(() => {});
+      const res = await page.goto(url, { waitUntil, timeout });
+      if (settleMs > 0) {
+        await page.waitForTimeout(settleMs);
+      }
+      return res;
+    } catch (err) {
+      lastErr = err;
+      const retryable = isNavigationAbortError(err) || /Timeout/i.test(String(err?.message || ''));
+      if (!retryable || attempt >= attempts) break;
+      console.warn(
+        `[harness] safeGoto retry ${attempt}/${attempts - 1} after: ${String(err.message || err).split('\n')[0]}`
+      );
+      await page.waitForTimeout(400 * attempt);
+    }
+  }
+
+  throw lastErr;
+}
+
 /**
  * Standard smoke check on an already-open Playwright page after goto.
  */

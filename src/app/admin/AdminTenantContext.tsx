@@ -38,7 +38,12 @@ function hasInlineTenantFilter(pathname: string | null): boolean {
     pathname.includes('/tenant-email-addresses') ||
     pathname.includes('/manual-payments') ||
     pathname.includes('/satellite-domains') ||
-    pathname.includes('/tenant-management/settings')
+    pathname.includes('/tenant-management/settings') ||
+    pathname.includes('/membership/plans') ||
+    pathname.includes('/membership/subscriptions') ||
+    pathname.includes('/polls') ||
+    pathname.includes('/focus-groups') ||
+    pathname.includes('/media/list')
   );
 }
 

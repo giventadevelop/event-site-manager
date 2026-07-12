@@ -9,6 +9,8 @@ import { Modal } from '@/components/Modal';
 import { FaTimes, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
 import { cancelUserSubscriptionServer, getSubscriptionDetailsServer } from './ApiServerActions';
 import type { MembershipSubscriptionDTO } from '@/types';
+import { useAdminTenantId } from '@/app/admin/AdminTenantContext';
+import AdminTenantFilterField from '@/app/admin/AdminTenantFilterField';
 
 interface AdminSubscriptionsClientProps {
   subscriptions: MembershipSubscriptionDTO[];
@@ -27,6 +29,7 @@ export function AdminSubscriptionsClient({
 }: AdminSubscriptionsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tenantId = useAdminTenantId();
   const [isLoading, setIsLoading] = useState<number | null>(null);
   const [selectedSubscription, setSelectedSubscription] = useState<MembershipSubscriptionDTO | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -103,7 +106,23 @@ export function AdminSubscriptionsClient({
       params.delete('status');
     }
     params.set('page', '1'); // Reset to first page when filtering
+    if (tenantId) {
+      params.set('tenant', tenantId);
+    } else {
+      params.delete('tenant');
+    }
     router.push(`/admin/membership/subscriptions?${params.toString()}`);
+  };
+
+  const buildSubscriptionsHref = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', String(page));
+    if (tenantId) {
+      params.set('tenant', tenantId);
+    } else {
+      params.delete('tenant');
+    }
+    return `/admin/membership/subscriptions?${params.toString()}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -151,6 +170,10 @@ export function AdminSubscriptionsClient({
 
       {/* Admin Navigation */}
       <AdminNavigation currentPage="membership-subscriptions" />
+
+      <div className="mb-4 bg-white rounded-xl shadow border border-gray-200 p-4">
+        <AdminTenantFilterField />
+      </div>
 
       {/* Status Filter */}
       <div className="mb-4 flex items-center gap-4">
@@ -260,7 +283,7 @@ export function AdminSubscriptionsClient({
               <div className="flex justify-between items-center">
                 <button
                   disabled={!hasPrevPage}
-                  onClick={() => router.push(`/admin/membership/subscriptions?page=${currentPage - 1}`)}
+                  onClick={() => router.push(buildSubscriptionsHref(currentPage - 1))}
                   className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   aria-label="Previous page"
                 >
@@ -274,7 +297,7 @@ export function AdminSubscriptionsClient({
                 </div>
                 <button
                   disabled={!hasNextPage}
-                  onClick={() => router.push(`/admin/membership/subscriptions?page=${currentPage + 1}`)}
+                  onClick={() => router.push(buildSubscriptionsHref(currentPage + 1))}
                   className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   aria-label="Next page"
                 >

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default async function AdminSubscriptionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string }>;
+  searchParams: Promise<{ page?: string; status?: string; tenant?: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) {
@@ -22,6 +22,10 @@ export default async function AdminSubscriptionsPage({
   const params = await searchParams;
   const page = params.page ? parseInt(params.page, 10) : 1;
   const pageSize = 20;
+  const tenantId =
+    typeof params.tenant === 'string' && params.tenant.trim()
+      ? params.tenant.trim()
+      : undefined;
 
   let result = { data: [], totalCount: 0 };
   let error = null;
@@ -31,6 +35,7 @@ export default async function AdminSubscriptionsPage({
       subscriptionStatus: params.status,
       page,
       pageSize,
+      tenantId,
     });
   } catch (err) {
     console.error('Failed to fetch subscriptions:', err);

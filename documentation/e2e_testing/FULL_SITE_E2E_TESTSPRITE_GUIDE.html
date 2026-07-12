@@ -3,39 +3,179 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Full-site E2E TestSprite guide for event-site-manager: inventory, smoke, CRUD, coverage reports." />
   <title>event-site-manager — Full-site E2E (TestSprite)</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; background: #f5f7fa; color: #1f2937; line-height: 1.55; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      margin: 0;
+      background: #f5f7fa;
+      color: #1f2937;
+      line-height: 1.55;
+    }
     .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 48px; }
     h1 { color: #0066cc; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
     h2 { color: #0052a3; margin-top: 32px; border-left: 4px solid #0066cc; padding-left: 10px; }
-    .section-container { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin: 16px 0; overflow: hidden; }
+    .section-container {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      margin: 16px 0;
+      overflow: hidden;
+    }
     .section-header { padding: 12px 16px; font-weight: 700; color: #fff; }
     .section-header.overview { background: linear-gradient(135deg, #0066cc, #0052a3); }
     .section-header.usage { background: linear-gradient(135deg, #0d9488, #0f766e); }
     .section-header.output { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+    .section-header.parameters { background: linear-gradient(135deg, #ff9800, #f57c00); }
     .section-body { padding: 16px 18px 20px; }
-    code, .script-name, .code-highlight { background: #e8f4f8; color: #0d3b66; padding: 2px 6px; border-radius: 3px; border: 1px solid #b8d4e3; font-size: .9em; }
-    pre, .command-content { background: #e8f4f8; color: #0d3b66; border: 1px solid #b8d4e3; border-radius: 8px; padding: 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+    code, .script-name, .code-highlight {
+      background: #e8f4f8;
+      color: #0d3b66;
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid #b8d4e3;
+      font-size: .9em;
+    }
+    .script-name {
+      background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+      color: #6a1b9a;
+      border-color: #ce93d8;
+      font-weight: 600;
+    }
     table { width: 100%; border-collapse: collapse; margin: 12px 0; }
     th, td { border: 1px solid #b8d4e3; padding: 10px 12px; text-align: left; vertical-align: top; }
     th { background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: #fff; }
     tr:nth-child(even) { background: #f8fbfd; }
-    .info { background: #e8f4f8; border-left: 4px solid #0066cc; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
-    .success { background: #dcfce7; border-left: 4px solid #16a34a; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
-    .warning { background: #ffedd5; border-left: 4px solid #ea580c; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+    tr:hover { background: #eef6fb; }
+    .info { background: #d1ecf1; border-left: 4px solid #0c5460; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+    .success { background: #d4edda; border-left: 4px solid #28a745; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+    .warning { background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
     .toc { background: #fff; border-radius: 10px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
     .toc a { color: #0052a3; }
+    .section-intro {
+      background: linear-gradient(135deg, #e8f4f8 0%, #d1e7f0 100%);
+      border-left: 4px solid #0066cc;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin: 12px 0 16px;
+    }
+
+    /* Command blocks */
+    .command-block {
+      border: 2px solid #2196f3;
+      border-radius: 10px;
+      margin: 16px 0;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+    }
+    .command-block.setup { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-color: #2196f3; }
+    .command-block.verify { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-color: #4caf50; }
+    .command-block.advance { background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border-color: #ff9800; }
+    .command-block.expedite { background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); border-color: #9c27b0; }
+    .command-block.default { background: linear-gradient(135deg, #e8f4f8 0%, #d6ebf5 100%); border-color: #0066cc; }
+    .command-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 10px 14px;
+      background: rgba(255,255,255,.45);
+      border-bottom: 1px solid rgba(0,0,0,.08);
+    }
+    .command-type { font-weight: 700; color: #0d3b66; font-size: .92em; }
+    .command-header-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .copy-button, .copy-button-template {
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: .85em;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      color: #fff;
+    }
+    .copy-button { background-color: #0066cc; }
+    .copy-button:hover { background-color: #0052a3; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,.2); }
+    .copy-button.copied, .copy-button-template.copied { background-color: #28a745; }
+    .copy-button-template { background-color: #6c757d; }
+    .copy-button-template:hover { background-color: #5a6268; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,.2); }
+    .command-parameters {
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.5);
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+    .command-parameters h5 { margin: 0 0 12px 0; font-size: 0.9em; color: #333; font-weight: bold; }
+    .parameter-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .parameter-group.single { grid-template-columns: 1fr; }
+    .parameter-input { display: flex; flex-direction: column; gap: 4px; }
+    .parameter-input label { font-size: 0.8em; color: #555; font-weight: 600; }
+    .parameter-input input {
+      padding: 8px 12px;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+    .parameter-input input:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+    .command-content {
+      background: #e8f4f8;
+      color: #0d3b66;
+      border: none;
+      border-top: 1px solid #b8d4e3;
+      border-radius: 0;
+      padding: 14px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'Courier New', Consolas, monospace;
+      font-size: .88em;
+      margin: 0;
+    }
+    .command-single-line {
+      padding: 12px 15px;
+      background: #e8f4f8;
+      border-top: 1px solid #b8d4e3;
+    }
+    .command-single-line-label {
+      font-size: .75em;
+      font-weight: 700;
+      color: #666;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    .command-single-line code {
+      display: block;
+      background: #e8f4f8;
+      color: #0d3b66;
+      border: 1px solid #b8d4e3;
+      border-radius: 4px;
+      padding: 10px 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'Courier New', Consolas, monospace;
+      font-size: .88em;
+    }
+    @media (max-width: 768px) {
+      .parameter-group { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>event-site-manager — Full-site E2E (TestSprite)</h1>
-    <p>
+    <div class="section-intro">
       Same control flow as the MOSC satellite harness: inventory → smoke → admin CRUD → JSON/HTML coverage,
       adapted for <strong>platform-admin multi-tenant</strong> (<code class="code-highlight">?tenant=</code>) and
       <code class="script-name">nextjs_api_routes.mdc</code> proxy rules.
-    </p>
+    </div>
 
     <div class="toc">
       <h2 style="border:none;margin:0;padding:0;color:#0052a3;">Contents</h2>
@@ -44,7 +184,7 @@
         <li><a href="#port">2. Port (default 3001)</a></li>
         <li><a href="#prereq">3. Prerequisites</a></li>
         <li><a href="#scripts">4. npm scripts</a></li>
-        <li><a href="#ladder">5. Recommended command</a></li>
+        <li><a href="#ladder">5. Recommended commands</a></li>
         <li><a href="#reports">6. Where to find HTML reports</a></li>
         <li><a href="#api">7. REST / proxy notes</a></li>
       </ul>
@@ -57,7 +197,7 @@
         <ol>
           <li><code class="code-highlight">--tenant=&lt;id&gt;</code> on the CLI (highest priority)</li>
           <li><code class="code-highlight">TEST_TENANT_ID</code> or <code class="code-highlight">E2E_TENANT_ID</code></li>
-          <li><code class="script-name">TestSprite/admin-tests/auth.json</code> → <code>tenantId</code></li>
+          <li><code class="script-name">TestSprite/admin-tests/auth.json</code> → <code class="code-highlight">tenantId</code></li>
           <li>Default <code class="code-highlight">tenant_demo_002</code></li>
         </ol>
         <p>
@@ -100,10 +240,64 @@
       <div class="section-header overview">Before you run</div>
       <div class="section-body">
         <ul>
-          <li><code>npm install</code> + <code>npm run test:install-playwright</code></li>
-          <li>App running on <strong>:3001</strong> by default (<code>npm run dev</code>) — or pass <code>--port=</code> to match</li>
-          <li>Copy <code class="script-name">auth.json.example</code> → <code class="script-name">auth.json</code> (ADMIN email/password + <code>tenantId</code> + <code>baseUrl</code>)</li>
+          <li>Install deps + Playwright browsers</li>
+          <li>App running on <strong>:3001</strong> by default (<code class="code-highlight">npm run dev</code>) — or pass <code class="code-highlight">--port=</code> to match</li>
+          <li>Copy <code class="script-name">auth.json.example</code> → <code class="script-name">auth.json</code> (ADMIN email/password + <code class="code-highlight">tenantId</code> + <code class="code-highlight">baseUrl</code>)</li>
         </ul>
+
+        <div class="command-block setup"
+             data-command-type="setup"
+             data-command-base="npm install"
+             data-template-command="npm install">
+          <div class="command-header">
+            <span class="command-type">Install dependencies</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'npm-install')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'npm-install')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-content" id="npm-install">npm install</div>
+          <div class="command-single-line" id="npm-install-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="npm-install-single-code">npm install</code>
+          </div>
+        </div>
+
+        <div class="command-block setup"
+             data-command-type="setup"
+             data-command-base="npm run test:install-playwright"
+             data-template-command="npm run test:install-playwright">
+          <div class="command-header">
+            <span class="command-type">Install Playwright browsers</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'npm-playwright')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'npm-playwright')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-content" id="npm-playwright">npm run test:install-playwright</div>
+          <div class="command-single-line" id="npm-playwright-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="npm-playwright-single-code">npm run test:install-playwright</code>
+          </div>
+        </div>
+
+        <div class="command-block default"
+             data-command-type="default"
+             data-command-base="npm run dev"
+             data-template-command="npm run dev">
+          <div class="command-header">
+            <span class="command-type">Start Next.js (default :3001 if configured)</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'npm-dev')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'npm-dev')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-content" id="npm-dev">npm run dev</div>
+          <div class="command-single-line" id="npm-dev-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="npm-dev-single-code">npm run dev</code>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -116,36 +310,283 @@
             <tr><th>Script</th><th>Purpose</th></tr>
           </thead>
           <tbody>
-            <tr><td><code class="script-name">test:inventory</code></td><td>Generate route inventory from <code>src/app/**/page.tsx</code></td></tr>
-            <tr><td><code class="script-name">test:smoke:admin</code></td><td>Admin inventory smoke + home buttons (<code>?tenant=</code>)</td></tr>
+            <tr><td><code class="script-name">test:inventory</code></td><td>Generate route inventory from <code class="code-highlight">src/app/**/page.tsx</code></td></tr>
+            <tr><td><code class="script-name">test:smoke:admin</code></td><td>Admin inventory smoke + home buttons (<code class="code-highlight">?tenant=</code>)</td></tr>
             <tr><td><code class="script-name">test:smoke:public</code></td><td>Public inventory smoke</td></tr>
-            <tr><td><code class="script-name">test:admin:crud</code></td><td><code>[E2E]</code> CRUD on scoped tenant</td></tr>
-            <tr><td><code class="script-name">test:e2e:full</code> / <code class="script-name">test:e2e:quick</code></td><td>Orchestrator — <code>--quick</code> skips comprehensive admin</td></tr>
-            <tr><td><code class="script-name">test:admin:all</code></td><td>Legacy comprehensive + dynamic only → <code>admin-tests/admin-test-report.html</code></td></tr>
+            <tr><td><code class="script-name">test:admin:crud</code></td><td><code class="code-highlight">[E2E]</code> CRUD on scoped tenant</td></tr>
+            <tr><td><code class="script-name">test:e2e:full</code> / <code class="script-name">test:e2e:quick</code></td><td>Orchestrator — <code class="code-highlight">--quick</code> skips comprehensive admin</td></tr>
+            <tr><td><code class="script-name">test:admin:all</code></td><td>Legacy comprehensive + dynamic only → <code class="script-name">admin-tests/admin-test-report.html</code></td></tr>
             <tr><td><code class="script-name">test:coverage:html</code></td><td>Regenerate HTML from JSON</td></tr>
+            <tr><td><code class="script-name">test:coverage:consolidated</code></td><td>Global SUCCESS/FAILED rollup HTML</td></tr>
           </tbody>
         </table>
+
+        <div class="command-block verify"
+             data-command-type="verify"
+             data-command-base="npm run test:inventory"
+             data-template-command="npm run test:inventory">
+          <div class="command-header">
+            <span class="command-type">Generate route inventory</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'npm-inventory')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'npm-inventory')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-content" id="npm-inventory">npm run test:inventory</div>
+          <div class="command-single-line" id="npm-inventory-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="npm-inventory-single-code">npm run test:inventory</code>
+          </div>
+        </div>
+
+        <div class="command-block verify"
+             data-command-type="verify"
+             data-command-base="npm run test:smoke:admin"
+             data-template-command="npm run test:smoke:admin">
+          <div class="command-header">
+            <span class="command-type">Admin smoke</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'npm-smoke-admin')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'npm-smoke-admin')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-content" id="npm-smoke-admin">npm run test:smoke:admin</div>
+          <div class="command-single-line" id="npm-smoke-admin-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="npm-smoke-admin-single-code">npm run test:smoke:admin</code>
+          </div>
+        </div>
+
+        <div class="command-block verify"
+             data-command-type="verify"
+             data-command-base="npm run test:smoke:public"
+             data-template-command="npm run test:smoke:public">
+          <div class="command-header">
+            <span class="command-type">Public smoke</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'npm-smoke-public')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'npm-smoke-public')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-content" id="npm-smoke-public">npm run test:smoke:public</div>
+          <div class="command-single-line" id="npm-smoke-public-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="npm-smoke-public-single-code">npm run test:smoke:public</code>
+          </div>
+        </div>
+
+        <div class="command-block advance"
+             data-command-type="advance"
+             data-command-base="npm run test:admin:crud"
+             data-template-command="npm run test:admin:crud -- --tenant=tenant_demo_002 --port=3001">
+          <div class="command-header">
+            <span class="command-type">Admin CRUD suite</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'npm-admin-crud')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'npm-admin-crud')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-parameters">
+            <h5>🔧 Customize Parameters:</h5>
+            <div class="parameter-group">
+              <div class="parameter-input">
+                <label for="npm-admin-crud-tenant">Tenant ID:</label>
+                <input type="text" id="npm-admin-crud-tenant" value="tenant_demo_002" oninput="updateCommand('npm-admin-crud', 'tenant', this.value)">
+              </div>
+              <div class="parameter-input">
+                <label for="npm-admin-crud-port">Port:</label>
+                <input type="text" id="npm-admin-crud-port" value="3001" oninput="updateCommand('npm-admin-crud', 'port', this.value)">
+              </div>
+            </div>
+          </div>
+          <div class="command-content" id="npm-admin-crud">npm run test:admin:crud -- --tenant=tenant_demo_002 --port=3001</div>
+          <div class="command-single-line" id="npm-admin-crud-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="npm-admin-crud-single-code">npm run test:admin:crud -- --tenant=tenant_demo_002 --port=3001</code>
+          </div>
+        </div>
+
+        <div class="command-block expedite"
+             data-command-type="expedite"
+             data-command-base="npm run test:e2e:quick"
+             data-template-command="npm run test:e2e:quick -- --tenant=tenant_demo_002 --port=3001">
+          <div class="command-header">
+            <span class="command-type">Quick E2E orchestrator (npm)</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'npm-e2e-quick')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'npm-e2e-quick')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-parameters">
+            <h5>🔧 Customize Parameters:</h5>
+            <div class="parameter-group">
+              <div class="parameter-input">
+                <label for="npm-e2e-quick-tenant">Tenant ID:</label>
+                <input type="text" id="npm-e2e-quick-tenant" value="tenant_demo_002" oninput="updateCommand('npm-e2e-quick', 'tenant', this.value)">
+              </div>
+              <div class="parameter-input">
+                <label for="npm-e2e-quick-port">Port:</label>
+                <input type="text" id="npm-e2e-quick-port" value="3001" oninput="updateCommand('npm-e2e-quick', 'port', this.value)">
+              </div>
+            </div>
+          </div>
+          <div class="command-content" id="npm-e2e-quick">npm run test:e2e:quick -- --tenant=tenant_demo_002 --port=3001</div>
+          <div class="command-single-line" id="npm-e2e-quick-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="npm-e2e-quick-single-code">npm run test:e2e:quick -- --tenant=tenant_demo_002 --port=3001</code>
+          </div>
+        </div>
+
+        <div class="command-block verify"
+             data-command-type="verify"
+             data-command-base="npm run test:coverage:consolidated"
+             data-template-command="npm run test:coverage:consolidated">
+          <div class="command-header">
+            <span class="command-type">Regenerate consolidated coverage HTML</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'npm-coverage-consolidated')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'npm-coverage-consolidated')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-content" id="npm-coverage-consolidated">npm run test:coverage:consolidated</div>
+          <div class="command-single-line" id="npm-coverage-consolidated-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="npm-coverage-consolidated-single-code">npm run test:coverage:consolidated</code>
+          </div>
+        </div>
+
+        <div class="command-block verify"
+             data-command-type="verify"
+             data-command-base="npm run test:coverage:html"
+             data-template-command="npm run test:coverage:html">
+          <div class="command-header">
+            <span class="command-type">Regenerate HTML from coverage JSON</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'npm-coverage-html')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'npm-coverage-html')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-content" id="npm-coverage-html">npm run test:coverage:html</div>
+          <div class="command-single-line" id="npm-coverage-html-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="npm-coverage-html-single-code">npm run test:coverage:html</code>
+          </div>
+        </div>
       </div>
     </div>
 
-    <h2 id="ladder">5. Recommended command</h2>
+    <h2 id="ladder">5. Recommended commands</h2>
     <div class="section-container">
       <div class="section-header usage">Admin + public · tenant_demo_002</div>
       <div class="section-body">
         <div class="success">
           Use <code class="code-highlight">&amp;</code> between Node steps so CRUD and smoke still run if comprehensive exits non-zero.
+          Use <strong>Template</strong> for the sample command; use <strong>Copy</strong> after editing tenant/port below.
         </div>
-        <pre class="command-content">cmd /c "set TEST_TENANT_ID=tenant_demo_002&& set E2E_TENANT_ID=tenant_demo_002&& set E2E_EXPECTED_TENANT=tenant_demo_002&& set TEST_BASE_URL=http://localhost:3001&& node TestSprite\tools\generate-route-inventory.js & node TestSprite\admin-tests\comprehensive-admin-test-suite.js --port=3001 & node TestSprite\admin-tests\admin-crud-demo-tenant-suite.js --tenant=tenant_demo_002 --port=3001 & node TestSprite\sanity-tests\run-inventory-smoke-crawl.js --kind=admin,public --tenant=tenant_demo_002 --port=3001"</pre>
-        <p>Quick orchestrator (default port <strong>3001</strong> for event-site-manager; inventory → public dynamic → CRUD → smoke; <strong>not</strong> <code>test:admin:all</code>):</p>
-        <pre class="command-content">cmd /c "set TEST_BASE_URL=http://localhost:3001&& node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3001"</pre>
+
+        <div class="command-block advance"
+             data-command-type="advance"
+             data-command-base="cmd /c"
+             data-template-command="cmd /c &quot;set TEST_TENANT_ID=tenant_demo_002&amp;&amp; set E2E_TENANT_ID=tenant_demo_002&amp;&amp; set E2E_EXPECTED_TENANT=tenant_demo_002&amp;&amp; set TEST_BASE_URL=http://localhost:3001&amp;&amp; node TestSprite\tools\generate-route-inventory.js &amp; node TestSprite\admin-tests\comprehensive-admin-test-suite.js --port=3001 &amp; node TestSprite\admin-tests\admin-crud-demo-tenant-suite.js --tenant=tenant_demo_002 --port=3001 &amp; node TestSprite\sanity-tests\run-inventory-smoke-crawl.js --kind=admin,public --tenant=tenant_demo_002 --port=3001&quot;">
+          <div class="command-header">
+            <span class="command-type">Full ladder (inventory → comprehensive → CRUD → smoke)</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'e2e-ladder-full')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'e2e-ladder-full')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-parameters">
+            <h5>🔧 Customize Parameters:</h5>
+            <div class="parameter-group">
+              <div class="parameter-input">
+                <label for="e2e-ladder-full-tenant">Tenant ID:</label>
+                <input type="text" id="e2e-ladder-full-tenant" value="tenant_demo_002" oninput="updateCommand('e2e-ladder-full', 'tenant', this.value)">
+              </div>
+              <div class="parameter-input">
+                <label for="e2e-ladder-full-port">Port:</label>
+                <input type="text" id="e2e-ladder-full-port" value="3001" oninput="updateCommand('e2e-ladder-full', 'port', this.value)">
+              </div>
+            </div>
+          </div>
+          <div class="command-content" id="e2e-ladder-full">cmd /c "set TEST_TENANT_ID=tenant_demo_002&& set E2E_TENANT_ID=tenant_demo_002&& set E2E_EXPECTED_TENANT=tenant_demo_002&& set TEST_BASE_URL=http://localhost:3001&& node TestSprite\tools\generate-route-inventory.js & node TestSprite\admin-tests\comprehensive-admin-test-suite.js --port=3001 & node TestSprite\admin-tests\admin-crud-demo-tenant-suite.js --tenant=tenant_demo_002 --port=3001 & node TestSprite\sanity-tests\run-inventory-smoke-crawl.js --kind=admin,public --tenant=tenant_demo_002 --port=3001"</div>
+          <div class="command-single-line" id="e2e-ladder-full-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="e2e-ladder-full-single-code">cmd /c "set TEST_TENANT_ID=tenant_demo_002&& set E2E_TENANT_ID=tenant_demo_002&& set E2E_EXPECTED_TENANT=tenant_demo_002&& set TEST_BASE_URL=http://localhost:3001&& node TestSprite\tools\generate-route-inventory.js & node TestSprite\admin-tests\comprehensive-admin-test-suite.js --port=3001 & node TestSprite\admin-tests\admin-crud-demo-tenant-suite.js --tenant=tenant_demo_002 --port=3001 & node TestSprite\sanity-tests\run-inventory-smoke-crawl.js --kind=admin,public --tenant=tenant_demo_002 --port=3001"</code>
+          </div>
+        </div>
+
+        <p>Quick orchestrator (default port <strong>3001</strong>; inventory → public dynamic → CRUD → smoke; <strong>not</strong> <code class="script-name">test:admin:all</code>):</p>
+
+        <div class="command-block expedite"
+             data-command-type="expedite"
+             data-command-base="cmd /c"
+             data-template-command="cmd /c &quot;set TEST_BASE_URL=http://localhost:3001&amp;&amp; node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3001&quot;">
+          <div class="command-header">
+            <span class="command-type">Quick E2E (port 3001)</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'e2e-quick-3001')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'e2e-quick-3001')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-parameters">
+            <h5>🔧 Customize Parameters:</h5>
+            <div class="parameter-group">
+              <div class="parameter-input">
+                <label for="e2e-quick-3001-tenant">Tenant ID:</label>
+                <input type="text" id="e2e-quick-3001-tenant" value="tenant_demo_002" oninput="updateCommand('e2e-quick-3001', 'tenant', this.value)">
+              </div>
+              <div class="parameter-input">
+                <label for="e2e-quick-3001-port">Port:</label>
+                <input type="text" id="e2e-quick-3001-port" value="3001" oninput="updateCommand('e2e-quick-3001', 'port', this.value)">
+              </div>
+            </div>
+          </div>
+          <div class="command-content" id="e2e-quick-3001">cmd /c "set TEST_BASE_URL=http://localhost:3001&& node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3001"</div>
+          <div class="command-single-line" id="e2e-quick-3001-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="e2e-quick-3001-single-code">cmd /c "set TEST_BASE_URL=http://localhost:3001&& node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3001"</code>
+          </div>
+        </div>
+
         <p>If the app is on port 3000:</p>
-        <pre class="command-content">cmd /c "set TEST_BASE_URL=http://localhost:3000&& node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3000"</pre>
+
+        <div class="command-block expedite"
+             data-command-type="expedite"
+             data-command-base="cmd /c"
+             data-template-command="cmd /c &quot;set TEST_BASE_URL=http://localhost:3000&amp;&amp; node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3000&quot;">
+          <div class="command-header">
+            <span class="command-type">Quick E2E (port 3000)</span>
+            <div class="command-header-buttons">
+              <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'e2e-quick-3000')" title="Copy template command">📄 Template</button>
+              <button type="button" class="copy-button" onclick="copyCommand(this, 'e2e-quick-3000')" title="Copy customized command">📋 Copy</button>
+            </div>
+          </div>
+          <div class="command-parameters">
+            <h5>🔧 Customize Parameters:</h5>
+            <div class="parameter-group">
+              <div class="parameter-input">
+                <label for="e2e-quick-3000-tenant">Tenant ID:</label>
+                <input type="text" id="e2e-quick-3000-tenant" value="tenant_demo_002" oninput="updateCommand('e2e-quick-3000', 'tenant', this.value)">
+              </div>
+              <div class="parameter-input">
+                <label for="e2e-quick-3000-port">Port:</label>
+                <input type="text" id="e2e-quick-3000-port" value="3000" oninput="updateCommand('e2e-quick-3000', 'port', this.value)">
+              </div>
+            </div>
+          </div>
+          <div class="command-content" id="e2e-quick-3000">cmd /c "set TEST_BASE_URL=http://localhost:3000&& node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3000"</div>
+          <div class="command-single-line" id="e2e-quick-3000-single">
+            <div class="command-single-line-label">Windows Single-Line:</div>
+            <code id="e2e-quick-3000-single-code">cmd /c "set TEST_BASE_URL=http://localhost:3000&& node TestSprite\run-e2e-full.js --quick --tenant=tenant_demo_002 --port=3000"</code>
+          </div>
+        </div>
+
         <div class="success">
           Look for <code class="code-highlight">[e2e-full] Mode: QUICK</code> and step banners. Reports land in <code class="script-name">TestSprite/reports/</code>.
           At the end, open <code class="script-name">TestSprite/reports/coverage-global-latest.html</code> for the global SUCCESS/FAILED rollup (all suites).
           <code class="script-name">admin-test-report.html</code> is only from <code class="script-name">npm run test:admin:all</code>.
-          Default base URL is <code class="code-highlight">http://localhost:3001</code>. Override with <code>--port=</code>, <code>--base-url=</code>, or <code>TEST_BASE_URL</code>.
-          Report rotation: keep newest 5 per suite; delete coverage files older than 5 days (<code>E2E_REPORT_MAX_AGE_DAYS</code>).
+          Default base URL is <code class="code-highlight">http://localhost:3001</code>. Override with <code class="code-highlight">--port=</code>, <code class="code-highlight">--base-url=</code>, or <code class="code-highlight">TEST_BASE_URL</code>.
+          Report rotation: keep newest 5 per suite; delete coverage files older than 5 days (<code class="code-highlight">E2E_REPORT_MAX_AGE_DAYS</code>).
         </div>
       </div>
     </div>
@@ -184,7 +625,7 @@
           <li>UI and discovery use <code class="script-name">/api/proxy/…</code> — never call the backend base URL from the browser.</li>
           <li>Do not add <code class="code-highlight">tenantId.equals</code> when calling the proxy (handler injects it).</li>
           <li>Admin page scope uses <code class="code-highlight">?tenant=</code> for the platform-admin UI context (separate from proxy injection).</li>
-          <li>ID discovery for dynamic routes uses public proxy list GETs (<code>event-details</code>, <code>membership-plans</code>, etc.).</li>
+          <li>ID discovery for dynamic routes uses public proxy list GETs (<code class="code-highlight">event-details</code>, <code class="code-highlight">membership-plans</code>, etc.).</li>
         </ul>
         <div class="warning">
           Companion markdown: <code class="script-name">TestSprite/E2E_FULL_README.md</code>.
@@ -193,5 +634,160 @@
       </div>
     </div>
   </div>
+
+  <script>
+    const commandParams = {};
+
+    function getParam(commandId, name, fallback) {
+      const stored = commandParams[commandId] && commandParams[commandId][name];
+      if (stored != null && String(stored).trim() !== '') return String(stored).trim();
+      const input = document.getElementById(commandId + '-' + name);
+      if (input && input.value.trim()) return input.value.trim();
+      return fallback;
+    }
+
+    function setCommandText(commandId, command) {
+      const commandElement = document.getElementById(commandId);
+      if (commandElement) commandElement.textContent = command;
+      const singleLineCode = document.getElementById(commandId + '-single-code');
+      if (singleLineCode) singleLineCode.textContent = command;
+    }
+
+    function updateCommandFromParams(commandId) {
+      const commandElement = document.getElementById(commandId);
+      if (!commandElement) return;
+      const commandBlock = commandElement.closest('.command-block');
+      if (!commandBlock) return;
+
+      let command = '';
+
+      if (commandId === 'e2e-ladder-full') {
+        const tenant = getParam(commandId, 'tenant', 'tenant_demo_002');
+        const port = getParam(commandId, 'port', '3001');
+        command = 'cmd /c "set TEST_TENANT_ID=' + tenant +
+          '&& set E2E_TENANT_ID=' + tenant +
+          '&& set E2E_EXPECTED_TENANT=' + tenant +
+          '&& set TEST_BASE_URL=http://localhost:' + port +
+          '&& node TestSprite\\tools\\generate-route-inventory.js' +
+          ' & node TestSprite\\admin-tests\\comprehensive-admin-test-suite.js --port=' + port +
+          ' & node TestSprite\\admin-tests\\admin-crud-demo-tenant-suite.js --tenant=' + tenant + ' --port=' + port +
+          ' & node TestSprite\\sanity-tests\\run-inventory-smoke-crawl.js --kind=admin,public --tenant=' + tenant + ' --port=' + port + '"';
+      } else if (commandId === 'e2e-quick-3001' || commandId === 'e2e-quick-3000') {
+        const tenant = getParam(commandId, 'tenant', 'tenant_demo_002');
+        const port = getParam(commandId, 'port', commandId === 'e2e-quick-3000' ? '3000' : '3001');
+        command = 'cmd /c "set TEST_BASE_URL=http://localhost:' + port +
+          '&& node TestSprite\\run-e2e-full.js --quick --tenant=' + tenant + ' --port=' + port + '"';
+      } else if (commandId === 'npm-admin-crud') {
+        const tenant = getParam(commandId, 'tenant', 'tenant_demo_002');
+        const port = getParam(commandId, 'port', '3001');
+        command = 'npm run test:admin:crud -- --tenant=' + tenant + ' --port=' + port;
+      } else if (commandId === 'npm-e2e-quick') {
+        const tenant = getParam(commandId, 'tenant', 'tenant_demo_002');
+        const port = getParam(commandId, 'port', '3001');
+        command = 'npm run test:e2e:quick -- --tenant=' + tenant + ' --port=' + port;
+      } else {
+        const base = commandBlock.getAttribute('data-command-base');
+        command = (base || commandElement.textContent || '').trim();
+      }
+
+      setCommandText(commandId, command);
+    }
+
+    function updateCommand(commandId, paramName, paramValue) {
+      if (!commandParams[commandId]) commandParams[commandId] = {};
+      commandParams[commandId][paramName] = paramValue;
+      updateCommandFromParams(commandId);
+    }
+
+    function initializeCommands() {
+      document.querySelectorAll('.command-block[data-command-base]').forEach(function (block) {
+        const commandContent = block.querySelector('.command-content');
+        if (!commandContent || !commandContent.id) return;
+        const commandId = commandContent.id;
+        block.querySelectorAll('.parameter-input input').forEach(function (input) {
+          const inputId = input.id || '';
+          const prefix = commandId + '-';
+          if (!inputId.startsWith(prefix)) return;
+          const paramName = inputId.slice(prefix.length);
+          if (!commandParams[commandId]) commandParams[commandId] = {};
+          commandParams[commandId][paramName] = input.value;
+        });
+        updateCommandFromParams(commandId);
+      });
+    }
+
+    function copyTemplateCommand(button, commandId) {
+      const commandBlock = button.closest('.command-block');
+      if (!commandBlock) return;
+      let templateCommand = commandBlock.getAttribute('data-template-command');
+      if (!templateCommand) {
+        const commandElement = document.getElementById(commandId);
+        if (!commandElement) return;
+        templateCommand = commandElement.textContent.trim();
+      }
+      templateCommand = templateCommand.replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+      writeClipboard(templateCommand, button, '📄 Template');
+    }
+
+    function copyCommand(button, commandId) {
+      const commandElement = document.getElementById(commandId);
+      if (!commandElement) return;
+      const commandText = commandElement.textContent.trim();
+      writeClipboard(commandText, button, '📋 Copy');
+      const singleLineElement = document.getElementById(commandId + '-single');
+      if (singleLineElement) singleLineElement.style.display = 'block';
+    }
+
+    function writeClipboard(text, button, resetLabel) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          button.classList.add('copied');
+          button.textContent = '✓ Copied!';
+          setTimeout(function () {
+            button.classList.remove('copied');
+            button.textContent = resetLabel;
+          }, 2000);
+        }).catch(function (err) {
+          console.error('Failed to copy:', err);
+          fallbackCopy(text, button, resetLabel);
+        });
+      } else {
+        fallbackCopy(text, button, resetLabel);
+      }
+    }
+
+    function fallbackCopy(text, button, resetLabel) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        button.classList.add('copied');
+        button.textContent = '✓ Copied!';
+        setTimeout(function () {
+          button.classList.remove('copied');
+          button.textContent = resetLabel || '📋 Copy';
+        }, 2000);
+      } catch (err) {
+        console.error('Fallback copy failed:', err);
+        alert('Failed to copy command. Please copy manually:\n\n' + text);
+      }
+      document.body.removeChild(textArea);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      initializeCommands();
+      if (navigator.platform && navigator.platform.toLowerCase().indexOf('win') >= 0) {
+        document.querySelectorAll('.command-single-line').forEach(function (el) {
+          el.style.display = 'block';
+        });
+      }
+    });
+  </script>
 </body>
 </html>

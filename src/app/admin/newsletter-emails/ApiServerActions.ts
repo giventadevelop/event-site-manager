@@ -118,7 +118,7 @@ export async function createNewsletterEmailTemplateServer(
     subject: formData.subject,
     fromEmail: formData.fromEmail.trim(),
     bodyHtml: formData.bodyHtml,
-    footerHtml: null,
+    footerHtml: formData.footerHtml?.trim() ? formData.footerHtml : null,
     headerImageUrl: formData.headerImageUrl || '',
     footerImageUrl: formData.footerImageUrl || '',
     discountCodeId: formData.discountCodeId,
@@ -164,7 +164,9 @@ export async function updateNewsletterEmailTemplateServer(
     templateType: formData.templateType || 'NEWS_LETTER',
     eventId: formData.eventId ?? null,
     ...(formData.fromEmail !== undefined && { fromEmail: formData.fromEmail }),
-    footerHtml: null,
+    ...(formData.footerHtml !== undefined && {
+      footerHtml: formData.footerHtml?.trim() ? formData.footerHtml : null,
+    }),
   };
   if (tid != null) (payload as any).tenantId = tid;
 

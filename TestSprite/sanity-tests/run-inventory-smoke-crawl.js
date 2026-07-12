@@ -31,6 +31,8 @@ import {
   ADMIN_HOME_BUTTONS,
   withTenantQuery,
   ensureTenantContextOnPage,
+  safeGoto,
+  shouldSkipSmokePath,
 } from '../lib/e2e-harness.js';
 import {
   createAuthenticatedContext,
@@ -77,8 +79,7 @@ async function getAuthContext(browser, config) {
   if (fs.existsSync(AUTH_STATE_PATH)) {
     try {
       const { context, page } = await loadAuthState(browser, AUTH_STATE_PATH);
-      await page.goto(`${config.baseUrl}/admin`, {
-        waitUntil: 'domcontentloaded',
+      await safeGoto(page, `${config.baseUrl}/admin`, {
         timeout: config.timeout,
       });
       const url = page.url();
@@ -103,44 +104,75 @@ async function getAuthContext(browser, config) {
   return context;
 }
 
+/**
+ * Visit each admin home destination without overlapping navigations.
+ * Prefer tile click when the link exists; otherwise (or on miss) use safeGoto.
+ */
 async function runAdminHomeButtons(page, baseUrl, tracker, timeout, tenantId) {
-  console.log(`\n[smoke] Admin home button click-through (tenant=${tenantId})…`);
+  console.log(`\n[smoke] Admin home button destinations (tenant=${tenantId})…`);
+  const adminHome = `${baseUrl}${withTenantQuery('/admin', tenantId)}`;
+
   for (const btn of ADMIN_HOME_BUTTONS) {
     const start = Date.now();
+    const pathOnly = btn.href.split('?')[0].replace(/\/$/, '') || '/admin';
     const href = withTenantQuery(btn.href, tenantId);
+    const targetUrl = `${baseUrl}${href}`;
+
     try {
-      await page.goto(`${baseUrl}${withTenantQuery('/admin', tenantId)}`, {
-        waitUntil: 'domcontentloaded',
-        timeout,
-      });
+      // Land on admin home first so we can exercise the tile when present
+      await safeGoto(page, adminHome, { timeout, settleMs: 350 });
       await ensureTenantContextOnPage(page, tenantId);
-      const link = page.locator(`a[href="${btn.href}"], a[href^="${btn.href}?"]`).first();
-      const count = await link.count();
-      if (count === 0) {
-        await page.goto(`${baseUrl}${href}`, { waitUntil: 'domcontentloaded', timeout });
+
+      const link = page
+        .locator(`a[href="${btn.href}"], a[href^="${btn.href}?"], a[href="${btn.href}/"]`)
+        .first();
+      const hasLink = (await link.count()) > 0 && (await link.isVisible().catch(() => false));
+
+      if (hasLink && pathOnly !== '/admin') {
+        await link.click({ timeout: 10000 });
+        await page
+          .waitForURL(
+            (u) => {
+              const p = (u.pathname || '').replace(/\/$/, '');
+              return p === pathOnly || p.startsWith(`${pathOnly}/`);
+            },
+            { timeout: Math.min(timeout, 20000) }
+          )
+          .catch(() => {});
+        await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
+        await page.waitForTimeout(300);
+
+        const landed =
+          page.url().includes(pathOnly) ||
+          new URL(page.url()).pathname.replace(/\/$/, '') === pathOnly;
+        if (!landed) {
+          await safeGoto(page, targetUrl, { timeout, settleMs: 350 });
+        }
       } else {
-        await Promise.all([
-          page.waitForURL((u) => u.pathname.startsWith(btn.href.split('?')[0]) || true, {
-            timeout: timeout,
-          }).catch(() => {}),
-          link.click({ timeout: 10000 }),
-        ]);
-        await page.waitForTimeout(500);
-        if (!page.url().includes(btn.href.replace(/\/$/, ''))) {
-          await page.goto(`${baseUrl}${href}`, { waitUntil: 'domcontentloaded', timeout });
+        // Admin Home tile (already there) or missing link → direct navigation
+        if (pathOnly !== '/admin' || !page.url().includes('/admin')) {
+          await safeGoto(page, targetUrl, { timeout, settleMs: 350 });
         }
       }
+
       await ensureTenantContextOnPage(page, tenantId);
+      await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+
       const check = await smokeCheckPage(page, { urlHint: href });
       tracker.record({
         path: btn.href,
         status: check.ok ? 'pass' : 'fail',
         kind: 'admin-home-button',
-        message: check.ok ? `Button: ${btn.label}` : check.message,
+        message: check.ok
+          ? `Button: ${btn.label}${hasLink ? ' (clicked)' : ' (direct)'}`
+          : check.message,
         durationMs: Date.now() - start,
-        meta: { label: btn.label, tenantId },
+        meta: { label: btn.label, tenantId, via: hasLink ? 'click' : 'goto' },
       });
       console.log(`  ${check.ok ? '✓' : '✗'} ${btn.label} → ${href}`);
+
+      // Pace tiles so Next.js / Clerk aren't flooded
+      await page.waitForTimeout(250);
     } catch (err) {
       tracker.record({
         path: btn.href,
@@ -151,6 +183,7 @@ async function runAdminHomeButtons(page, baseUrl, tracker, timeout, tenantId) {
         meta: { label: btn.label, tenantId },
       });
       console.log(`  ✗ ${btn.label}: ${err.message}`);
+      await page.waitForTimeout(400);
     }
   }
 }
@@ -227,6 +260,18 @@ async function main() {
     for (const route of routes) {
       if (tested >= limit) break;
 
+      if (shouldSkipSmokePath(route.path)) {
+        tracker.record({
+          path: route.path,
+          status: 'skip',
+          kind: route.kind,
+          message: 'Excluded from smoke (redirect / non-content route)',
+          meta: { tenantId },
+        });
+        console.log(`  ○ skip ${route.path}`);
+        continue;
+      }
+
       let target = route.path;
       if (route.dynamic) {
         // Prefer event id for /events/[id] and /admin/events/[id]
@@ -268,7 +313,7 @@ async function main() {
       try {
         // Pace requests to avoid saturating the Next.js dev server
         if (tested > 1) {
-          await page.waitForTimeout(150);
+          await page.waitForTimeout(200);
         }
 
         const allowSignIn =
@@ -282,22 +327,11 @@ async function main() {
           target.includes('/auth/') ||
           target.includes('/sso-callback');
 
-        let response = null;
-        let lastErr = null;
-        for (let attempt = 1; attempt <= 2; attempt++) {
-          try {
-            response = await page.goto(`${baseUrl}${target}`, {
-              waitUntil: 'domcontentloaded',
-              timeout: Math.min(config.timeout, 30000),
-            });
-            lastErr = null;
-            break;
-          } catch (err) {
-            lastErr = err;
-            await page.waitForTimeout(1000 * attempt);
-          }
-        }
-        if (lastErr) throw lastErr;
+        const response = await safeGoto(page, `${baseUrl}${target}`, {
+          timeout: Math.min(config.timeout, 30000),
+          retries: 2,
+          settleMs: 200,
+        });
 
         if (route.kind === 'admin') {
           await ensureTenantContextOnPage(page, tenantId);

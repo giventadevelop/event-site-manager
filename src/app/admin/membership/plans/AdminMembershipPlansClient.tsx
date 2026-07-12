@@ -12,7 +12,9 @@ import {
   fetchAllMembershipPlansServer,
 } from './ApiServerActions';
 import type { MembershipPlanDTO } from '@/types';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useAdminTenantId } from '@/app/admin/AdminTenantContext';
+import AdminTenantFilterField from '@/app/admin/AdminTenantFilterField';
 import { CreateTestPlansButton } from './create-test-plans-button';
 
 interface AdminMembershipPlansClientProps {
@@ -31,7 +33,7 @@ export function AdminMembershipPlansClient({
   error,
 }: AdminMembershipPlansClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const tenantId = useAdminTenantId();
   const [plans, setPlans] = useState(initialPlans);
   const [totalCount, setTotalCount] = useState(initialTotalCount);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -41,7 +43,14 @@ export function AdminMembershipPlansClient({
   const [isPending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Load plans when page changes (only if different from initial page)
+  // Keep client state in sync when server re-fetches for ?tenant= / page changes
+  useEffect(() => {
+    setPlans(initialPlans);
+    setTotalCount(initialTotalCount);
+    setCurrentPage(initialPage);
+  }, [initialPlans, initialTotalCount, initialPage]);
+
+  // Load plans when page or tenant changes (client-side pagination after first paint)
   useEffect(() => {
     async function loadPlans() {
       setLoading(true);
@@ -50,6 +59,7 @@ export function AdminMembershipPlansClient({
           page: currentPage,
           size: pageSize,
           sort: 'createdAt,desc',
+          tenantId,
         });
         setPlans(result.plans);
         setTotalCount(result.totalCount);
@@ -65,14 +75,21 @@ export function AdminMembershipPlansClient({
       loadPlans();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+  }, [currentPage, tenantId]);
+
+  const buildPlansHref = (page: number) => {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    if (tenantId) params.set('tenant', tenantId);
+    return `/admin/membership/plans?${params.toString()}`;
+  };
 
   // Pagination handlers
   const handlePrevPage = () => {
     if (currentPage > 0) {
       const newPage = currentPage - 1;
       setCurrentPage(newPage);
-      router.push(`/admin/membership/plans?page=${newPage}`);
+      router.push(buildPlansHref(newPage));
     }
   };
 
@@ -81,7 +98,7 @@ export function AdminMembershipPlansClient({
     if (currentPage < totalPages - 1) {
       const newPage = currentPage + 1;
       setCurrentPage(newPage);
-      router.push(`/admin/membership/plans?page=${newPage}`);
+      router.push(buildPlansHref(newPage));
     }
   };
 
@@ -260,6 +277,10 @@ export function AdminMembershipPlansClient({
 
       {/* Admin Navigation */}
       <AdminNavigation currentPage="membership-plans" />
+
+      <div className="mb-6 bg-white rounded-xl shadow border border-gray-200 p-4">
+        <AdminTenantFilterField />
+      </div>
 
       {/* Create Test Plans Button */}
       <CreateTestPlansButton />

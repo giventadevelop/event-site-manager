@@ -1388,17 +1388,18 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
                   name={name}
                   checked={checked}
                   onChange={e => setForm(f => ({ ...f, [name]: e.target.checked }))}
-                  className="custom-checkbox"
+                  onClick={(e) => e.stopPropagation()}
+                  className="custom-checkbox custom-checkbox--yellow"
                 />
                 <span className="custom-checkbox-tick">
                   {checked && (
-                    <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l5 5L19 7" />
                     </svg>
                   )}
                 </span>
               </span>
-              <span className="mt-2 text-xs text-center select-none break-words max-w-[6rem]">{label}</span>
+              <span className="mt-2 text-sm font-semibold text-center select-none break-words max-w-[8rem]">{label}</span>
             </label>
           </div>
         ))}
@@ -1449,18 +1450,19 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
                     name="manualPaymentEnabled"
                     checked={form.manualPaymentEnabled ?? false}
                     onChange={e => setForm(f => ({ ...f, manualPaymentEnabled: e.target.checked }))}
-                    className="custom-checkbox"
+                    onClick={(e) => e.stopPropagation()}
+                    className="custom-checkbox custom-checkbox--yellow"
                     disabled={form.paymentFlowMode === 'STRIPE_ONLY'}
                   />
                   <span className="custom-checkbox-tick">
                     {(form.manualPaymentEnabled ?? false) && (
-                      <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l5 5L19 7" />
                       </svg>
                     )}
                   </span>
                 </span>
-                <span className="mt-2 text-xs text-center select-none break-words max-w-[6rem]">Enable Manual Payment</span>
+                <span className="mt-2 text-sm font-semibold text-center select-none break-words max-w-[8rem]">Enable Manual Payment</span>
               </label>
             </div>
             <p className="text-xs text-gray-500 mt-2">
@@ -1493,17 +1495,17 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="custom-checkbox"
+                  className="custom-checkbox custom-checkbox--yellow"
                 />
                 <span className="custom-checkbox-tick">
                   {isFundraiserEvent && (
-                    <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l5 5L19 7" />
                     </svg>
                   )}
                 </span>
               </span>
-              <span className="mt-2 text-xs text-center select-none break-words max-w-[6rem]">Is Fundraiser Event</span>
+              <span className="mt-2 text-sm font-semibold text-center select-none break-words max-w-[8rem]">Is Fundraiser Event</span>
             </label>
           </div>
 
@@ -1523,17 +1525,17 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="custom-checkbox"
+                  className="custom-checkbox custom-checkbox--yellow"
                 />
                 <span className="custom-checkbox-tick">
                   {isCharityEvent && (
-                    <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l5 5L19 7" />
                     </svg>
                   )}
                 </span>
               </span>
-              <span className="mt-2 text-xs text-center select-none break-words max-w-[6rem]">Is Charity Event</span>
+              <span className="mt-2 text-sm font-semibold text-center select-none break-words max-w-[8rem]">Is Charity Event</span>
             </label>
           </div>
         </div>
@@ -1562,18 +1564,18 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
                       }
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    className="custom-checkbox"
+                    className="custom-checkbox custom-checkbox--yellow"
                     title={isFundraiserEvent || isCharityEvent ? "Automatically enabled for fundraiser/charity events" : ""}
                   />
                   <span className="custom-checkbox-tick">
                     {useZeroFeeProvider && (
-                      <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l5 5L19 7" />
                       </svg>
                     )}
                   </span>
                 </span>
-                <span className="mt-2 text-xs text-center select-none break-words max-w-[6rem]">Use Zero-Fee Provider</span>
+                <span className="mt-2 text-sm font-semibold text-center select-none break-words max-w-[8rem]">Use Zero-Fee Provider</span>
               </label>
             </div>
           </div>

@@ -1,5 +1,6 @@
-import { getAppUrl } from '@/lib/env';
+import { getAppUrl, appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
 import AdminNavigation from '@/components/AdminNavigation';
+import AdminTenantFilterBar from '@/components/admin/AdminTenantFilterBar';
 // Icons removed - using inline SVGs instead
 
 function toInt(v: string | undefined, d: number) {
@@ -14,11 +15,20 @@ export default async function AdminFocusGroupsPage({ searchParams }: { searchPar
   const page = toInt(typeof resolvedSearchParams?.page === 'string' ? resolvedSearchParams?.page : undefined, 0);
   const size = toInt(typeof resolvedSearchParams?.size === 'string' ? resolvedSearchParams?.size : undefined, 10);
   const sort = typeof resolvedSearchParams?.sort === 'string' ? resolvedSearchParams?.sort : 'createdAt,desc';
+  const tenantId =
+    typeof resolvedSearchParams?.tenant === 'string' && resolvedSearchParams.tenant.trim()
+      ? resolvedSearchParams.tenant.trim()
+      : undefined;
 
   let groups: any[] = [];
   let total = 0;
   try {
-    const url = `${baseUrl}/api/proxy/focus-groups?page=${page}&size=${size}&sort=${encodeURIComponent(sort)}`;
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('size', String(size));
+    params.set('sort', sort);
+    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    const url = `${baseUrl}/api/proxy/focus-groups?${params.toString()}`;
     console.log('[FocusGroups] Fetching from:', url);
 
     const res = await fetch(url, { cache: 'no-store' });
@@ -71,6 +81,11 @@ export default async function AdminFocusGroupsPage({ searchParams }: { searchPar
     console.error('[FocusGroups] Error fetching focus groups:', err);
   }
 
+  const tenantQuery = tenantId ? `&tenant=${encodeURIComponent(tenantId)}` : '';
+  const newGroupHref = tenantId
+    ? `/admin/focus-groups/new?tenant=${encodeURIComponent(tenantId)}`
+    : '/admin/focus-groups/new';
+
   return (
     <div className="w-full overflow-x-hidden box-border" style={{ paddingTop: '120px' }}>
       {/* Navigation Section - Full Width, Separate Responsive Container */}
@@ -81,7 +96,7 @@ export default async function AdminFocusGroupsPage({ searchParams }: { searchPar
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 dark:text-white text-center sm:text-left">Manage Focus Groups</h1>
-          <a href="/admin/focus-groups/new" className="flex-shrink-0 h-12 sm:h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-2 sm:gap-3 transition-all duration-300 hover:scale-105 px-3 sm:px-6">
+          <a href={newGroupHref} className="flex-shrink-0 h-12 sm:h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-2 sm:gap-3 transition-all duration-300 hover:scale-105 px-3 sm:px-6">
             <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-200 flex items-center justify-center">
               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -90,6 +105,9 @@ export default async function AdminFocusGroupsPage({ searchParams }: { searchPar
             <span className="font-semibold text-blue-700 text-xs sm:text-sm lg:text-base whitespace-nowrap">New Group</span>
           </a>
         </div>
+
+        <AdminTenantFilterBar />
+
         <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
           <div className="user-table-scroll-container">
             <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600 border border-gray-300 dark:border-gray-600" style={{ minWidth: '800px', width: '100%' }}>
@@ -115,17 +133,17 @@ export default async function AdminFocusGroupsPage({ searchParams }: { searchPar
                 </td>
                 <td className="px-2 sm:px-4 lg:px-6 py-2 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-1 sm:gap-2">
-                    <a className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110" href={`/admin/focus-groups/${g.id}/edit`} title="Edit Focus Group" aria-label="Edit Focus Group">
+                    <a className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110" href={`/admin/focus-groups/${g.id}/edit${tenantId ? `?tenant=${encodeURIComponent(tenantId)}` : ''}`} title="Edit Focus Group" aria-label="Edit Focus Group">
                       <svg className="w-6 h-6 sm:w-10 sm:h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </a>
-                    <a className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-green-100 hover:bg-green-200 flex items-center justify-center transition-all duration-300 hover:scale-110" href={`/admin/focus-groups/${g.id}/events`} title="Manage Events" aria-label="Manage Events">
+                    <a className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-green-100 hover:bg-green-200 flex items-center justify-center transition-all duration-300 hover:scale-110" href={`/admin/focus-groups/${g.id}/events${tenantId ? `?tenant=${encodeURIComponent(tenantId)}` : ''}`} title="Manage Events" aria-label="Manage Events">
                       <svg className="w-6 h-6 sm:w-10 sm:h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </a>
-                    <a className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-purple-100 hover:bg-purple-200 flex items-center justify-center transition-all duration-300 hover:scale-110" href={`/admin/focus-groups/${g.id}/members`} title="Manage Members" aria-label="Manage Members">
+                    <a className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-purple-100 hover:bg-purple-200 flex items-center justify-center transition-all duration-300 hover:scale-110" href={`/admin/focus-groups/${g.id}/members${tenantId ? `?tenant=${encodeURIComponent(tenantId)}` : ''}`} title="Manage Members" aria-label="Manage Members">
                       <svg className="w-6 h-6 sm:w-10 sm:h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
@@ -160,7 +178,7 @@ export default async function AdminFocusGroupsPage({ searchParams }: { searchPar
           const displayPage = page + 1;
           const startItem = total > 0 ? page * size + 1 : 0;
           const endItem = total > 0 ? page * size + Math.min(size, total - page * size) : 0;
-          const qs = (p: number) => `?page=${p}&size=${size}&sort=${encodeURIComponent(sort)}`;
+          const qs = (p: number) => `?page=${p}&size=${size}&sort=${encodeURIComponent(sort)}${tenantQuery}`;
           
           return (
             <div className="mt-8">

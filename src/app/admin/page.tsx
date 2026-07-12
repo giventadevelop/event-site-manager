@@ -78,6 +78,7 @@ export default function AdminPage() {
       href: '/admin/tenant-email-addresses',
       icon: 'mailBulk',
       label: 'Email Addresses',
+      sublabel: '[tenant email ids]',
       color: 'lime',
       key: 'tenant-email-addresses'
     },
@@ -458,13 +459,29 @@ export default function AdminPage() {
                 key={button.key}
                 href={button.href}
                 className={`flex flex-col items-center justify-center ${colorClasses} rounded-lg shadow-md p-4 text-xs transition-all group`}
-                title={button.label}
-                aria-label={button.label}
+                title={
+                  'sublabel' in button && button.sublabel
+                    ? `${button.label} ${button.sublabel}`
+                    : button.label
+                }
+                aria-label={
+                  'sublabel' in button && button.sublabel
+                    ? `${button.label} ${button.sublabel}`
+                    : button.label
+                }
               >
                 <div className={`flex-shrink-0 w-14 h-14 rounded-xl ${iconBgColor} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
                   {renderIcon(button.icon, `w-10 h-10 ${iconTextColor}`)}
                 </div>
-                <span className="font-semibold text-center leading-tight">{button.label}</span>
+                <span className="font-semibold text-center leading-tight">
+                  {button.label}
+                  {'sublabel' in button && button.sublabel ? (
+                    <>
+                      <br />
+                      <span className="font-medium opacity-80">{button.sublabel}</span>
+                    </>
+                  ) : null}
+                </span>
               </Link>
             );
           })}

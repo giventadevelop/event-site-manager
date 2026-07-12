@@ -4,6 +4,7 @@ import { useState } from 'react';
 import FocusGroupCoverImageUpload from '@/components/FocusGroupCoverImageUpload';
 import FocusGroupEventSearch from './components/FocusGroupEventSearch';
 import AssociatedEventsTable from './components/AssociatedEventsTable';
+import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
 import type { FocusGroupDTO, EventDetailsDTO } from '@/types';
 
 interface FocusGroupEditFormProps {
@@ -45,6 +46,12 @@ export default function FocusGroupEditForm({
 
   return (
     <div>
+      <AdminTenantIdBanner
+        tenantId={group?.tenantId}
+        entityLabel="focus group"
+        className="mb-6"
+      />
+
       {/* Event Search Component - Above form */}
       <FocusGroupEventSearch
         focusGroupId={focusGroupId}

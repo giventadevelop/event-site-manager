@@ -9,6 +9,7 @@ import type { EventFeaturedPerformersDTO, EventMediaDTO } from '@/types';
 import { updateEventFeaturedPerformerServer } from '../ApiServerActions';
 import PaginatedMediaList from './PaginatedMediaList';
 import Modal from '@/components/ui/Modal';
+import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
 
 interface PerformerEditClientProps {
   performer: EventFeaturedPerformersDTO;
@@ -94,9 +95,14 @@ export default function PerformerEditClient({
       </div>
 
       <h1 className="font-heading font-semibold text-3xl text-foreground mb-2">Edit Performer</h1>
-      <p className="font-body text-muted-foreground mb-8">
+      <p className="font-body text-muted-foreground mb-2">
         {performer.name || 'Performer Details'}
       </p>
+      <AdminTenantIdBanner
+        tenantId={performer.tenantId}
+        entityLabel="performer"
+        className="mb-8"
+      />
 
       <AdminNavigation currentPage="event-featured-performers" />
 

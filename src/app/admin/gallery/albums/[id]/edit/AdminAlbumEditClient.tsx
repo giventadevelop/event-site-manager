@@ -11,6 +11,7 @@ import {
 } from '../../ApiServerActions';
 import { Modal } from '@/components/Modal';
 import GalleryAlbumCoverImageUpload from '@/components/admin/gallery/GalleryAlbumCoverImageUpload';
+import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
 
 interface AdminAlbumEditClientProps {
   initialAlbum: GalleryAlbumDTO;
@@ -146,26 +147,7 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
         <p className="mt-2 text-sm text-gray-600">
           Update album details and settings
         </p>
-        {albumTenantId ? (
-          <div
-            className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-xl border-2 border-sky-300 bg-sky-50 px-4 py-3 shadow-sm"
-            title="Tenant that owns this album"
-            aria-label={`Tenant ID ${albumTenantId}`}
-          >
-            <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
-              Tenant ID
-            </span>
-            <code className="rounded-lg bg-white px-3 py-1.5 text-sm font-bold text-sky-900 border border-sky-200 break-all">
-              {albumTenantId}
-            </code>
-          </div>
-        ) : (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 shadow-sm">
-            <span className="text-sm font-medium text-amber-800">
-              Tenant ID is not set on this album record.
-            </span>
-          </div>
-        )}
+        <AdminTenantIdBanner tenantId={albumTenantId} entityLabel="album" />
       </div>
 
       {/* Error State */}
