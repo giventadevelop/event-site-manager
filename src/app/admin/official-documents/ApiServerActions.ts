@@ -1,7 +1,11 @@
 'use server';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getTenantId, getApiBaseUrl } from '@/lib/env';
+import {
+  appendTenantIfPresent,
+  effectiveTenantId,
+  getApiBaseUrl,
+} from '@/lib/env';
 import type {
   EventMediaDTO,
   OfficialDocumentCategoryDTO,
@@ -9,6 +13,18 @@ import type {
 } from '@/types';
 import { withTenantId } from '@/lib/withTenantId';
 import { OFFICIAL_DOCUMENT_CATEGORIES_FALLBACK } from '@/data/officialDocumentCategoriesFallback';
+
+/**
+ * When admin UI selects `?tenant=`, override X-Tenant-ID so the backend scopes to that tenant
+ * (same pattern as gallery albums / manage-usage).
+ */
+function headersForTenantScope(
+  tenantId: string | undefined,
+  extra: Record<string, string> = {},
+): Record<string, string> {
+  const tid = effectiveTenantId(tenantId);
+  return tid ? { ...extra, 'X-Tenant-ID': tid } : { ...extra };
+}
 
 /** Spring Data REST page or raw array */
 function parseSpringPage<T>(data: unknown): T[] {
@@ -103,8 +119,11 @@ export type OfficialDocumentCategoriesFetchResult = {
 /**
  * Lists official document categories via GET /api/official-document-categories (fetchWithJwtRetry + tenant criteria).
  * If the backend returns 404 (endpoint not implemented), returns a built-in slug list so admin upload still works.
+ * Pass `tenantId` from `?tenant=` to scope; omit for tenant-agnostic list (platform admin).
  */
-export async function fetchOfficialDocumentCategoriesServer(): Promise<OfficialDocumentCategoriesFetchResult> {
+export async function fetchOfficialDocumentCategoriesServer(
+  tenantId?: string,
+): Promise<OfficialDocumentCategoriesFetchResult> {
   const fallback404 = (): OfficialDocumentCategoriesFetchResult =>
     allowCategoryFallback()
       ? {
@@ -122,12 +141,15 @@ export async function fetchOfficialDocumentCategoriesServer(): Promise<OfficialD
 
   try {
     const params = new URLSearchParams();
-    params.append('tenantId.equals', getTenantId());
+    appendTenantIfPresent(params, effectiveTenantId(tenantId));
     params.append('isActive.equals', 'true');
     params.append('sort', 'sortOrder,asc');
     params.append('size', '200');
     const url = `${getApiBaseUrl()}/api/official-document-categories?${params.toString()}`;
-    const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
+    const res = await fetchWithJwtRetry(url, {
+      cache: 'no-store',
+      headers: headersForTenantScope(tenantId),
+    });
 
     if (res.status === 404) {
       console.warn('[official-documents] GET /api/official-document-categories → 404 (using fallback if enabled)');
@@ -182,6 +204,7 @@ export async function fetchTenantOfficialDocumentsServer(filters?: {
   year?: number;
   officialDocumentCategoryId?: number;
   size?: number;
+  tenantId?: string;
 }): Promise<EventMediaDTO[]> {
   const maxRows = filters?.size ?? Number.POSITIVE_INFINITY;
   const batchSize = OFFICIAL_DOCUMENT_LIST_BATCH_SIZE;
@@ -192,7 +215,7 @@ export async function fetchTenantOfficialDocumentsServer(filters?: {
   try {
     while (all.length < maxRows && all.length < totalElements && page < 200) {
       const params = new URLSearchParams();
-      params.append('tenantId.equals', getTenantId());
+      appendTenantIfPresent(params, effectiveTenantId(filters?.tenantId));
       params.append('isEventManagementOfficialDocument.equals', 'true');
       params.append('sort', 'createdAt,desc');
       params.append('page', String(page));
@@ -202,7 +225,10 @@ export async function fetchTenantOfficialDocumentsServer(filters?: {
         params.append('officialDocumentCategoryId.equals', String(filters.officialDocumentCategoryId));
       }
       const url = `${getApiBaseUrl()}/api/event-medias?${params.toString()}`;
-      const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
+      const res = await fetchWithJwtRetry(url, {
+        cache: 'no-store',
+        headers: headersForTenantScope(filters?.tenantId),
+      });
       if (!res.ok) break;
 
       const data = await res.json();
@@ -271,12 +297,13 @@ export async function fetchTenantOfficialDocumentsPagedServer(filters: {
   searchField?: OfficialDocumentSearchField;
   searchTerm?: string;
   isPublic?: boolean;
+  tenantId?: string;
 }): Promise<OfficialDocumentsPageResult> {
   const page = filters.page ?? 0;
   const size = filters.size ?? 20;
   try {
     const params = new URLSearchParams();
-    params.append('tenantId.equals', getTenantId());
+    appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
     params.append('isEventManagementOfficialDocument.equals', 'true');
     params.append('sort', 'createdAt,desc');
     params.append('page', String(page));
@@ -289,7 +316,10 @@ export async function fetchTenantOfficialDocumentsPagedServer(filters: {
     if (filters.isPublic === false) params.append('isPublic.equals', 'false');
     appendOfficialDocumentSearchCriteria(params, filters.searchField, filters.searchTerm);
     const url = `${getApiBaseUrl()}/api/event-medias?${params.toString()}`;
-    const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
+    const res = await fetchWithJwtRetry(url, {
+      cache: 'no-store',
+      headers: headersForTenantScope(filters.tenantId),
+    });
     if (!res.ok) {
       return { content: [], totalElements: 0, totalPages: 0, page, size };
     }
@@ -318,9 +348,15 @@ export async function patchOfficialDocumentMediaServer(
     isPublic: boolean;
     officialDocumentYear: number;
     officialDocumentCategoryId: number | null;
-  }
+    tenantId?: string;
+  },
+  tenantId?: string,
 ): Promise<{ ok: true; media: EventMediaDTO } | { ok: false; message: string }> {
   try {
+    const tid =
+      effectiveTenantId(tenantId) ??
+      effectiveTenantId(updates.tenantId) ??
+      effectiveTenantId(existing.tenantId);
     const url = `${getApiBaseUrl()}/api/event-medias/${mediaId}`;
     const finalPayload = withTenantId({
       id: mediaId,
@@ -329,6 +365,7 @@ export async function patchOfficialDocumentMediaServer(
       isPublic: updates.isPublic,
       officialDocumentYear: updates.officialDocumentYear,
       officialDocumentCategoryId: updates.officialDocumentCategoryId,
+      ...(tid ? { tenantId: tid } : {}),
       eventMediaType: existing.eventMediaType || 'gallery',
       storageType: existing.storageType || 's3',
       // Backend EventMediaDTO marks these as @NotNull; merge-patch validation rejects
@@ -341,7 +378,7 @@ export async function patchOfficialDocumentMediaServer(
     });
     const res = await fetchWithJwtRetry(url, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/merge-patch+json' },
+      headers: headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
       body: JSON.stringify(finalPayload),
     });
     if (!res.ok) {
@@ -356,11 +393,19 @@ export async function patchOfficialDocumentMediaServer(
 }
 
 export async function deleteOfficialDocumentMediaServer(
-  mediaId: number
+  mediaId: number,
+  tenantId?: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   try {
-    const url = `${getApiBaseUrl()}/api/event-medias/${mediaId}?tenantId.equals=${encodeURIComponent(getTenantId())}`;
-    const res = await fetchWithJwtRetry(url, { method: 'DELETE', cache: 'no-store' });
+    const params = new URLSearchParams();
+    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    const qs = params.toString();
+    const url = `${getApiBaseUrl()}/api/event-medias/${mediaId}${qs ? `?${qs}` : ''}`;
+    const res = await fetchWithJwtRetry(url, {
+      method: 'DELETE',
+      cache: 'no-store',
+      headers: headersForTenantScope(tenantId),
+    });
     if (!res.ok) {
       const t = await res.text().catch(() => '');
       return { ok: false, message: t || `HTTP ${res.status}` };
@@ -403,14 +448,19 @@ function normalizeOfficialDocumentYearBundle(row: Record<string, unknown>): Offi
 }
 
 /** Lists year bundles for the tenant (GET /api/official-document-year-bundles). Returns [] if backend 404 or error. */
-export async function fetchOfficialDocumentYearBundlesServer(): Promise<OfficialDocumentYearBundleDTO[]> {
+export async function fetchOfficialDocumentYearBundlesServer(
+  tenantId?: string,
+): Promise<OfficialDocumentYearBundleDTO[]> {
   try {
     const params = new URLSearchParams();
-    params.append('tenantId.equals', getTenantId());
+    appendTenantIfPresent(params, effectiveTenantId(tenantId));
     params.append('sort', 'documentYear,desc');
     params.append('size', '500');
     const url = `${getApiBaseUrl()}/api/official-document-year-bundles?${params.toString()}`;
-    const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
+    const res = await fetchWithJwtRetry(url, {
+      cache: 'no-store',
+      headers: headersForTenantScope(tenantId),
+    });
     if (res.status === 404) return [];
     if (!res.ok) return [];
     const data = await res.json();
@@ -426,14 +476,22 @@ export async function fetchOfficialDocumentYearBundlesServer(): Promise<Official
 /** POST create bundle (tenant + category + year). */
 export async function createOfficialDocumentYearBundleServer(
   officialDocumentCategoryId: number,
-  documentYear: number
+  documentYear: number,
+  tenantId?: string,
 ): Promise<{ ok: true; bundle: OfficialDocumentYearBundleDTO } | { ok: false; message: string }> {
   try {
+    const tid = effectiveTenantId(tenantId);
     const url = `${getApiBaseUrl()}/api/official-document-year-bundles`;
     const res = await fetchWithJwtRetry(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(withTenantId({ officialDocumentCategoryId, documentYear })),
+      headers: headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify(
+        withTenantId({
+          officialDocumentCategoryId,
+          documentYear,
+          ...(tid ? { tenantId: tid } : {}),
+        }),
+      ),
     });
     if (!res.ok) {
       const t = await res.text().catch(() => '');
@@ -450,14 +508,16 @@ export async function createOfficialDocumentYearBundleServer(
 /** PATCH bundle cover (merge-patch). */
 export async function patchOfficialDocumentYearBundleServer(
   bundleId: number,
-  patch: { coverEventMediaId?: number | null }
+  patch: { coverEventMediaId?: number | null },
+  tenantId?: string,
 ): Promise<{ ok: true; bundle: OfficialDocumentYearBundleDTO } | { ok: false; message: string }> {
   try {
+    const tid = effectiveTenantId(tenantId);
     const url = `${getApiBaseUrl()}/api/official-document-year-bundles/${bundleId}`;
-    const finalPayload = { ...patch, id: bundleId };
+    const finalPayload = { ...patch, id: bundleId, ...(tid ? { tenantId: tid } : {}) };
     const res = await fetchWithJwtRetry(url, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/merge-patch+json' },
+      headers: headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
       body: JSON.stringify(finalPayload),
     });
     if (!res.ok) {
@@ -490,6 +550,7 @@ export async function fetchOfficialDocumentCategoriesPagedServer(filters: {
   size?: number;
   /** If true, only active categories. If false, omit filter (tenant-wide list for admin). */
   activeOnly?: boolean;
+  tenantId?: string;
 }): Promise<
   | { ok: true; data: OfficialDocumentCategoriesPageResult }
   | { ok: false; reason: 'not_found' | 'error'; message?: string }
@@ -498,7 +559,7 @@ export async function fetchOfficialDocumentCategoriesPagedServer(filters: {
   const size = filters.size ?? 20;
   try {
     const params = new URLSearchParams();
-    params.append('tenantId.equals', getTenantId());
+    appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
     params.append('sort', 'sortOrder,asc');
     params.append('page', String(page));
     params.append('size', String(size));
@@ -506,7 +567,10 @@ export async function fetchOfficialDocumentCategoriesPagedServer(filters: {
       params.append('isActive.equals', 'true');
     }
     const url = `${getApiBaseUrl()}/api/official-document-categories?${params.toString()}`;
-    const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
+    const res = await fetchWithJwtRetry(url, {
+      cache: 'no-store',
+      headers: headersForTenantScope(filters.tenantId),
+    });
 
     if (res.status === 404) {
       return { ok: false, reason: 'not_found' };
@@ -541,14 +605,19 @@ export async function fetchOfficialDocumentCategoriesPagedServer(filters: {
   }
 }
 
-export async function createOfficialDocumentCategoryServer(payload: {
-  slug: string;
-  displayName: string;
-  description?: string;
-  sortOrder?: number;
-  isActive?: boolean;
-}): Promise<{ ok: true; category: OfficialDocumentCategoryDTO } | { ok: false; message: string }> {
+export async function createOfficialDocumentCategoryServer(
+  payload: {
+    slug: string;
+    displayName: string;
+    description?: string;
+    sortOrder?: number;
+    isActive?: boolean;
+    tenantId?: string;
+  },
+  tenantId?: string,
+): Promise<{ ok: true; category: OfficialDocumentCategoryDTO } | { ok: false; message: string }> {
   try {
+    const tid = effectiveTenantId(tenantId) ?? effectiveTenantId(payload.tenantId);
     const now = new Date().toISOString();
     const body = withTenantId({
       slug: payload.slug.trim().toLowerCase().replace(/\s+/g, '-'),
@@ -556,13 +625,14 @@ export async function createOfficialDocumentCategoryServer(payload: {
       description: payload.description?.trim() ?? '',
       sortOrder: payload.sortOrder ?? 0,
       isActive: payload.isActive !== false,
+      ...(tid ? { tenantId: tid } : {}),
       createdAt: now,
       updatedAt: now,
     });
     const url = `${getApiBaseUrl()}/api/official-document-categories`;
     const res = await fetchWithJwtRetry(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
       body: JSON.stringify(body),
     });
     if (!res.ok) {
@@ -584,9 +654,12 @@ export async function patchOfficialDocumentCategoryServer(
     description?: string;
     sortOrder?: number;
     isActive?: boolean;
-  }
+    tenantId?: string;
+  },
+  tenantId?: string,
 ): Promise<{ ok: true; category: OfficialDocumentCategoryDTO } | { ok: false; message: string }> {
   try {
+    const tid = effectiveTenantId(tenantId) ?? effectiveTenantId(updates.tenantId);
     const url = `${getApiBaseUrl()}/api/official-document-categories/${categoryId}`;
     const finalPayload = withTenantId({
       id: categoryId,
@@ -595,11 +668,12 @@ export async function patchOfficialDocumentCategoryServer(
       description: updates.description?.trim() ?? '',
       sortOrder: updates.sortOrder ?? 0,
       isActive: updates.isActive !== false,
+      ...(tid ? { tenantId: tid } : {}),
       updatedAt: new Date().toISOString(),
     });
     const res = await fetchWithJwtRetry(url, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/merge-patch+json' },
+      headers: headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
       body: JSON.stringify(finalPayload),
     });
     if (!res.ok) {
@@ -614,11 +688,19 @@ export async function patchOfficialDocumentCategoryServer(
 }
 
 export async function deleteOfficialDocumentCategoryServer(
-  categoryId: number
+  categoryId: number,
+  tenantId?: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   try {
-    const url = `${getApiBaseUrl()}/api/official-document-categories/${categoryId}?tenantId.equals=${encodeURIComponent(getTenantId())}`;
-    const res = await fetchWithJwtRetry(url, { method: 'DELETE', cache: 'no-store' });
+    const params = new URLSearchParams();
+    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    const qs = params.toString();
+    const url = `${getApiBaseUrl()}/api/official-document-categories/${categoryId}${qs ? `?${qs}` : ''}`;
+    const res = await fetchWithJwtRetry(url, {
+      method: 'DELETE',
+      cache: 'no-store',
+      headers: headersForTenantScope(tenantId),
+    });
     if (!res.ok) {
       const t = await res.text().catch(() => '');
       return { ok: false, message: t || `HTTP ${res.status}` };

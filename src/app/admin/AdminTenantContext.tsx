@@ -43,7 +43,9 @@ function hasInlineTenantFilter(pathname: string | null): boolean {
     pathname.includes('/membership/subscriptions') ||
     pathname.includes('/polls') ||
     pathname.includes('/focus-groups') ||
-    pathname.includes('/media/list')
+    pathname.includes('/media/list') ||
+    pathname.includes('/official-documents') ||
+    pathname.includes('/official-document-categories')
   );
 }
 

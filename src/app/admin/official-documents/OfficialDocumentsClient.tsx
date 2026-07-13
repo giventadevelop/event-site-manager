@@ -10,6 +10,8 @@ import type {
   OfficialDocumentYearBundleDTO,
 } from '@/types';
 import { getClientTenantId } from '@/lib/env';
+import AdminTenantFilterField from '../AdminTenantFilterField';
+import { useAdminTenantId } from '../AdminTenantContext';
 import {
   createOfficialDocumentYearBundleServer,
   deleteOfficialDocumentMediaServer,
@@ -142,7 +144,11 @@ export default function OfficialDocumentsClient({
   categoryMessage: initialCategoryMessage,
 }: Props) {
   const router = useRouter();
-  const tenantId = getClientTenantId();
+  /** Selected `?tenant=` from AdminTenantFilterField; env fallback for single-tenant uploads. */
+  const adminTenantId = useAdminTenantId();
+  const envTenantId = getClientTenantId();
+  const tenantId = adminTenantId || envTenantId || undefined;
+  const [editTenantId, setEditTenantId] = useState('');
   const [categories, setCategories] = useState<OfficialDocumentCategoryDTO[]>(initialCategories);
   const [categorySource, setCategorySource] = useState<'api' | 'fallback'>(initialCategorySource);
   const [categoryMessage, setCategoryMessage] = useState<string | undefined>(initialCategoryMessage);
@@ -246,13 +252,14 @@ export default function OfficialDocumentsClient({
     void fetchTenantOfficialDocumentsServer({
       year,
       officialDocumentCategoryId: selectedCategoryId,
+      tenantId: adminTenantId,
     }).then((list) => {
       if (!cancelled) setCoverSourceDocs(list);
     });
     return () => {
       cancelled = true;
     };
-  }, [selectedCategoryId, year]);
+  }, [selectedCategoryId, year, adminTenantId]);
 
   /** Include current cover media if it is not in the filtered list (e.g. different filter). */
   const coverSelectOptions = useMemo(() => {
@@ -273,16 +280,16 @@ export default function OfficialDocumentsClient({
   }, [currentBundle?.coverEventMediaId, currentBundle?.id]);
 
   const reloadBundles = useCallback(async () => {
-    const next = await fetchOfficialDocumentYearBundlesServer();
+    const next = await fetchOfficialDocumentYearBundlesServer(adminTenantId);
     setBundles(next);
-  }, []);
+  }, [adminTenantId]);
 
   const reloadCategories = useCallback(async () => {
-    const next = await fetchOfficialDocumentCategoriesServer();
+    const next = await fetchOfficialDocumentCategoriesServer(adminTenantId);
     setCategories(next.categories);
     setCategorySource(next.source);
     setCategoryMessage(next.message);
-  }, []);
+  }, [adminTenantId]);
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -304,13 +311,14 @@ export default function OfficialDocumentsClient({
   const buildListFilters = useCallback(() => {
     const trimmed = searchTerm.trim();
     return {
+      tenantId: adminTenantId,
       ...(filterYear !== '' ? { year: filterYear } : {}),
       ...(filterCategoryId !== '' ? { officialDocumentCategoryId: filterCategoryId } : {}),
       ...(trimmed ? { searchField, searchTerm: trimmed } : {}),
       ...(filterIsPublic === 'true' ? { isPublic: true as const } : {}),
       ...(filterIsPublic === 'false' ? { isPublic: false as const } : {}),
     };
-  }, [filterYear, filterCategoryId, searchField, searchTerm, filterIsPublic]);
+  }, [adminTenantId, filterYear, filterCategoryId, searchField, searchTerm, filterIsPublic]);
 
   const reloadDocuments = useCallback(
     async (page: number) => {
@@ -343,9 +351,11 @@ export default function OfficialDocumentsClient({
   useEffect(() => {
     const timer = setTimeout(() => {
       void reloadDocuments(0);
+      void reloadCategories();
+      void reloadBundles();
     }, 350);
     return () => clearTimeout(timer);
-  }, [searchTerm, searchField, filterIsPublic, reloadDocuments]);
+  }, [searchTerm, searchField, filterIsPublic, adminTenantId, reloadDocuments, reloadCategories, reloadBundles]);
 
   const handleClearSearch = () => {
     setSearchTerm('');
@@ -372,6 +382,7 @@ export default function OfficialDocumentsClient({
     setEditCategoryId(
       row.officialDocumentCategoryId != null ? row.officialDocumentCategoryId : ''
     );
+    setEditTenantId(row.tenantId || adminTenantId || envTenantId || '');
   };
 
   const handleSaveEdit = async () => {
@@ -387,13 +398,20 @@ export default function OfficialDocumentsClient({
     setEditSaving(true);
     setEditError(null);
     try {
-      const r = await patchOfficialDocumentMediaServer(editing.id, editing, {
-        title: editTitle.trim(),
-        description: editDescription.trim(),
-        isPublic: editIsPublic,
-        officialDocumentYear: editYear,
-        officialDocumentCategoryId: typeof editCategoryId === 'number' ? editCategoryId : null,
-      });
+      const scopeTenant = editTenantId.trim() || adminTenantId || editing.tenantId;
+      const r = await patchOfficialDocumentMediaServer(
+        editing.id,
+        editing,
+        {
+          title: editTitle.trim(),
+          description: editDescription.trim(),
+          isPublic: editIsPublic,
+          officialDocumentYear: editYear,
+          officialDocumentCategoryId: typeof editCategoryId === 'number' ? editCategoryId : null,
+          ...(scopeTenant ? { tenantId: scopeTenant } : {}),
+        },
+        scopeTenant,
+      );
       if (!r.ok) {
         setEditError(r.message);
         return;
@@ -409,17 +427,19 @@ export default function OfficialDocumentsClient({
   };
 
   const handleUploadEditThumbnail = async () => {
-    if (!editing?.id || !editThumbnailFile || !tenantId) return;
+    const scopeTenant = editTenantId.trim() || tenantId;
+    if (!editing?.id || !editThumbnailFile || !scopeTenant) return;
     setEditThumbnailBusy(true);
     setEditError(null);
     try {
       const form = new FormData();
       form.append('thumbnailFile', editThumbnailFile);
+      form.append('tenantId', scopeTenant);
       const res = await fetch(
         `/api/proxy/event-medias/upload-official-document-thumbnail/${editing.id}`,
         {
           method: 'POST',
-          headers: { 'X-Tenant-ID': tenantId },
+          headers: { 'X-Tenant-ID': scopeTenant },
           body: form,
         }
       );
@@ -444,7 +464,10 @@ export default function OfficialDocumentsClient({
     if (!deleting?.id) return;
     setDeleteBusy(true);
     try {
-      const r = await deleteOfficialDocumentMediaServer(deleting.id);
+      const r = await deleteOfficialDocumentMediaServer(
+        deleting.id,
+        deleting.tenantId || adminTenantId,
+      );
       if (!r.ok) {
         setError(r.message);
         return;
@@ -462,7 +485,7 @@ export default function OfficialDocumentsClient({
     e.preventDefault();
     setQaError(null);
     if (!tenantId) {
-      setQaError('Tenant ID is not configured.');
+      setQaError('Select a Tenant ID in the search filters (or set NEXT_PUBLIC_TENANT_ID).');
       return;
     }
     if (!qaCategorySlug.trim()) {
@@ -513,6 +536,7 @@ export default function OfficialDocumentsClient({
         const list = await fetchTenantOfficialDocumentsServer({
           year,
           officialDocumentCategoryId: selectedCategoryId,
+          tenantId: adminTenantId,
         });
         setCoverSourceDocs(list);
       }
@@ -529,7 +553,7 @@ export default function OfficialDocumentsClient({
     setMessage(null);
     setError(null);
     if (!tenantId) {
-      setError('Tenant ID is not configured (NEXT_PUBLIC_TENANT_ID).');
+      setError('Select a Tenant ID in the search filters (or set NEXT_PUBLIC_TENANT_ID).');
       return;
     }
     if (!categorySlug.trim()) {
@@ -605,7 +629,11 @@ export default function OfficialDocumentsClient({
     }
     setBundleBusy(true);
     try {
-      const r = await createOfficialDocumentYearBundleServer(selectedCategoryId, year);
+      const r = await createOfficialDocumentYearBundleServer(
+        selectedCategoryId,
+        year,
+        adminTenantId || tenantId,
+      );
       if (!r.ok) {
         setBundleError(r.message);
         return;
@@ -638,7 +666,11 @@ export default function OfficialDocumentsClient({
     try {
       const coverEventMediaId =
         coverSelectId === 'none' || coverSelectId === '' ? null : Number(coverSelectId);
-      const r = await patchOfficialDocumentYearBundleServer(currentBundle.id, { coverEventMediaId });
+      const r = await patchOfficialDocumentYearBundleServer(
+        currentBundle.id,
+        { coverEventMediaId },
+        currentBundle.tenantId || adminTenantId || tenantId,
+      );
       if (!r.ok) {
         setBundleError(r.message);
         return;
@@ -688,7 +720,14 @@ export default function OfficialDocumentsClient({
           Admin Dashboard
         </Link>
         <span className="text-gray-300">|</span>
-        <Link href="/admin/official-document-categories" className="font-medium text-blue-600 hover:text-blue-800">
+        <Link
+          href={
+            adminTenantId
+              ? `/admin/official-document-categories?tenant=${encodeURIComponent(adminTenantId)}`
+              : '/admin/official-document-categories'
+          }
+          className="font-medium text-blue-600 hover:text-blue-800"
+        >
           Browse categories (list)
         </Link>
       </nav>
@@ -714,15 +753,39 @@ export default function OfficialDocumentsClient({
         <code className="text-sm bg-gray-100 px-1 rounded">official_document/&#123;slug&#125;/&#123;year&#125;</code>.
         Category must exist in{' '}
         <code className="text-sm bg-gray-100 px-1">official_document_category</code> for your tenant (
-        <Link href="/admin/official-document-categories" className="text-blue-600 hover:underline">
+        <Link
+          href={
+            adminTenantId
+              ? `/admin/official-document-categories?tenant=${encodeURIComponent(adminTenantId)}`
+              : '/admin/official-document-categories'
+          }
+          className="text-blue-600 hover:underline"
+        >
           view slugs
         </Link>
         ).
       </p>
       <p className="text-sm text-gray-500 mb-6">
-        Tenant in this app: <code className="bg-gray-100 px-1 rounded">{tenantId || 'not set'}</code>. Must match{' '}
-        <code>tenant_id</code> in the database (your seed uses <code>tenant_demo_002</code>).
+        Active tenant for uploads:{' '}
+        <code className="bg-gray-100 px-1 rounded">{tenantId || 'not set — select Tenant ID below'}</code>
+        {adminTenantId ? (
+          <span className="ml-2 text-green-700">(from search filter)</span>
+        ) : envTenantId ? (
+          <span className="ml-2 text-amber-700">(env default)</span>
+        ) : null}
+        . Must match <code>tenant_id</code> in the database.
       </p>
+
+      <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-6">
+        <div className="text-base font-semibold text-blue-800 mb-4">Search &amp; filters</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-end">
+          <AdminTenantFilterField />
+          <div className="text-sm text-gray-600 md:col-span-2">
+            Select a Tenant ID to list and manage documents for that tenant. Create, upload, edit, and delete use the
+            selected tenant (or env default when none is selected).
+          </div>
+        </div>
+      </div>
 
       <div className="mb-8 rounded-lg border border-blue-200 bg-blue-50/80 p-5 text-sm text-gray-800 space-y-3">
         <h2 className="text-base font-semibold text-gray-900">Workflow &amp; capabilities</h2>
@@ -756,6 +819,19 @@ export default function OfficialDocumentsClient({
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Bulk upload</h2>
           <form onSubmit={handleBulkUpload} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tenant ID</label>
+              <input
+                type="text"
+                value={tenantId || ''}
+                readOnly
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-sm bg-gray-50"
+                aria-label="Tenant ID for upload"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Set via Tenant ID search filter above{envTenantId && !adminTenantId ? ' (currently env default)' : ''}.
+              </p>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category (slug)</label>
               {categories.length > 0 ? (
@@ -1182,11 +1258,11 @@ export default function OfficialDocumentsClient({
                           type="button"
                           onClick={() => openEdit(d)}
                           disabled={d.id == null}
-                          className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-40"
+                          className="flex-shrink-0 w-14 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-40"
                           title="Edit"
                           aria-label="Edit document"
                         >
-                          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
@@ -1194,11 +1270,11 @@ export default function OfficialDocumentsClient({
                           type="button"
                           onClick={() => setDeleting(d)}
                           disabled={d.id == null}
-                          className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-40"
+                          className="flex-shrink-0 w-14 h-14 rounded-xl bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-40"
                           title="Delete"
                           aria-label="Delete document"
                         >
-                          <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
@@ -1271,6 +1347,20 @@ export default function OfficialDocumentsClient({
         size="lg"
       >
         <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tenant ID</label>
+            <input
+              type="text"
+              value={editTenantId}
+              onChange={(e) => setEditTenantId(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-sm"
+              placeholder="tenant_…"
+              aria-label="Tenant ID"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Updates and thumbnail uploads use this tenant (defaults from the document or search filter).
+            </p>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
             <input
@@ -1419,6 +1509,16 @@ export default function OfficialDocumentsClient({
             Uploads a single file to the tenant library (same API as bulk upload). Use bulk upload for many files or
             folders.
           </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tenant ID</label>
+            <input
+              type="text"
+              value={tenantId || ''}
+              readOnly
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-sm bg-gray-50"
+              aria-label="Tenant ID for quick add"
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category (slug)</label>
             {categories.length > 0 ? (

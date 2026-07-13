@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { OfficialDocumentCategoryDTO } from '@/types';
@@ -11,6 +11,9 @@ import {
   fetchOfficialDocumentCategoriesPagedServer,
   patchOfficialDocumentCategoryServer,
 } from '../official-documents/ApiServerActions';
+import AdminTenantFilterField from '../AdminTenantFilterField';
+import { useAdminTenantId } from '../AdminTenantContext';
+import { getClientTenantId } from '@/lib/env';
 import Modal from '@/components/ui/Modal';
 import {
   AlertDialog,
@@ -40,16 +43,21 @@ type Props =
       tenantLabel: string;
     };
 
-const emptyForm = () => ({
+const emptyForm = (defaultTenant = '') => ({
   slug: '',
   displayName: '',
   description: '',
   sortOrder: 0,
   isActive: true,
+  tenantId: defaultTenant,
 });
 
 export default function OfficialDocumentCategoriesClient(props: Props) {
   const router = useRouter();
+  const adminTenantId = useAdminTenantId();
+  const envTenantId = getClientTenantId();
+  const tenantId = adminTenantId || envTenantId || undefined;
+
   const [listLoading, setListLoading] = useState(false);
   const [opError, setOpError] = useState<string | null>(null);
 
@@ -65,56 +73,50 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
   const [currentPage, setCurrentPage] = useState(props.mode === 'api' ? props.initialData.page : 0);
   const pageSize = props.mode === 'api' ? props.listPageSize : 20;
 
-  const reloadList = useCallback(async () => {
-    if (props.mode !== 'api') return;
-    setListLoading(true);
-    setOpError(null);
-    try {
-      const res = await fetchOfficialDocumentCategoriesPagedServer({
-        page: currentPage,
-        size: pageSize,
-        activeOnly: false,
-      });
-      if (!res.ok) {
-        setOpError(res.reason === 'not_found' ? 'Categories API is not available.' : res.message || 'Failed to load.');
-        return;
+  const goToPage = useCallback(
+    async (page: number) => {
+      if (props.mode !== 'api') return;
+      setListLoading(true);
+      setOpError(null);
+      try {
+        const res = await fetchOfficialDocumentCategoriesPagedServer({
+          page,
+          size: pageSize,
+          activeOnly: false,
+          tenantId: adminTenantId,
+        });
+        if (!res.ok) {
+          setOpError(
+            res.reason === 'not_found' ? 'Categories API is not available.' : res.message || 'Failed to load.',
+          );
+          return;
+        }
+        setContent(res.data.content);
+        setTotalElements(res.data.totalElements);
+        setTotalPages(res.data.totalPages);
+        setCurrentPage(res.data.page);
+      } finally {
+        setListLoading(false);
       }
-      setContent(res.data.content);
-      setTotalElements(res.data.totalElements);
-      setTotalPages(res.data.totalPages);
-      setCurrentPage(res.data.page);
-    } finally {
-      setListLoading(false);
-    }
-  }, [props.mode, currentPage, pageSize]);
+    },
+    [props.mode, pageSize, adminTenantId],
+  );
 
-  const goToPage = async (page: number) => {
+  const reloadList = useCallback(async () => {
+    await goToPage(currentPage);
+  }, [goToPage, currentPage]);
+
+  useEffect(() => {
     if (props.mode !== 'api') return;
-    setListLoading(true);
-    setOpError(null);
-    try {
-      const res = await fetchOfficialDocumentCategoriesPagedServer({
-        page,
-        size: pageSize,
-        activeOnly: false,
-      });
-      if (!res.ok) {
-        setOpError(res.reason === 'not_found' ? 'Categories API is not available.' : res.message || 'Failed to load.');
-        return;
-      }
-      setContent(res.data.content);
-      setTotalElements(res.data.totalElements);
-      setTotalPages(res.data.totalPages);
-      setCurrentPage(res.data.page);
-    } finally {
-      setListLoading(false);
-    }
-  };
+    void goToPage(0);
+    // Reload when tenant filter changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminTenantId]);
 
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<OfficialDocumentCategoryDTO | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => emptyForm(tenantId || ''));
   const [saveBusy, setSaveBusy] = useState(false);
 
   const [deleting, setDeleting] = useState<OfficialDocumentCategoryDTO | null>(null);
@@ -122,7 +124,7 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
 
   const openAdd = () => {
     setOpError(null);
-    setForm(emptyForm());
+    setForm(emptyForm(tenantId || ''));
     setAddOpen(true);
   };
 
@@ -139,6 +141,7 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
       description: c.description ?? '',
       sortOrder: c.sortOrder ?? 0,
       isActive: c.isActive !== false,
+      tenantId: c.tenantId || tenantId || '',
     });
     setEditOpen(true);
   };
@@ -149,22 +152,31 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
       setOpError('Slug and display name are required.');
       return;
     }
+    const scopeTenant = form.tenantId.trim() || adminTenantId || envTenantId;
+    if (!scopeTenant) {
+      setOpError('Select a Tenant ID in the search filter (or enter one on the form).');
+      return;
+    }
     setSaveBusy(true);
     setOpError(null);
     try {
-      const res = await createOfficialDocumentCategoryServer({
-        slug: form.slug,
-        displayName: form.displayName,
-        description: form.description,
-        sortOrder: Number(form.sortOrder) || 0,
-        isActive: form.isActive,
-      });
+      const res = await createOfficialDocumentCategoryServer(
+        {
+          slug: form.slug,
+          displayName: form.displayName,
+          description: form.description,
+          sortOrder: Number(form.sortOrder) || 0,
+          isActive: form.isActive,
+          tenantId: scopeTenant,
+        },
+        scopeTenant,
+      );
       if (!res.ok) {
         setOpError(res.message);
         return;
       }
       setAddOpen(false);
-      setForm(emptyForm());
+      setForm(emptyForm(tenantId || ''));
       await goToPage(0);
     } finally {
       setSaveBusy(false);
@@ -178,16 +190,22 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
       setOpError('Slug and display name are required.');
       return;
     }
+    const scopeTenant = form.tenantId.trim() || adminTenantId || editing.tenantId;
     setSaveBusy(true);
     setOpError(null);
     try {
-      const res = await patchOfficialDocumentCategoryServer(editing.id, {
-        slug: form.slug,
-        displayName: form.displayName,
-        description: form.description,
-        sortOrder: Number(form.sortOrder) || 0,
-        isActive: form.isActive,
-      });
+      const res = await patchOfficialDocumentCategoryServer(
+        editing.id,
+        {
+          slug: form.slug,
+          displayName: form.displayName,
+          description: form.description,
+          sortOrder: Number(form.sortOrder) || 0,
+          isActive: form.isActive,
+          ...(scopeTenant ? { tenantId: scopeTenant } : {}),
+        },
+        scopeTenant,
+      );
       if (!res.ok) {
         setOpError(res.message);
         return;
@@ -208,7 +226,10 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
     setDeleteBusy(true);
     setOpError(null);
     try {
-      const res = await deleteOfficialDocumentCategoryServer(deleting.id);
+      const res = await deleteOfficialDocumentCategoryServer(
+        deleting.id,
+        deleting.tenantId || adminTenantId,
+      );
       if (!res.ok) {
         setOpError(res.message);
         return;
@@ -232,6 +253,7 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
     totalElements > 0 ? Math.min(currentPage * pageSize + content.length, totalElements) : 0;
 
   const isApi = props.mode === 'api';
+  const displayTenantLabel = adminTenantId || props.tenantLabel;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -243,7 +265,14 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
           Admin Dashboard
         </Link>
         <span className="text-gray-300">|</span>
-        <Link href="/admin/official-documents" className="text-blue-600 hover:text-blue-800 font-medium">
+        <Link
+          href={
+            adminTenantId
+              ? `/admin/official-documents?tenant=${encodeURIComponent(adminTenantId)}`
+              : '/admin/official-documents'
+          }
+          className="text-blue-600 hover:text-blue-800 font-medium"
+        >
           Official documents (upload)
         </Link>
       </nav>
@@ -252,7 +281,7 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Official document categories</h1>
           <p className="text-gray-600 text-sm">
-            Manage category slugs used for bulk upload and year bundles. Tenant-scoped via the API.
+            Manage category slugs used for bulk upload and year bundles. Filter and CRUD by Tenant ID.
           </p>
         </div>
         {isApi && (
@@ -272,6 +301,16 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
             <span className="font-semibold text-blue-700">Add category</span>
           </button>
         )}
+      </div>
+
+      <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-6">
+        <div className="text-base font-semibold text-blue-800 mb-4">Search &amp; filters</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-end">
+          <AdminTenantFilterField />
+          <div className="text-sm text-gray-600 md:col-span-2">
+            Select a Tenant ID to list categories for that tenant. Add / edit / delete use the selected (or form) tenant.
+          </div>
+        </div>
       </div>
 
       {props.mode === 'fallback' && props.message && (
@@ -294,8 +333,16 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
       )}
 
       <p className="text-gray-600 text-sm mb-4">
-        Rows in <code className="text-sm bg-gray-100 px-1 rounded">official_document_category</code> for tenant{' '}
-        <code className="text-sm bg-gray-100 px-1 rounded">{props.tenantLabel}</code>. Slugs must match bulk upload.
+        Rows in <code className="text-sm bg-gray-100 px-1 rounded">official_document_category</code>
+        {adminTenantId ? (
+          <>
+            {' '}
+            for tenant <code className="text-sm bg-gray-100 px-1 rounded">{displayTenantLabel}</code>
+          </>
+        ) : (
+          <> (all tenants — select Tenant ID to filter)</>
+        )}
+        . Slugs must match bulk upload.
       </p>
 
       {opError && (
@@ -314,8 +361,11 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm font-medium text-gray-700">
             {totalElements} categor{totalElements === 1 ? 'y' : 'ies'}
+            {listLoading && <span className="ml-2 text-xs text-gray-500">Loading…</span>}
             {props.mode === 'fallback' && (
-              <span className="ml-2 text-xs text-amber-800">({props.source === 'fallback' ? 'fallback' : 'read-only'})</span>
+              <span className="ml-2 text-xs text-amber-800">
+                ({props.source === 'fallback' ? 'fallback' : 'read-only'})
+              </span>
             )}
           </span>
         </div>
@@ -328,20 +378,24 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
                     Actions
                   </th>
                 )}
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Tenant ID
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sort</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Display name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Display name
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Description
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {content.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={isApi ? 6 : 5}
-                    className="px-4 py-10 text-center text-gray-500"
-                  >
+                  <td colSpan={isApi ? 7 : 6} className="px-4 py-10 text-center text-gray-500">
                     No categories{isApi ? ' on this page.' : '.'}
                   </td>
                 </tr>
@@ -355,11 +409,11 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
                             type="button"
                             onClick={() => openEdit(c)}
                             disabled={listLoading || c.id == null}
-                            className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-40 disabled:hover:scale-100"
+                            className="flex-shrink-0 w-14 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-40 disabled:hover:scale-100"
                             title="Edit"
                             aria-label="Edit category"
                           >
-                            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -375,11 +429,11 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
                               setDeleting(c);
                             }}
                             disabled={listLoading || c.id == null}
-                            className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-40 disabled:hover:scale-100"
+                            className="flex-shrink-0 w-14 h-14 rounded-xl bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-40 disabled:hover:scale-100"
                             title="Delete"
                             aria-label="Delete category"
                           >
-                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -391,6 +445,7 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
                         </div>
                       </td>
                     )}
+                    <td className="px-4 py-3 text-sm font-mono text-gray-700">{c.tenantId ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{c.sortOrder ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{c.isActive === false ? 'No' : 'Yes'}</td>
                     <td className="px-4 py-3 text-sm font-mono text-gray-900">{c.slug}</td>
@@ -461,6 +516,16 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
       <Modal isOpen={addOpen} onClose={() => !saveBusy && setAddOpen(false)} title="Add category">
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
+            <label className="block text-sm font-medium text-gray-700">Tenant ID *</label>
+            <input
+              className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-sm"
+              value={form.tenantId}
+              onChange={(e) => setForm((f) => ({ ...f, tenantId: e.target.value }))}
+              placeholder="tenant_…"
+              required
+            />
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700">Slug *</label>
             <input
               className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2"
@@ -527,6 +592,15 @@ export default function OfficialDocumentCategoriesClient(props: Props) {
 
       <Modal isOpen={editOpen} onClose={() => !saveBusy && setEditOpen(false)} title="Edit category">
         <form onSubmit={handleUpdate} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Tenant ID *</label>
+            <input
+              className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-sm"
+              value={form.tenantId}
+              onChange={(e) => setForm((f) => ({ ...f, tenantId: e.target.value }))}
+              required
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Slug *</label>
             <input

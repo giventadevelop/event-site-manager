@@ -1,4 +1,4 @@
-import { getTenantId } from '@/lib/env';
+import { effectiveTenantId } from '@/lib/env';
 import {
   fetchOfficialDocumentCategoriesPagedServer,
   fetchOfficialDocumentCategoriesServer,
@@ -9,20 +9,26 @@ export const dynamic = 'force-dynamic';
 
 const LIST_PAGE_SIZE = 20;
 
-export default async function OfficialDocumentCategoriesPage() {
+export default async function OfficialDocumentCategoriesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tenant?: string }> | { tenant?: string };
+}) {
+  const resolved =
+    searchParams && typeof (searchParams as Promise<{ tenant?: string }>).then === 'function'
+      ? await (searchParams as Promise<{ tenant?: string }>)
+      : ((searchParams as { tenant?: string } | undefined) ?? {});
+  const tenantId = effectiveTenantId(resolved.tenant);
+
   const paged = await fetchOfficialDocumentCategoriesPagedServer({
     page: 0,
     size: LIST_PAGE_SIZE,
     activeOnly: false,
+    tenantId,
   });
-  const fb = await fetchOfficialDocumentCategoriesServer();
+  const fb = await fetchOfficialDocumentCategoriesServer(tenantId);
 
-  let tenantLabel = '';
-  try {
-    tenantLabel = getTenantId();
-  } catch {
-    tenantLabel = '(NEXT_PUBLIC_TENANT_ID not set)';
-  }
+  const tenantLabel = tenantId || '(all tenants — select Tenant ID to filter)';
 
   if (paged.ok) {
     return (
