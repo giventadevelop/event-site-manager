@@ -1775,6 +1775,12 @@ export default function TenantSettingsForm({
 
             {/* Email Header Image Upload */}
             <div className="border-t border-gray-200 pt-6">
+              <div
+                className="mb-4 rounded-lg border-2 border-violet-300 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-900"
+                role="note"
+              >
+                [This could also be the header and footer for the contact us email used from the contact forms]
+              </div>
               <h4 className="text-md font-medium text-gray-900 mb-4">Email Header Image</h4>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
