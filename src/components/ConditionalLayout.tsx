@@ -21,10 +21,6 @@ export default function ConditionalLayout({ children, header, footer }: Conditio
   // MOSC redesign shell (downloads library, etc.)
   const isMoscRedesignRoute = pathname?.startsWith("/mosc-redesign") ?? false;
 
-  // Primary root `/` is a minimal auth-only landing (no main site header/footer).
-  // Satellite sign-in still targets `/sign-in` on the primary domain; see RootAuthLanding.
-  const isRootAuthOnly = pathname === "/";
-
   // Clerk auth routes: same app on primary + satellites — hide marketing header/footer so
   // sign-in isn’t cramped under MALAYALEES.US nav + broken logo; user goes to /home after auth.
   const isAuthRoute =
@@ -46,7 +42,7 @@ export default function ConditionalLayout({ children, header, footer }: Conditio
     return <>{children}</>;
   }
 
-  if (isRootAuthOnly || isAuthRoute) {
+  if (isAuthRoute) {
     return <>{children}</>;
   }
 

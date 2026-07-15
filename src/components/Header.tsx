@@ -7,6 +7,8 @@ import { Search, ChevronDown, X, LogOut, User } from 'lucide-react';
 import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 import { useTenantSettings } from '@/components/TenantSettingsProvider';
 import Image from 'next/image';
+import { isAdminRole } from '@/lib/utils';
+import type { UserProfileDTO } from '@/types';
 
 const navItems = [
   {
@@ -92,6 +94,35 @@ type HeaderProps = {
   variant?: 'charity' | 'default';
   isTenantAdmin?: boolean;
 };
+
+function pickFirstUserProfile(data: unknown): UserProfileDTO | null {
+  if (Array.isArray(data)) {
+    return (data[0] as UserProfileDTO | undefined) ?? null;
+  }
+
+  if (data && typeof data === 'object') {
+    const obj = data as {
+      content?: unknown[];
+      _embedded?: { userProfiles?: unknown[] };
+      userId?: string;
+      email?: string;
+    };
+
+    if (Array.isArray(obj.content)) {
+      return (obj.content[0] as UserProfileDTO | undefined) ?? null;
+    }
+
+    if (Array.isArray(obj._embedded?.userProfiles)) {
+      return (obj._embedded.userProfiles[0] as UserProfileDTO | undefined) ?? null;
+    }
+
+    if ('userId' in obj || 'email' in obj) {
+      return obj as UserProfileDTO;
+    }
+  }
+
+  return null;
+}
 
 const getNavAriaLabel = (itemName: string) => {
   if (itemName === 'Calendar') {
@@ -501,26 +532,33 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
       return;
     }
 
+    if (isTenantAdmin === true) {
+      setIsAdmin(true);
+      return;
+    }
+
     // CRITICAL: When user logs in (userId changes from null to value), re-check admin status
     // This ensures admin menu appears immediately after login without requiring page refresh
     // We use the proxy API endpoint which is public and doesn't require authentication
     const checkAdminStatus = async () => {
       try {
-        const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
+        const tenantId =
+          process.env.AMPLIFY_NEXT_PUBLIC_TENANT_ID ||
+          process.env.NEXT_PUBLIC_TENANT_ID;
+
         if (!tenantId) {
-          console.warn('[Header] NEXT_PUBLIC_TENANT_ID not set, cannot check admin status');
-          // Fallback to server-verified flag or Clerk metadata
-          if (typeof isTenantAdmin === 'boolean') {
-            setIsAdmin(isTenantAdmin);
-          } else {
-            setIsAdmin(false);
-          }
+          console.warn('[Header] NEXT_PUBLIC_TENANT_ID not set, cannot check tenant-scoped admin status');
+          setIsAdmin(false);
           return;
         }
 
-        // Use proxy API endpoint to check admin status (public route, no auth required)
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const url = `${baseUrl}/api/proxy/user-profiles?userId.equals=${encodeURIComponent(userId)}&tenantId.equals=${encodeURIComponent(tenantId)}&size=1`;
+        const query = new URLSearchParams({
+          'userId.equals': userId,
+          'tenantId.equals': tenantId,
+          size: '1',
+        });
+
+        const url = `/api/proxy/user-profiles?${query.toString()}`;
 
         const resp = await fetch(url, {
           cache: 'no-store',
@@ -529,7 +567,26 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
 
         if (resp.ok) {
           const data = await resp.json();
-          const profile = Array.isArray(data) ? data[0] : data;
+          let profile = pickFirstUserProfile(data);
+
+          if (!profile) {
+            const email = user.emailAddresses?.[0]?.emailAddress;
+            if (email) {
+              const emailQuery = new URLSearchParams({
+                'email.equals': email,
+                'tenantId.equals': tenantId,
+                size: '1',
+              });
+              const emailResp = await fetch(`/api/proxy/user-profiles?${emailQuery.toString()}`, {
+                cache: 'no-store',
+                headers: { 'Content-Type': 'application/json' }
+              });
+              if (emailResp.ok) {
+                profile = pickFirstUserProfile(await emailResp.json());
+              }
+            }
+          }
+
           console.log('[Header] 🔍 Profile data from API:', {
             id: profile?.id,
             userId: profile?.userId,
@@ -539,12 +596,12 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
             tenantId: profile?.tenantId,
             rawProfile: JSON.stringify(profile, null, 2)
           });
-          const isAdminUser = profile?.userRole === 'ADMIN';
+          const isAdminUser = profile ? isAdminRole(profile.userRole) : false;
           console.log('[Header] ✅ Admin status check result:', {
             userId,
             isAdminUser,
             userRole: profile?.userRole,
-            roleMatch: profile?.userRole === 'ADMIN',
+            roleMatch: isAdminRole(profile?.userRole),
             roleType: typeof profile?.userRole,
             roleValue: JSON.stringify(profile?.userRole),
             isTenantAdminProp: isTenantAdmin

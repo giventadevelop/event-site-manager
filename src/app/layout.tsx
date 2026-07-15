@@ -12,13 +12,44 @@ import MobileDebugConsole from "../components/MobileDebugConsole";
 import { TenantSettingsProvider } from "../components/TenantSettingsProvider";
 import { headers } from "next/headers";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { getAppUrl, getRequestOriginFromHeaders } from "@/lib/env";
+import { getAppUrl, getRequestOriginFromHeaders, getTenantIdOptional } from "@/lib/env";
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
 import { getAllowedRedirectOrigins, isKnownSatelliteHost } from "@/lib/satelliteConfig";
 import { getMergedSatelliteConfigs } from "@/lib/satelliteConfigRuntime";
 import { fetchFooterContactPropsServer } from "@/app/ApiServerActions";
+import { isAdminRole } from "@/lib/utils";
+import type { UserProfileDTO } from "@/types";
 
 const inter = Inter({ subsets: ["latin"] });
+
+function pickFirstUserProfile(data: unknown): UserProfileDTO | null {
+  if (Array.isArray(data)) {
+    return (data[0] as UserProfileDTO | undefined) ?? null;
+  }
+
+  if (data && typeof data === 'object') {
+    const obj = data as {
+      content?: unknown[];
+      _embedded?: { userProfiles?: unknown[] };
+      userId?: string;
+      email?: string;
+    };
+
+    if (Array.isArray(obj.content)) {
+      return (obj.content[0] as UserProfileDTO | undefined) ?? null;
+    }
+
+    if (Array.isArray(obj._embedded?.userProfiles)) {
+      return (obj._embedded.userProfiles[0] as UserProfileDTO | undefined) ?? null;
+    }
+
+    if ('userId' in obj || 'email' in obj) {
+      return obj as UserProfileDTO;
+    }
+  }
+
+  return null;
+}
 
 // CRITICAL: Mark layout as dynamic to prevent Next.js 15+ from detecting headers() access during static analysis
 // This allows headers() to be called without triggering the "headers() should be awaited" error
@@ -114,15 +145,19 @@ export default async function RootLayout({
       afterSignOutUrl: '/', // Clerk v7: afterSignOutUrl moved from UserButton to provider
     };
 
-  // Determine tenant-scoped admin flag on the server
-  // CRITICAL: For public routes, skip auth checks entirely to avoid Next.js 15+ headers() async errors
-  // This allows public pages to render without authentication, which is correct behavior
-  // Also skip auth checks if pathname is empty (header not available) to prevent errors
+  const skipMainLayoutChrome =
+    pathname.startsWith('/mosc-old') || pathname.startsWith('/mosc');
+  const isAuthChromeHiddenRoute =
+    pathname.startsWith('/sign-in') ||
+    pathname.startsWith('/sign-up') ||
+    pathname.startsWith('/sso-callback') ||
+    pathname.startsWith('/auth/signout-redirect');
+
+  // Determine tenant-scoped admin flag on the server for every route that renders the main Header.
+  // This includes public pages such as `/`, so admins can open the Admin menu from the homepage.
   let isTenantAdmin = false;
 
-  // Only perform auth checks for non-public routes
-  // If pathname is empty, treat as public route to avoid headers() errors
-  if (!isPublicRoute && pathname) {
+  if (pathname && !skipMainLayoutChrome && !isAuthChromeHiddenRoute) {
     try {
       // CRITICAL: Call auth() immediately after awaiting headers() to ensure proper async context
       // Do not call any other async functions before auth() completes
@@ -162,18 +197,24 @@ export default async function RootLayout({
 
       if (userId) {
         const baseUrl = sameOriginApiBase;
-        // Tenant-agnostic: do not add tenantId.equals; only userId (or email) for profile lookup
-        console.log('[Layout] 🔍 Fetching user profile:', { userId, baseUrl });
+        const tenantId = getTenantIdOptional();
+        console.log('[Layout] 🔍 Fetching user profile:', { userId, baseUrl, tenantId });
 
-        // Step 1: Check if userId exists (tenant-agnostic)
-        const url = `${baseUrl}/api/proxy/user-profiles?userId.equals=${encodeURIComponent(userId)}&size=1`;
+        // Step 1: Check if userId exists in the active tenant
+        const profileQuery = new URLSearchParams({
+          'userId.equals': userId,
+          size: '1',
+        });
+        if (tenantId) {
+          profileQuery.set('tenantId.equals', tenantId);
+        }
+        const url = `${baseUrl}/api/proxy/user-profiles?${profileQuery.toString()}`;
         console.log('[Layout] 🔍 Profile fetch URL:', url);
         const resp = await fetch(url, { cache: 'no-store', headers: { 'Content-Type': 'application/json' } });
         console.log('[Layout] 🔍 Profile fetch response:', { status: resp.status, ok: resp.ok });
 
         if (resp.ok) {
-        const arr = await resp.json();
-        const p = Array.isArray(arr) ? arr[0] : arr;
+        const p = pickFirstUserProfile(await resp.json());
 
         if (!p) {
           // Step 2: Profile not found by userId — check if email exists (different userId case)
@@ -183,13 +224,19 @@ export default async function RootLayout({
             const userEmail = u?.emailAddresses?.[0]?.emailAddress || '';
 
             if (userEmail) {
-              // Check for existing profile with same email (tenant-agnostic)
-              const emailCheckUrl = `${baseUrl}/api/proxy/user-profiles?email.equals=${encodeURIComponent(userEmail)}&size=1`;
+              // Check for existing profile with same email in the active tenant
+              const emailQuery = new URLSearchParams({
+                'email.equals': userEmail,
+                size: '1',
+              });
+              if (tenantId) {
+                emailQuery.set('tenantId.equals', tenantId);
+              }
+              const emailCheckUrl = `${baseUrl}/api/proxy/user-profiles?${emailQuery.toString()}`;
               const emailResp = await fetch(emailCheckUrl, { cache: 'no-store', headers: { 'Content-Type': 'application/json' } });
 
               if (emailResp.ok) {
-                const emailArr = await emailResp.json();
-                const existingProfile = Array.isArray(emailArr) ? emailArr[0] : emailArr;
+                const existingProfile = pickFirstUserProfile(await emailResp.json());
 
                 if (existingProfile && existingProfile.userId !== userId) {
                   // Step 3: Email + tenantId exists but with different userId
@@ -266,11 +313,11 @@ export default async function RootLayout({
                       tenantId: updated?.tenantId,
                       rawProfile: JSON.stringify(updated, null, 2)
                     });
-                    isTenantAdmin = updated?.userRole === 'ADMIN';
+                    isTenantAdmin = isAdminRole(updated?.userRole);
                     console.log('[Layout] ✅ Successfully updated userId. Admin status:', {
                       isTenantAdmin,
                       userRole: updated?.userRole,
-                      roleMatch: updated?.userRole === 'ADMIN',
+                      roleMatch: isAdminRole(updated?.userRole),
                       roleType: typeof updated?.userRole,
                       roleValue: JSON.stringify(updated?.userRole)
                     });
@@ -327,11 +374,11 @@ export default async function RootLayout({
             tenantId: p?.tenantId,
             rawProfile: JSON.stringify(p, null, 2)
           });
-          isTenantAdmin = p?.userRole === 'ADMIN';
+          isTenantAdmin = isAdminRole(p?.userRole);
           console.log('[Layout] ✅ Found existing profile. Admin status:', {
             isTenantAdmin,
             userRole: p?.userRole,
-            roleMatch: p?.userRole === 'ADMIN',
+            roleMatch: isAdminRole(p?.userRole),
             roleType: typeof p?.userRole,
             roleValue: JSON.stringify(p?.userRole)
           });
@@ -344,15 +391,12 @@ export default async function RootLayout({
       isTenantAdmin = false;
     }
   } else {
-    // Public route - skip auth checks to avoid Next.js 15+ headers() async errors
-    console.log('[Layout] 🔍 Public route detected, skipping auth checks:', pathname);
+    console.log('[Layout] 🔍 Route does not render main Header, skipping admin auth checks:', pathname);
     isTenantAdmin = false;
   }
 
   console.log('[Layout] 🔍 Final admin status:', { isTenantAdmin, isPublicRoute, pathname });
 
-  const skipMainLayoutChrome =
-    pathname.startsWith('/mosc-old') || pathname.startsWith('/mosc');
   const footerContact = skipMainLayoutChrome
     ? null
     : await fetchFooterContactPropsServer();

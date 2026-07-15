@@ -1,11 +1,11 @@
 'use client';
 
-import RootAuthLanding from '@/components/RootAuthLanding';
+import HomePage from './home/page';
 
 /**
- * Primary domain root: Clerk sign-in (signed-in users stay here unless they open `/home` manually).
- * Full marketing site lives at `/home`. Satellite auth: see RootAuthLanding and clerk_auth rule.
+ * Root route: show the same public home experience as `/home`.
+ * Auth remains available on `/sign-in` and `/sign-up`.
  */
 export default function RootPage() {
-  return <RootAuthLanding />;
+  return <HomePage />;
 }
