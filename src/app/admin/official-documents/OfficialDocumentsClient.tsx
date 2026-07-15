@@ -31,6 +31,7 @@ import {
   placeholderGradient,
   placeholderLabel,
 } from '@/lib/officialDocumentThumbnail';
+import { triggerOfficialDocumentProxyDownload } from '@/lib/officialDocumentDownload';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +65,20 @@ function resolveCoverPreviewUrl(
   if (nested) return nested;
   const doc = docs.find((x) => x.id === bundle.coverEventMediaId);
   return doc?.preSignedUrl || doc?.fileUrl || undefined;
+}
+
+function resolveOfficialDocumentFileName(doc: EventMediaDTO): string {
+  const fromPath = doc.fileUrl?.split('/').pop()?.split('?')[0]?.trim();
+  if (fromPath) {
+    try {
+      return decodeURIComponent(fromPath);
+    } catch {
+      return fromPath;
+    }
+  }
+  const title = doc.title?.trim();
+  if (title) return title;
+  return doc.id != null ? `official-document-${doc.id}` : 'official-document';
 }
 
 function OfficialDocumentThumbnailUploadGuidance({ className = '' }: { className?: string }) {
@@ -361,6 +376,15 @@ export default function OfficialDocumentsClient({
     setSearchTerm('');
     setSearchField('title');
     setFilterIsPublic('');
+  };
+
+  const handleOpenOrDownload = (doc: EventMediaDTO) => {
+    if (doc.id == null) return;
+    triggerOfficialDocumentProxyDownload(
+      doc.id,
+      resolveOfficialDocumentFileName(doc),
+      doc.tenantId || adminTenantId || tenantId,
+    );
   };
 
   const categoryNameById = useMemo(() => {
@@ -767,7 +791,7 @@ export default function OfficialDocumentsClient({
       </p>
       <p className="text-sm text-gray-500 mb-6">
         Active tenant for uploads:{' '}
-        <code className="bg-gray-100 px-1 rounded">{tenantId || 'not set — select Tenant ID below'}</code>
+        <code className="bg-gray-100 px-1 rounded">{tenantId || 'not set — select Tenant ID above the document listing'}</code>
         {adminTenantId ? (
           <span className="ml-2 text-green-700">(from search filter)</span>
         ) : envTenantId ? (
@@ -775,17 +799,6 @@ export default function OfficialDocumentsClient({
         ) : null}
         . Must match <code>tenant_id</code> in the database.
       </p>
-
-      <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-6">
-        <div className="text-base font-semibold text-blue-800 mb-4">Search &amp; filters</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-end">
-          <AdminTenantFilterField />
-          <div className="text-sm text-gray-600 md:col-span-2">
-            Select a Tenant ID to list and manage documents for that tenant. Create, upload, edit, and delete use the
-            selected tenant (or env default when none is selected).
-          </div>
-        </div>
-      </div>
 
       <div className="mb-8 rounded-lg border border-blue-200 bg-blue-50/80 p-5 text-sm text-gray-800 space-y-3">
         <h2 className="text-base font-semibold text-gray-900">Workflow &amp; capabilities</h2>
@@ -1143,6 +1156,19 @@ export default function OfficialDocumentsClient({
           )}
         </div>
 
+        <div className="px-6 py-4 border-b border-blue-200 bg-blue-50/70">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 items-end">
+            <AdminTenantFilterField
+              inputId="official-documents-list-tenant-filter"
+              className="lg:col-span-2"
+            />
+            <div className="rounded-xl border border-blue-200 bg-white/80 px-4 py-3 text-sm text-gray-700 lg:col-span-2">
+              Select a Tenant ID here to list, open or download, edit, and delete documents for that tenant. When none is
+              selected, uploads use the env default tenant.
+            </div>
+          </div>
+        </div>
+
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
             <div className="md:col-span-2">
@@ -1239,15 +1265,19 @@ export default function OfficialDocumentsClient({
                     </td>
                     <td className="px-4 py-3 text-sm">{d.isPublic ? 'Yes' : 'No'}</td>
                     <td className="px-4 py-3 text-sm">
-                      {(d.preSignedUrl || d.fileUrl) ? (
-                        <a
-                          href={d.preSignedUrl || d.fileUrl}
-                          className="text-blue-600 hover:underline"
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {d.id != null ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenOrDownload(d)}
+                          className="inline-flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 transition-all duration-300 hover:scale-105 hover:bg-green-100 hover:text-green-800"
+                          title="Open or download document"
+                          aria-label={`Open or download ${d.title || `document ${d.id}`}`}
                         >
-                          Open
-                        </a>
+                          <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          <span>Open / Download</span>
+                        </button>
                       ) : (
                         '—'
                       )}

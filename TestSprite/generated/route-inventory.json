@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-07-12T01:33:31.670Z",
+  "generatedAt": "2026-07-14T19:41:29.798Z",
   "root": "src/app",
-  "totalPages": 366,
-  "totalUniqueRoutes": 366,
+  "totalPages": 376,
+  "totalUniqueRoutes": 376,
   "byKind": {
-    "public": 83,
-    "admin": 91,
+    "public": 90,
+    "admin": 94,
     "mosc": 192
   },
   "routes": [
@@ -464,6 +464,13 @@
       "sourceFile": "src/app/admin/gas-station/stations/page.tsx"
     },
     {
+      "path": "/admin/homepage-cache",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/homepage-cache/page.tsx"
+    },
+    {
       "path": "/admin/manage-events",
       "kind": "admin",
       "dynamic": false,
@@ -613,6 +620,20 @@
       "dynamic": false,
       "dynamicParams": [],
       "sourceFile": "src/app/admin/satellite-domains/page.tsx"
+    },
+    {
+      "path": "/admin/team-groups",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/team-groups/page.tsx"
+    },
+    {
+      "path": "/admin/team-members",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/team-members/page.tsx"
     },
     {
       "path": "/admin/tenant-email-addresses",
@@ -1047,6 +1068,55 @@
       "dynamic": false,
       "dynamicParams": [],
       "sourceFile": "src/app/mosc/page.tsx"
+    },
+    {
+      "path": "/mosc-redesign/downloads",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc-redesign/(syro)/downloads/page.tsx"
+    },
+    {
+      "path": "/mosc-redesign/downloads/application-forms",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc-redesign/(syro)/downloads/application-forms/page.tsx"
+    },
+    {
+      "path": "/mosc-redesign/downloads/categories",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc-redesign/(syro)/downloads/categories/page.tsx"
+    },
+    {
+      "path": "/mosc-redesign/downloads/kalpana",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc-redesign/(syro)/downloads/kalpana/page.tsx"
+    },
+    {
+      "path": "/mosc-redesign/downloads/pdfs",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc-redesign/(syro)/downloads/pdfs/page.tsx"
+    },
+    {
+      "path": "/mosc-redesign/downloads/photos",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc-redesign/(syro)/downloads/photos/page.tsx"
+    },
+    {
+      "path": "/mosc-redesign/downloads/prayer-books",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/mosc-redesign/(syro)/downloads/prayer-books/page.tsx"
     },
     {
       "path": "/mosc/administration",

@@ -68,11 +68,16 @@ export function isPresignedUrlExpired(
 }
 
 /** Same-origin proxy route that mints a fresh presigned URL on each download. */
-export function getOfficialDocumentProxyDownloadPath(mediaId: number | null | undefined): string | null {
+export function getOfficialDocumentProxyDownloadPath(
+  mediaId: number | null | undefined,
+  tenantId?: string | null
+): string | null {
   if (mediaId == null || !Number.isFinite(mediaId) || mediaId <= 0) {
     return null;
   }
-  return `/api/public/official-documents/${mediaId}/download`;
+  const base = `/api/public/official-documents/${mediaId}/download`;
+  const tenant = tenantId?.trim();
+  return tenant ? `${base}?tenant=${encodeURIComponent(tenant)}` : base;
 }
 
 /** Same-origin proxy route that resolves a fresh thumbnail/preview URL on each request. */
@@ -158,15 +163,16 @@ export function resolveOfficialDocumentDownloadUrl(doc: EventMediaDTO): string |
  */
 export function triggerOfficialDocumentProxyDownload(
   mediaId: number,
-  fileName: string
+  fileName: string,
+  tenantId?: string | null
 ): void {
-  const proxyPath = getOfficialDocumentProxyDownloadPath(mediaId);
+  const proxyPath = getOfficialDocumentProxyDownloadPath(mediaId, tenantId);
   if (!proxyPath) {
     throw new Error('Invalid document id');
   }
 
   const safeName = fileName?.trim() || 'download';
-  const url = `${proxyPath}?_=${Date.now()}`;
+  const url = `${proxyPath}${proxyPath.includes('?') ? '&' : '?'}_=${Date.now()}`;
   const deliveryMode = getOfficialDocumentDeliveryMode(safeName);
 
   if (deliveryMode === 'new-tab') {

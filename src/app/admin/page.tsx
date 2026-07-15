@@ -118,6 +118,29 @@ export default function AdminPage() {
       key: 'executive-committee'
     },
     {
+      href: '/admin/team-groups',
+      icon: 'userFriends',
+      label: 'Squad groups',
+      sublabel: 'Sports / bands',
+      color: 'squadGroups',
+      key: 'team-groups'
+    },
+    {
+      href: '/admin/team-members',
+      icon: 'addressCard',
+      label: 'Squad roster',
+      sublabel: 'Members',
+      color: 'squadRoster',
+      key: 'team-members'
+    },
+    {
+      href: '/admin/homepage-cache',
+      icon: 'refresh',
+      label: 'Cache records',
+      color: 'cacheRecords',
+      key: 'homepage-cache'
+    },
+    {
       href: '/admin/event-sponsors',
       icon: 'handshake',
       label: 'Event Sponsors',
@@ -275,7 +298,10 @@ export default function AdminPage() {
       lightCyan: 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800',
       mintGreen: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800',
       documentOfficial: 'bg-[#f5f3ff] hover:bg-[#ede9fe] text-[#5b21b6]',
-      docCategories: 'bg-[#fdf2f8] hover:bg-[#fce7f3] text-[#9d174d]'
+      docCategories: 'bg-[#fdf2f8] hover:bg-[#fce7f3] text-[#9d174d]',
+      squadGroups: 'bg-[#f3e8ff] hover:bg-[#e9d5ff] text-[#6b21a8]',
+      squadRoster: 'bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#9f1239]',
+      cacheRecords: 'bg-[#ecfeff] hover:bg-[#cffafe] text-[#0e7490]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -309,7 +335,10 @@ export default function AdminPage() {
       lightCyan: 'bg-cyan-100',
       mintGreen: 'bg-emerald-100',
       documentOfficial: 'bg-[#ddd6fe]',
-      docCategories: 'bg-[#fbcfe8]'
+      docCategories: 'bg-[#fbcfe8]',
+      squadGroups: 'bg-[#e9d5ff]',
+      squadRoster: 'bg-[#fecdd3]',
+      cacheRecords: 'bg-[#a5f3fc]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -343,7 +372,10 @@ export default function AdminPage() {
       lightCyan: 'text-cyan-500',
       mintGreen: 'text-emerald-500',
       documentOfficial: 'text-violet-600',
-      docCategories: 'text-pink-600'
+      docCategories: 'text-pink-600',
+      squadGroups: 'text-[#7c3aed]',
+      squadRoster: 'text-[#e11d48]',
+      cacheRecords: 'text-[#0891b2]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -378,6 +410,8 @@ export default function AdminPage() {
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V17a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M8 14h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01" /></svg>;
       case 'userTie':
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
+      case 'refresh':
+        return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
       case 'handshake':
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>;
       case 'building':

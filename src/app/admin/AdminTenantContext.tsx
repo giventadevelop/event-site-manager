@@ -28,6 +28,9 @@ function hasInlineTenantFilter(pathname: string | null): boolean {
     pathname.includes('/gallery/albums') ||
     pathname.includes('/manage-events') ||
     pathname.includes('/executive-committee') ||
+    pathname.includes('/team-groups') ||
+    pathname.includes('/team-members') ||
+    pathname.includes('/homepage-cache') ||
     pathname.includes('/event-sponsors') ||
     pathname.includes('/event-contacts') ||
     pathname.includes('/event-featured-performers') ||

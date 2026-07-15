@@ -701,6 +701,8 @@ export interface TenantSettingsDTO {
   defaultHeroMaxDisplayCount?: number;
   /** When true, show event hero images in the homepage hero section */
   displayEventHeroImages?: boolean;
+  /** Homepage edge-cache version; bumped by admin Cache records refresh */
+  homepageCacheVersion?: number;
   /** When true, render Google AdSense ad regions on this tenant's public site */
   enableGoogleAdsense?: boolean;
   /** AdSense publisher ID (ca-pub-...) */

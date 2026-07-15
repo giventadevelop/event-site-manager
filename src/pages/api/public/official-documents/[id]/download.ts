@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getApiBaseUrl } from '@/lib/env';
+import { effectiveTenantId, getApiBaseUrl } from '@/lib/env';
 import type { EventMediaDTO } from '@/types';
 
 function setNoStoreHeaders(res: NextApiResponse): void {
@@ -16,6 +16,15 @@ function parseMediaId(value: string | string[] | undefined): number | null {
     return null;
   }
   return Math.trunc(id);
+}
+
+function readTenantId(value: string | string[] | undefined): string | undefined {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return effectiveTenantId(raw);
+}
+
+function headersForTenantScope(tenantId: string | undefined): Record<string, string> {
+  return tenantId ? { 'X-Tenant-ID': tenantId } : {};
 }
 
 function contentDisposition(fileName: string, contentType: string): string {
@@ -42,9 +51,12 @@ function resolveDownloadFileName(doc: EventMediaDTO | null, mediaId: number): st
   return `official-document-${mediaId}`;
 }
 
-async function fetchFreshDownloadUrl(mediaId: number): Promise<string | null> {
+async function fetchFreshDownloadUrl(mediaId: number, tenantId?: string): Promise<string | null> {
   const url = `${getApiBaseUrl()}/api/event-medias/${mediaId}/download-url?expirationHours=24`;
-  const backendRes = await fetchWithJwtRetry(url, { cache: 'no-store' });
+  const backendRes = await fetchWithJwtRetry(url, {
+    cache: 'no-store',
+    headers: headersForTenantScope(tenantId),
+  });
   if (!backendRes.ok) {
     return null;
   }
@@ -52,9 +64,12 @@ async function fetchFreshDownloadUrl(mediaId: number): Promise<string | null> {
   return payload.downloadUrl?.trim() || null;
 }
 
-async function fetchMediaDoc(mediaId: number): Promise<EventMediaDTO | null> {
+async function fetchMediaDoc(mediaId: number, tenantId?: string): Promise<EventMediaDTO | null> {
   const mediaUrl = `${getApiBaseUrl()}/api/event-medias/${mediaId}`;
-  const mediaRes = await fetchWithJwtRetry(mediaUrl, { cache: 'no-store' });
+  const mediaRes = await fetchWithJwtRetry(mediaUrl, {
+    cache: 'no-store',
+    headers: headersForTenantScope(tenantId),
+  });
   if (!mediaRes.ok) {
     return null;
   }
@@ -106,8 +121,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
+  const tenantId = readTenantId(req.query.tenant);
+
   try {
-    const downloadUrl = await fetchFreshDownloadUrl(mediaId);
+    const downloadUrl = await fetchFreshDownloadUrl(mediaId, tenantId);
     if (!downloadUrl) {
       res.status(404).json({ error: 'No download URL available for this document' });
       return;
@@ -129,7 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return;
     }
 
-    const doc = await fetchMediaDoc(mediaId);
+    const doc = await fetchMediaDoc(mediaId, tenantId);
     const fileName = resolveDownloadFileName(doc, mediaId);
     const streamed = await streamDownloadUrl(res, downloadUrl, fileName);
     if (streamed) {

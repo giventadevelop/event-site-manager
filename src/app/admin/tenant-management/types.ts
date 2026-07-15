@@ -90,6 +90,11 @@ export interface TenantSettingsDTO {
   defaultHeroMaxDisplayCount?: number;
   /** When true, upcoming events with hero media appear in the homepage hero slideshow. */
   displayEventHeroImages?: boolean;
+  /**
+   * Homepage edge-cache busting counter. Admin "Refresh cache records" bumps this
+   * so clients refetch homepage payloads (see homepageCacheKeys helpers).
+   */
+  homepageCacheVersion?: number;
   /** When true, render Google AdSense ad regions on this tenant's public site */
   enableGoogleAdsense?: boolean;
   /** AdSense publisher ID (ca-pub-...) */
