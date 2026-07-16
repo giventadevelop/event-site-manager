@@ -166,7 +166,32 @@ async function fetchPublicOfficialDocumentsPageRaw(input: {
 }
 
 /**
- * Full slim-list scan — ONLY for the text-search path (backend has no search param).
+ * Year filter options need distinct years across the WHOLE corpus (incl. years found in
+ * title/path text), not just the current page. Cache the slim scan so the browse path
+ * stays one page request per view while options refresh at most every 5 minutes.
+ */
+const YEAR_OPTIONS_CORPUS_TTL_MS = 5 * 60 * 1000;
+let yearOptionsCorpusCache: { fetchedAt: number; docs: EventMediaDTO[] } | null = null;
+
+function storeYearOptionsCorpus(docs: EventMediaDTO[]): void {
+  if (docs.length > 0) {
+    yearOptionsCorpusCache = { fetchedAt: Date.now(), docs };
+  }
+}
+
+async function getYearOptionsCorpus(): Promise<EventMediaDTO[] | null> {
+  if (yearOptionsCorpusCache && Date.now() - yearOptionsCorpusCache.fetchedAt < YEAR_OPTIONS_CORPUS_TTL_MS) {
+    return yearOptionsCorpusCache.docs;
+  }
+  const docs = await fetchAllPublicOfficialDocumentsRaw();
+  storeYearOptionsCorpus(docs);
+  // On a failed/empty scan keep serving the previous corpus rather than thin options.
+  return docs.length > 0 ? docs : yearOptionsCorpusCache?.docs ?? null;
+}
+
+/**
+ * Full slim-list scan — ONLY for the text-search path (backend has no search param)
+ * and the cached year-options corpus above.
  * The default browse path must use fetchPublicOfficialDocumentsPageRaw instead.
  */
 async function fetchAllPublicOfficialDocumentsRaw(input?: {
@@ -274,9 +299,10 @@ export async function fetchPublicOfficialDocumentsTreeServer(input?: {
 
   try {
     if (!searchQuery) {
-      // Default browse path: true server-side pagination — exactly one documents
-      // request per view (page/size/category/year handled by the backend query).
-      const [{ docs, totalElements }, categoryOptions] = await Promise.all([
+      // Default browse path: true server-side pagination — one documents request
+      // per view (page/size/category/year handled by the backend query). The year
+      // options corpus is TTL-cached, so it costs nothing on warm renders.
+      const [{ docs, totalElements }, categoryOptions, yearCorpus] = await Promise.all([
         fetchPublicOfficialDocumentsPageRaw({
           page,
           size,
@@ -284,6 +310,7 @@ export async function fetchPublicOfficialDocumentsTreeServer(input?: {
           year: input?.year,
         }),
         fetchOfficialDocumentCategoryOptionsServer(),
+        getYearOptionsCorpus(),
       ]);
 
       const totalPages = Math.max(1, Math.ceil(totalElements / size));
@@ -302,10 +329,11 @@ export async function fetchPublicOfficialDocumentsTreeServer(input?: {
         ).docs;
       }
 
-      // Keep the backend's priority-first order; dedup only collapses duplicate
-      // uploads within the page. Year options come from the current page — the
-      // year combobox already has a synthetic fallback for thin option lists.
+      // Keep the backend's newest-first order; dedup only collapses duplicate
+      // uploads within the page. Year options derive from the cached corpus so
+      // the dropdown lists every document year, not just the current page's.
       const content = deduplicateOfficialDocumentTreeItems(pageDocs.map(mapEventMediaToTreeItem));
+      const yearSource = yearCorpus ?? pageDocs;
       return {
         content,
         totalElements,
@@ -313,8 +341,8 @@ export async function fetchPublicOfficialDocumentsTreeServer(input?: {
         page: currentPage,
         size,
         categoryOptions,
-        yearOptions: extractYearOptionsFromDocs(pageDocs, input?.categoryId),
-        allYearOptions: extractYearOptionsFromDocs(pageDocs),
+        yearOptions: extractYearOptionsFromDocs(yearSource, input?.categoryId),
+        allYearOptions: extractYearOptionsFromDocs(yearSource),
       };
     }
 
@@ -324,6 +352,7 @@ export async function fetchPublicOfficialDocumentsTreeServer(input?: {
       fetchAllPublicOfficialDocumentsRaw(),
       fetchOfficialDocumentCategoryOptionsServer(),
     ]);
+    storeYearOptionsCorpus(allDocs);
 
     const allYearOptions = extractYearOptionsFromDocs(allDocs);
     const scopedDocs = input?.categoryId

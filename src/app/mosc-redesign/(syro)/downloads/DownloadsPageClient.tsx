@@ -530,8 +530,13 @@ function YearCombobox({
   const filteredYears = React.useMemo(() => {
     const query = inputValue.trim();
     if (!query) return dropdownYears;
+    // Input holding the current selection is display state, not a search query —
+    // filtering by it would hide every other year on reopen.
+    if (isOlderYearSelected && selectedYear != null && query === String(selectedYear)) {
+      return dropdownYears;
+    }
     return dropdownYears.filter((year) => String(year).includes(query));
-  }, [dropdownYears, inputValue]);
+  }, [dropdownYears, inputValue, isOlderYearSelected, selectedYear]);
 
   const applyYear = (year: number | null) => {
     setOpen(false);
@@ -686,8 +691,13 @@ function CategoryCombobox({
   const filteredCategories = React.useMemo(() => {
     const query = normalizeCategoryLabel(inputValue);
     if (!query) return sortedCategories.slice(0, MAX_DROPDOWN_CATEGORIES);
+    // Input holding the current selection is display state, not a search query —
+    // filtering by it would hide every other category on reopen.
+    if (selectedCategory && normalizeCategoryLabel(selectedCategory.displayName) === query) {
+      return sortedCategories.slice(0, MAX_DROPDOWN_CATEGORIES);
+    }
     return sortedCategories.filter((cat) => normalizeCategoryLabel(cat.displayName).includes(query));
-  }, [sortedCategories, inputValue]);
+  }, [sortedCategories, inputValue, selectedCategory]);
 
   const applyCategory = (categoryId: number | null) => {
     setOpen(false);
