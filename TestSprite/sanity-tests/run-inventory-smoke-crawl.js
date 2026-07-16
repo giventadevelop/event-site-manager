@@ -42,6 +42,15 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AUTH_STATE_PATH = path.join(__dirname, '../admin-tests/.auth-state.json');
+/** Log a heartbeat while a single route is still loading (ms). */
+const ROUTE_HEARTBEAT_MS = 15000;
+
+function startRouteHeartbeat(tested, total, target, start) {
+  return setInterval(() => {
+    const sec = Math.round((Date.now() - start) / 1000);
+    console.log(`  … still on (${tested}/${total}) ${target} (${sec}s)`);
+  }, ROUTE_HEARTBEAT_MS);
+}
 
 function parseListArg(prefix) {
   const arg = process.argv.find((a) => a.startsWith(prefix));
@@ -255,7 +264,15 @@ async function main() {
     }
 
     let tested = 0;
-    console.log(`\n[smoke] Crawling ${routes.length} routes (limit=${limit})…`);
+    const totalPlanned = Number.isFinite(limit)
+      ? Math.min(routes.length, limit)
+      : routes.length;
+    console.log(
+      `\n[smoke] Crawling ${routes.length} routes (limit=${limit}, planned≈${totalPlanned})…`
+    );
+    console.log(
+      `[smoke] Progress: log every route; heartbeat every ${ROUTE_HEARTBEAT_MS / 1000}s while waiting`
+    );
 
     for (const route of routes) {
       if (tested >= limit) break;
@@ -298,6 +315,7 @@ async function main() {
             kind: route.kind,
             message: 'Missing demo ID for dynamic segment',
           });
+          console.log(`  ○ skip ${route.path} (missing demo ID)`);
           continue;
         }
       }
@@ -310,6 +328,8 @@ async function main() {
       // Skip heavy nested QR / downloads without real IDs already handled
       const start = Date.now();
       tested += 1;
+      console.log(`  → (${tested}/${totalPlanned}) ${target}`);
+      const heartbeat = startRouteHeartbeat(tested, totalPlanned, target, start);
       try {
         // Pace requests to avoid saturating the Next.js dev server
         if (tested > 1) {
@@ -340,16 +360,17 @@ async function main() {
         await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
 
         const status = response?.status?.() ?? 0;
+        const durationMs = Date.now() - start;
         if (status >= 500) {
           tracker.record({
             path: route.path,
             status: 'fail',
             kind: route.kind,
             message: `HTTP ${status}`,
-            durationMs: Date.now() - start,
+            durationMs,
             meta: { resolved: target, tenantId },
           });
-          console.log(`  ✗ [${status}] ${target}`);
+          console.log(`  ✗ (${tested}/${totalPlanned}) [${status}] ${target} (${durationMs}ms)`);
           continue;
         }
 
@@ -365,12 +386,12 @@ async function main() {
             status: 'pass',
             kind: route.kind,
             message: 'auth-gated (redirect to sign-in)',
-            durationMs: Date.now() - start,
+            durationMs,
             meta: { resolved: target, http: status },
           });
-          if (tested % 25 === 0) {
-            console.log(`  ✓ (${tested}) ${target} [auth-gated]`);
-          }
+          console.log(
+            `  ✓ (${tested}/${totalPlanned}) ${target} [auth-gated] (${durationMs}ms)`
+          );
           continue;
         }
 
@@ -383,22 +404,27 @@ async function main() {
           status: check.ok ? 'pass' : 'fail',
           kind: route.kind,
           message: check.message,
-          durationMs: Date.now() - start,
+          durationMs,
           meta: { resolved: target, http: status, tenantId },
         });
-        if (tested % 25 === 0 || !check.ok) {
-          console.log(`  ${check.ok ? '✓' : '✗'} (${tested}) ${target}`);
-        }
+        console.log(
+          `  ${check.ok ? '✓' : '✗'} (${tested}/${totalPlanned}) ${target} (${durationMs}ms)`
+        );
       } catch (err) {
+        const durationMs = Date.now() - start;
         tracker.record({
           path: route.path,
           status: 'fail',
           kind: route.kind,
           message: err.message,
-          durationMs: Date.now() - start,
+          durationMs,
           meta: { resolved: target, tenantId },
         });
-        console.log(`  ✗ ${target}: ${err.message}`);
+        console.log(
+          `  ✗ (${tested}/${totalPlanned}) ${target}: ${err.message} (${durationMs}ms)`
+        );
+      } finally {
+        clearInterval(heartbeat);
       }
     }
 
