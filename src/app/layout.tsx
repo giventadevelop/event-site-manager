@@ -18,38 +18,9 @@ import { getAllowedRedirectOrigins, isKnownSatelliteHost } from "@/lib/satellite
 import { getMergedSatelliteConfigs } from "@/lib/satelliteConfigRuntime";
 import { fetchFooterContactPropsServer } from "@/app/ApiServerActions";
 import { isAdminRole } from "@/lib/utils";
-import type { UserProfileDTO } from "@/types";
+import { pickFirstUserProfile } from "@/lib/pickFirstUserProfile";
 
 const inter = Inter({ subsets: ["latin"] });
-
-function pickFirstUserProfile(data: unknown): UserProfileDTO | null {
-  if (Array.isArray(data)) {
-    return (data[0] as UserProfileDTO | undefined) ?? null;
-  }
-
-  if (data && typeof data === 'object') {
-    const obj = data as {
-      content?: unknown[];
-      _embedded?: { userProfiles?: unknown[] };
-      userId?: string;
-      email?: string;
-    };
-
-    if (Array.isArray(obj.content)) {
-      return (obj.content[0] as UserProfileDTO | undefined) ?? null;
-    }
-
-    if (Array.isArray(obj._embedded?.userProfiles)) {
-      return (obj._embedded.userProfiles[0] as UserProfileDTO | undefined) ?? null;
-    }
-
-    if ('userId' in obj || 'email' in obj) {
-      return obj as UserProfileDTO;
-    }
-  }
-
-  return null;
-}
 
 // CRITICAL: Mark layout as dynamic to prevent Next.js 15+ from detecting headers() access during static analysis
 // This allows headers() to be called without triggering the "headers() should be awaited" error

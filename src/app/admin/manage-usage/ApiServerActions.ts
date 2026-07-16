@@ -1,7 +1,8 @@
 // This file was renamed from actions.ts to ApiServerActions.ts as a standard for server-side API calls in this module.
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { effectiveTenantId, appendTenantIfPresent, getDefaultPageSize, getBackendApiUrl } from '@/lib/env';
+import { effectiveTenantId, appendTenantIfPresent, getDefaultPageSize, getBackendApiUrl, getTenantIdOptional } from '@/lib/env';
+import { pickFirstUserProfile } from '@/lib/pickFirstUserProfile';
 import { UserProfileDTO } from '@/types';
 
 /**
@@ -34,22 +35,23 @@ export async function fetchAllUsersServer(tenantId?: string): Promise<UserProfil
 export async function fetchAdminProfileServer(userId: string, tenantId?: string): Promise<UserProfileDTO | null> {
   if (!userId) return null;
   try {
+    // Prefer explicit tenant override (admin UI), else active env tenant — matches Header/layout admin checks
+    const scopedTenantId = effectiveTenantId(tenantId) ?? getTenantIdOptional();
     const params = new URLSearchParams();
     params.append('userId.equals', userId);
     params.append('size', '1');
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    appendTenantIfPresent(params, scopedTenantId);
     const url = `${getBackendApiUrl()}/api/user-profiles?${params.toString()}`;
 
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
-      headers: headersForTenantScope(tenantId),
+      headers: headersForTenantScope(scopedTenantId),
     });
 
     if (!res.ok) return null;
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) return data[0] as UserProfileDTO;
-    if (data && typeof data === 'object') return data as UserProfileDTO;
-    return null;
+    // CRITICAL: Do not treat Spring Page / HAL wrappers as a profile — that drops userRole and
+    // causes /admin layout to redirect admins to the homepage while the Header still shows Admin.
+    return pickFirstUserProfile(await res.json());
   } catch (error) {
     console.error('Error fetching admin profile:', error);
     return null;

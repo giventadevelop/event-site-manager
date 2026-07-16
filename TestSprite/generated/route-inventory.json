@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-07-16T01:35:56.863Z",
+  "generatedAt": "2026-07-16T15:25:35.840Z",
   "root": "src/app",
-  "totalPages": 376,
-  "totalUniqueRoutes": 376,
+  "totalPages": 377,
+  "totalUniqueRoutes": 377,
   "byKind": {
     "public": 90,
-    "admin": 94,
+    "admin": 95,
     "mosc": 192
   },
   "routes": [
@@ -22,6 +22,13 @@
       "dynamic": false,
       "dynamicParams": [],
       "sourceFile": "src/app/admin/page.tsx"
+    },
+    {
+      "path": "/admin/batch-jobs",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/batch-jobs/page.tsx"
     },
     {
       "path": "/admin/bulk-email",

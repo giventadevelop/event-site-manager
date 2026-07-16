@@ -1,15 +1,17 @@
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { auth, currentUser } from '@clerk/nextjs/server';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { fetchAdminProfileServer } from './manage-usage/ApiServerActions';
 import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
 import { AdminTenantLayoutClient } from './AdminTenantContext';
+import { isAdminRole } from '@/lib/utils';
 
 /**
  * Admin Layout - Protects all /admin/* routes
  *
- * This layout ensures that only users with ADMIN role can access admin pages.
- * If a user is not authenticated or doesn't have ADMIN role, they are redirected to the homepage.
+ * This layout ensures that only users with ADMIN or SUPER_ADMIN role can access admin pages.
+ * If a user is not authenticated or doesn't have an admin role, they are redirected to the homepage.
  *
  * This prevents the "freezing" issue by redirecting immediately on the server-side
  * before any client components can render.
@@ -22,7 +24,7 @@ export default async function AdminLayout({
   try {
     // CRITICAL: Next.js 15+ requires headers() to be awaited before calling auth()
     // This ensures proper async context for dynamic APIs
-    const headersList = await headers();
+    await headers();
 
     // Check authentication
     // When user is logged out, auth() returns { userId: null } without throwing
@@ -66,7 +68,6 @@ export default async function AdminLayout({
     }
 
     // Fetch user profile to check admin role
-    // Use a timeout approach: if profile fetch fails or is slow, assume not admin
     let userProfile = null;
     try {
       userProfile = await fetchAdminProfileServer(userId);
@@ -77,8 +78,8 @@ export default async function AdminLayout({
       redirect('/');
     }
 
-    // Check if user has ADMIN role
-    const isAdmin = userProfile?.userRole === 'ADMIN';
+    // Align with Header / root layout — ADMIN and SUPER_ADMIN both grant access
+    const isAdmin = isAdminRole(userProfile?.userRole);
 
     // If not admin or profile doesn't exist, redirect to homepage immediately
     if (!isAdmin) {
@@ -89,16 +90,19 @@ export default async function AdminLayout({
       redirect('/');
     }
 
-    // User is authenticated and has ADMIN role - always show tenant bar for filter-by-tenant
+    // User is authenticated and has admin role - always show tenant bar for filter-by-tenant
     return (
       <AdminTenantLayoutClient showTenantSelector={true}>
         {children}
       </AdminTenantLayoutClient>
     );
   } catch (error) {
-    // If any error occurs, redirect to homepage for security
+    // CRITICAL: redirect() throws NEXT_REDIRECT — must rethrow or navigation breaks
+    if (isRedirectError(error)) {
+      throw error;
+    }
+    // If any unexpected error occurs, redirect to homepage for security
     console.error('[AdminLayout] Unexpected error:', error);
     redirect('/');
   }
 }
-
