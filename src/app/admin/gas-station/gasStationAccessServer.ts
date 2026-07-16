@@ -38,7 +38,8 @@ export async function fetchGasStationAssignmentsForUserServer(
     const tid = requireTenantId(tenantId);
     const params = new URLSearchParams({
       'userProfileId.equals': String(userProfileId),
-      size: '500',
+      // One user's station assignments — bounded by the tenant's station count.
+      size: '200',
     });
     appendTenantIfPresent(params, tid);
     const res = await fetchWithJwtRetry(
@@ -58,6 +59,8 @@ export async function fetchAllGasStationAssignmentsServer(
 ): Promise<GasStationUserStationAssignmentDTO[]> {
   try {
     const tid = requireTenantId(tenantId);
+    // Access matrix needs the tenant's full assignment set (managers x stations, both small);
+    // a partial page would render a misleading matrix.
     const params = new URLSearchParams({ size: '1000' });
     appendTenantIfPresent(params, tid);
     const res = await fetchWithJwtRetry(

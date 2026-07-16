@@ -126,44 +126,69 @@ function mapEventMediaToTreeItem(doc: EventMediaDTO): PublicOfficialDocumentTree
   };
 }
 
+/**
+ * Fetch ONE backend page of public official documents (true server-side pagination).
+ * The backend `findPublicOfficialDocumentsForDownloadsLite` query orders by
+ * COALESCE(displayPriority, priorityRanking, 999999) ASC, createdAt DESC and
+ * rejects extra `sort` params (500) — never append sort here.
+ */
+async function fetchPublicOfficialDocumentsPageRaw(input: {
+  page: number;
+  size: number;
+  categoryId?: number;
+  year?: number;
+}): Promise<{ docs: EventMediaDTO[]; totalElements: number }> {
+  const tenantId = getTenantId();
+  const params = new globalThis.URLSearchParams();
+  params.set('tenantId', tenantId);
+  if (input.categoryId) {
+    params.set('officialDocumentCategoryId', String(input.categoryId));
+  }
+  if (input.year) {
+    params.set('officialDocumentYear', String(input.year));
+  }
+  params.set('page', String(input.page));
+  params.set('size', String(input.size));
+
+  const res = await fetchWithJwtRetry(buildPublicOfficialDocumentsUrl(params), { cache: 'no-store' });
+  if (!res.ok) {
+    globalThis.console.error('[downloads] public-official-documents page failed', {
+      page: input.page,
+      status: res.status,
+      tenantId,
+    });
+    return { docs: [], totalElements: 0 };
+  }
+
+  const batch = (await res.json()) as EventMediaDTO[];
+  const docs = Array.isArray(batch) ? batch : [];
+  return { docs, totalElements: parseSpringTotalCountHeader(res, docs.length) };
+}
+
+/**
+ * Full slim-list scan — ONLY for the text-search path (backend has no search param).
+ * The default browse path must use fetchPublicOfficialDocumentsPageRaw instead.
+ */
 async function fetchAllPublicOfficialDocumentsRaw(input?: {
   categoryId?: number;
 }): Promise<EventMediaDTO[]> {
-  const tenantId = getTenantId();
   const all: EventMediaDTO[] = [];
-  // Keep batches small: concurrent size=100 loads OOM the Java heap / Postgres
-  // result buffer (SQLState 53200). size=50 is usually fine alone; 25 is safer
-  // when the page also loads categories in parallel.
-  const batchSize = 25;
+  // Sequential size=100 batches are safe with the backend's Lite projection
+  // (slim SELECT + SUBSTRING'd hierarchy fields — built to avoid the old OOM).
+  const batchSize = 100;
   let page = 0;
   let totalElements = Number.POSITIVE_INFINITY;
 
   while (all.length < totalElements && page < 100) {
-    const params = new globalThis.URLSearchParams();
-    params.set('tenantId', tenantId);
-    if (input?.categoryId) {
-      params.set('officialDocumentCategoryId', String(input.categoryId));
-    }
-    params.set('page', String(page));
-    params.set('size', String(batchSize));
-
-    const url = buildPublicOfficialDocumentsUrl(params);
-    const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
-    if (!res.ok) {
-      globalThis.console.error(
-        '[downloads] public-official-documents page failed',
-        { page, status: res.status, tenantId }
-      );
-      break;
-    }
-
-    const batch = (await res.json()) as EventMediaDTO[];
-    if (!Array.isArray(batch)) break;
-
-    totalElements = parseSpringTotalCountHeader(res, all.length + batch.length);
-    all.push(...batch);
+    const { docs, totalElements: total } = await fetchPublicOfficialDocumentsPageRaw({
+      page,
+      size: batchSize,
+      categoryId: input?.categoryId,
+    });
+    if (docs.length === 0) break;
+    totalElements = total;
+    all.push(...docs);
     page += 1;
-    if (batch.length === 0) break;
   }
 
   return all;
@@ -248,9 +273,53 @@ export async function fetchPublicOfficialDocumentsTreeServer(input?: {
   const searchQuery = input?.search?.trim() ?? '';
 
   try {
-    // Load the full public document list once (small batches), then filter and
-    // derive year options in memory. Never issue a second parallel full-list
-    // fetch for yearOptions — that OOMed the JVM with concurrent large pages.
+    if (!searchQuery) {
+      // Default browse path: true server-side pagination — exactly one documents
+      // request per view (page/size/category/year handled by the backend query).
+      const [{ docs, totalElements }, categoryOptions] = await Promise.all([
+        fetchPublicOfficialDocumentsPageRaw({
+          page,
+          size,
+          categoryId: input?.categoryId,
+          year: input?.year,
+        }),
+        fetchOfficialDocumentCategoryOptionsServer(),
+      ]);
+
+      const totalPages = Math.max(1, Math.ceil(totalElements / size));
+      // Out-of-range page (hand-edited URL): clamp and refetch the last page once.
+      let pageDocs = docs;
+      let currentPage = page;
+      if (docs.length === 0 && totalElements > 0 && page > totalPages - 1) {
+        currentPage = totalPages - 1;
+        pageDocs = (
+          await fetchPublicOfficialDocumentsPageRaw({
+            page: currentPage,
+            size,
+            categoryId: input?.categoryId,
+            year: input?.year,
+          })
+        ).docs;
+      }
+
+      // Keep the backend's priority-first order; dedup only collapses duplicate
+      // uploads within the page. Year options come from the current page — the
+      // year combobox already has a synthetic fallback for thin option lists.
+      const content = deduplicateOfficialDocumentTreeItems(pageDocs.map(mapEventMediaToTreeItem));
+      return {
+        content,
+        totalElements,
+        totalPages,
+        page: currentPage,
+        size,
+        categoryOptions,
+        yearOptions: extractYearOptionsFromDocs(pageDocs, input?.categoryId),
+        allYearOptions: extractYearOptionsFromDocs(pageDocs),
+      };
+    }
+
+    // Text-search path only: the backend has no search param, so scan the slim
+    // list (sequential batches) and filter/sort/paginate in memory as before.
     const [allDocs, categoryOptions] = await Promise.all([
       fetchAllPublicOfficialDocumentsRaw(),
       fetchOfficialDocumentCategoryOptionsServer(),
@@ -268,7 +337,7 @@ export async function fetchPublicOfficialDocumentsTreeServer(input?: {
       if (input?.year && !matchesDownloadYearFilter(searchItem, input.year)) {
         return false;
       }
-      if (searchQuery && !matchesDownloadSearchQuery(searchItem, searchQuery)) {
+      if (!matchesDownloadSearchQuery(searchItem, searchQuery)) {
         return false;
       }
       return true;

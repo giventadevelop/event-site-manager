@@ -6,11 +6,13 @@ import AdminNavigation from '@/components/AdminNavigation';
 import { useAdminTenantId } from '../../AdminTenantContext';
 import type { GasStationLocationDTO } from '@/types/gasStation';
 import {
-  fetchGasStationLocationsServer,
+  fetchGasStationLocationsPageServer,
   createGasStationLocationServer,
   updateGasStationLocationServer,
   deleteGasStationLocationServer,
 } from '../ApiServerActions';
+
+const STATIONS_PAGE_SIZE = 20;
 
 type StationForm = Omit<GasStationLocationDTO, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -41,6 +43,9 @@ const EMPTY_FORM: StationForm = {
 export default function GasStationStationsPage() {
   const tenantId = useAdminTenantId();
   const [stations, setStations] = useState<GasStationLocationDTO[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [form, setForm] = useState<StationForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -50,24 +55,33 @@ export default function GasStationStationsPage() {
 
   const tenantQuery = tenantId ? `?tenant=${encodeURIComponent(tenantId)}` : '';
 
-  const reload = async () => {
+  const reload = async (targetPage: number = page) => {
     setLoading(true);
-    setStations(await fetchGasStationLocationsServer(tenantId));
+    const result = await fetchGasStationLocationsPageServer(targetPage, STATIONS_PAGE_SIZE, tenantId);
+    setStations(result.content);
+    setTotalCount(result.totalElements);
+    setTotalPages(result.totalPages);
     setLoading(false);
   };
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetchGasStationLocationsServer(tenantId).then((s) => {
+    fetchGasStationLocationsPageServer(page, STATIONS_PAGE_SIZE, tenantId).then((result) => {
       if (!cancelled) {
-        setStations(s);
+        setStations(result.content);
+        setTotalCount(result.totalElements);
+        setTotalPages(result.totalPages);
         setLoading(false);
       }
     });
     return () => {
       cancelled = true;
     };
+  }, [tenantId, page]);
+
+  useEffect(() => {
+    setPage(0);
   }, [tenantId]);
 
   const set = <K extends keyof StationForm>(key: K, value: StationForm[K]) =>
@@ -123,7 +137,13 @@ export default function GasStationStationsPage() {
     const id = station.id;
     startTransition(async () => {
       const ok = await deleteGasStationLocationServer(id);
-      if (ok) await reload();
+      if (!ok) return;
+      // Deleting the last row of a trailing page: step back so the view isn't empty.
+      if (stations.length === 1 && page > 0) {
+        setPage(page - 1);
+      } else {
+        await reload();
+      }
     });
   };
 
@@ -434,6 +454,72 @@ export default function GasStationStationsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination footer — standard admin pattern (Previous/Next + page info + item count) */}
+        <div className="mt-8">
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0 || loading}
+              className="px-5 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg shadow-sm border-2 border-blue-400 hover:border-blue-500 disabled:bg-blue-100 disabled:border-blue-300 disabled:text-blue-500 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-md"
+              title="Previous Page"
+              aria-label="Previous Page"
+              type="button"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>Previous</span>
+            </button>
+
+            <div className="px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+              <span className="text-sm font-bold text-blue-700">
+                Page <span className="text-blue-600">{page + 1}</span> of{' '}
+                <span className="text-blue-600">{Math.max(totalPages, 1)}</span>
+              </span>
+            </div>
+
+            <button
+              onClick={() => setPage((p) => Math.min(Math.max(totalPages - 1, 0), p + 1))}
+              disabled={page >= totalPages - 1 || loading}
+              className="px-5 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg shadow-sm border-2 border-blue-400 hover:border-blue-500 disabled:bg-blue-100 disabled:border-blue-300 disabled:text-blue-500 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-md"
+              title="Next Page"
+              aria-label="Next Page"
+              type="button"
+            >
+              <span>Next</span>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="text-center mt-3">
+            {totalCount > 0 ? (
+              <div className="inline-flex items-center px-4 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+                <span className="text-sm text-gray-700">
+                  Showing <span className="font-bold text-blue-600">{page * STATIONS_PAGE_SIZE + 1}</span> to{' '}
+                  <span className="font-bold text-blue-600">
+                    {page * STATIONS_PAGE_SIZE + Math.min(stations.length, STATIONS_PAGE_SIZE)}
+                  </span>{' '}
+                  of <span className="font-bold text-blue-600">{totalCount}</span> stations
+                </span>
+              </div>
+            ) : (
+              !loading && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 border-2 border-orange-300 rounded-lg shadow-sm">
+                  <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm font-medium text-orange-700">No stations found</span>
+                  <span className="text-sm text-orange-600">
+                    {tenantId ? `No stations for tenant ${tenantId}` : 'No stations registered yet'}
+                  </span>
+                </div>
+              )
+            )}
+          </div>
         </div>
       </div>
     </div>

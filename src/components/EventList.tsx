@@ -59,11 +59,17 @@ export function EventList({
       setCalendarEvents(calendarEventsProp);
     } else {
       // Fallback: fetch calendar events if not provided (tenant-agnostic: no tenantId unless caller passes it)
-      fetch(`/api/proxy/event-calendar-entries?size=1000`)
+      // Scoped to the rendered events via repeated eventId.in instead of loading every entry
+      const eventIds = events.map(e => e.id).filter((id): id is number => id != null);
+      if (eventIds.length === 0) return;
+      const params = new URLSearchParams();
+      eventIds.forEach(id => params.append('eventId.in', String(id)));
+      params.set('size', String(eventIds.length));
+      fetch(`/api/proxy/event-calendar-entries?${params.toString()}`)
         .then(res => res.ok ? res.json() : [])
         .then(data => setCalendarEvents(Array.isArray(data) ? data : []));
     }
-  }, [calendarEventsProp]);
+  }, [calendarEventsProp, events]);
 
   useEffect(() => {
     // Use provided event types or fetch if not provided

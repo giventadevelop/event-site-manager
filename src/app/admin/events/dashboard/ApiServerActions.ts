@@ -75,10 +75,10 @@ export async function fetchEventDashboardData(eventId: number | null): Promise<E
     const events = await eventsResponse.json();
     const eventsArray = Array.isArray(events) ? events : [];
 
-    // Fetch attendees for the specific event or all events (limit to 500 for performance)
+    // Fetch one small page of recent attendees; exact totals come from X-Total-Count
     const attendeeParams = eventId
-      ? `eventId.equals=${eventId}&sort=registrationDate,desc`
-      : 'sort=registrationDate,desc&size=500';
+      ? `eventId.equals=${eventId}&sort=registrationDate,desc&size=20`
+      : 'sort=registrationDate,desc&size=20';
 
     const attendeesController = new AbortController();
     const attendeesTimeout = setTimeout(() => attendeesController.abort(), 15000);
@@ -97,10 +97,10 @@ export async function fetchEventDashboardData(eventId: number | null): Promise<E
     const attendees = await attendeesResponse.json();
     const attendeesArray = Array.isArray(attendees) ? attendees : [];
 
-    // Fetch guests for attendees (limit to 500 for performance)
+    // Fetch one small page of guests; exact totals come from X-Total-Count
     const guestParams = eventId
-      ? `eventAttendee.eventId.equals=${eventId}&size=500`
-      : 'size=500';
+      ? `eventAttendee.eventId.equals=${eventId}&size=20`
+      : 'size=20';
 
     const guestsController = new AbortController();
     const guestsTimeout = setTimeout(() => guestsController.abort(), 15000);
@@ -119,9 +119,9 @@ export async function fetchEventDashboardData(eventId: number | null): Promise<E
     const guests = await guestsResponse.json();
     const guestsArray = Array.isArray(guests) ? guests : [];
 
-    // Calculate statistics
-    const totalAttendees = attendeesArray.length;
-    const totalGuests = guestsArray.length;
+    // Exact totals from X-Total-Count (fetched rows are only the most recent page)
+    const totalAttendees = Number(attendeesResponse.headers.get('X-Total-Count')) || attendeesArray.length;
+    const totalGuests = Number(guestsResponse.headers.get('X-Total-Count')) || guestsArray.length;
 
     const capacityUtilization = eventDetails && eventDetails.capacity
       ? Math.round((totalAttendees / eventDetails.capacity) * 100)
@@ -142,7 +142,7 @@ export async function fetchEventDashboardData(eventId: number | null): Promise<E
     // Special requirements
     const specialRequirements = calculateSpecialRequirements(attendeesArray, guestsArray);
 
-    // Recent registrations (all attendees, sorted by registration date descending)
+    // Recent registrations (latest page of attendees, sorted by registration date descending)
     const recentRegistrations = attendeesArray;
 
     // Top events by attendance

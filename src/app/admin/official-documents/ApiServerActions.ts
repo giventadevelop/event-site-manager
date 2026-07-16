@@ -185,20 +185,11 @@ export async function fetchOfficialDocumentCategoriesServer(
   }
 }
 
-const OFFICIAL_DOCUMENT_LIST_BATCH_SIZE = 25;
-
-function parseSpringTotalCountHeader(res: Response, fallback: number): number {
-  const raw = res.headers.get('X-Total-Count') ?? res.headers.get('x-total-count');
-  if (raw == null || raw.trim() === '') {
-    return fallback;
-  }
-  const parsed = parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
-}
+const OFFICIAL_DOCUMENT_LIST_MAX_SIZE = 100;
 
 /**
- * All matching rows — used for cover picker and legacy refresh.
- * Fetches in small batches (25) to avoid OOM from loading full event_media rows in one page.
+ * Most recent matching rows — used for cover picker and legacy refresh.
+ * Single filtered page (size capped at 100) instead of paging through every matching row.
  */
 export async function fetchTenantOfficialDocumentsServer(filters?: {
   year?: number;
@@ -206,45 +197,31 @@ export async function fetchTenantOfficialDocumentsServer(filters?: {
   size?: number;
   tenantId?: string;
 }): Promise<EventMediaDTO[]> {
-  const maxRows = filters?.size ?? Number.POSITIVE_INFINITY;
-  const batchSize = OFFICIAL_DOCUMENT_LIST_BATCH_SIZE;
-  const all: EventMediaDTO[] = [];
-  let page = 0;
-  let totalElements = Number.POSITIVE_INFINITY;
+  const size = Math.min(filters?.size ?? OFFICIAL_DOCUMENT_LIST_MAX_SIZE, OFFICIAL_DOCUMENT_LIST_MAX_SIZE);
 
   try {
-    while (all.length < maxRows && all.length < totalElements && page < 200) {
-      const params = new URLSearchParams();
-      appendTenantIfPresent(params, effectiveTenantId(filters?.tenantId));
-      params.append('isEventManagementOfficialDocument.equals', 'true');
-      params.append('sort', 'createdAt,desc');
-      params.append('page', String(page));
-      params.append('size', String(batchSize));
-      if (filters?.year != null) params.append('officialDocumentYear.equals', String(filters.year));
-      if (filters?.officialDocumentCategoryId != null) {
-        params.append('officialDocumentCategoryId.equals', String(filters.officialDocumentCategoryId));
-      }
-      const url = `${getApiBaseUrl()}/api/event-medias?${params.toString()}`;
-      const res = await fetchWithJwtRetry(url, {
-        cache: 'no-store',
-        headers: headersForTenantScope(filters?.tenantId),
-      });
-      if (!res.ok) break;
-
-      const data = await res.json();
-      const batch = parseSpringPage<EventMediaDTO>(data);
-      const meta = parseSpringPageMeta(data);
-      totalElements = meta.totalElements || parseSpringTotalCountHeader(res, all.length + batch.length);
-
-      all.push(...batch);
-      page += 1;
-      if (batch.length === 0) break;
+    const params = new URLSearchParams();
+    appendTenantIfPresent(params, effectiveTenantId(filters?.tenantId));
+    params.append('isEventManagementOfficialDocument.equals', 'true');
+    params.append('sort', 'createdAt,desc');
+    params.append('page', '0');
+    params.append('size', String(size));
+    if (filters?.year != null) params.append('officialDocumentYear.equals', String(filters.year));
+    if (filters?.officialDocumentCategoryId != null) {
+      params.append('officialDocumentCategoryId.equals', String(filters.officialDocumentCategoryId));
     }
+    const url = `${getApiBaseUrl()}/api/event-medias?${params.toString()}`;
+    const res = await fetchWithJwtRetry(url, {
+      cache: 'no-store',
+      headers: headersForTenantScope(filters?.tenantId),
+    });
+    if (!res.ok) return [];
 
-    return Number.isFinite(maxRows) ? all.slice(0, maxRows) : all;
+    const data = await res.json();
+    return parseSpringPage<EventMediaDTO>(data).slice(0, size);
   } catch (e) {
     console.error('[official-documents] fetchTenantOfficialDocumentsServer:', e);
-    return all;
+    return [];
   }
 }
 

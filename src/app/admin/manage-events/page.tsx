@@ -135,7 +135,8 @@ export default function ManageEventsPage() {
 
       const { events: eventsResult, totalCount: fetchedTotalCount } = await fetchEventsFilteredServer(filterParams);
       const types = await fetchEventTypesServer(tenantId);
-      const calendarEventsResult = await fetchCalendarEventsServer(tenantId);
+      const eventIds = eventsResult.map(e => e.id).filter((id): id is number => id != null);
+      const calendarEventsResult = await fetchCalendarEventsServer(tenantId, eventIds);
       setEvents(eventsResult);
       setTotalCount(fetchedTotalCount);
       setEventTypes(types);

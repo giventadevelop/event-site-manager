@@ -24,9 +24,16 @@ export async function fetchEventTypesServer(tenantId?: string): Promise<EventTyp
   return await res.json();
 }
 
-export async function fetchCalendarEventsServer(tenantId?: string): Promise<EventCalendarEntryDTO[]> {
+export async function fetchCalendarEventsServer(tenantId?: string, eventIds?: number[]): Promise<EventCalendarEntryDTO[]> {
   const params = new URLSearchParams();
-  params.set('size', '1000');
+  if (eventIds) {
+    // Scope to the events being enriched via repeated eventId.in instead of loading every entry
+    if (eventIds.length === 0) return [];
+    eventIds.forEach(id => params.append('eventId.in', String(id)));
+    params.set('size', String(eventIds.length));
+  } else {
+    params.set('size', '1000');
+  }
   appendTenantIfPresent(params, effectiveTenantId(tenantId));
   const url = `${getBackendApiUrl()}/api/event-calendar-entries?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
@@ -121,14 +128,15 @@ export async function createCalendarEventServer(event: EventDetailsDTO, userProf
 
 export async function findCalendarEventByEventIdServer(eventId: number, tenantId?: string): Promise<EventCalendarEntryDTO | null> {
   const params = new URLSearchParams();
-  params.set('size', '1000');
+  params.set('eventId.equals', String(eventId));
+  params.set('size', '1');
   appendTenantIfPresent(params, effectiveTenantId(tenantId));
   const url = `${getBackendApiUrl()}/api/event-calendar-entries?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return null;
   const data = await res.json();
   if (!Array.isArray(data)) return null;
-  return data.find((ce: EventCalendarEntryDTO) => ce.event && ce.event.id === eventId) || null;
+  return (data[0] as EventCalendarEntryDTO) || null;
 }
 
 export async function updateCalendarEventForEventServer(event: EventDetailsDTO, userProfile: UserProfileDTO, tenantId?: string) {

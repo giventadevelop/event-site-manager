@@ -8,6 +8,8 @@ import {
   normalizeTenantIdPrefix,
 } from '@/lib/tenantIdGeneration';
 import { fetchTenantOrganizations } from '@/app/admin/tenant-management/organizations/ApiServerActions';
+import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+import { getApiBaseUrl } from '@/lib/env';
 
 export interface NextTenantIdPreview {
   prefix: string;
@@ -18,6 +20,23 @@ export interface NextTenantIdPreview {
 
 async function fetchAllTenantOrganizationIds(): Promise<string[]> {
   const tenantIds: string[] = [];
+
+  // Preferred: lightweight GET /tenant-organizations/tenant-ids (strings only, one request).
+  // Falls back to enumerating organization pages when the backend predates the endpoint (404).
+  try {
+    const res = await fetchWithJwtRetry(`${getApiBaseUrl()}/api/tenant-organizations/tenant-ids`, {
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const ids = (await res.json()) as unknown;
+      if (Array.isArray(ids)) {
+        return ids.filter((id): id is string => typeof id === 'string' && id.trim() !== '').map((id) => id.trim());
+      }
+    }
+  } catch (error) {
+    console.error('[tenantIdServerActions] tenant-ids endpoint failed; falling back to page enumeration.', error);
+  }
+
   let page = 0;
   const pageSize = 200;
 

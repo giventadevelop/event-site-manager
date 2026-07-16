@@ -65,7 +65,7 @@ export default function EventContactsPage() {
   const loadEvents = async () => {
     try {
       const result = await fetchEventsFilteredServer({
-        pageSize: 1000, // Load all events for dropdown
+        pageSize: 100, // Bounded page of most recent events for dropdown (same pattern as EventSearchSelect)
         sort: 'startDate,desc'
       });
       setEvents(result.events);

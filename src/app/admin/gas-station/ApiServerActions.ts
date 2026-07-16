@@ -32,7 +32,9 @@ async function fetchGasList<T>(
   extraParams?: Record<string, string>
 ): Promise<T[]> {
   try {
-    const params = new URLSearchParams({ size: '500' });
+    // Bounded per-tenant reference sets (station selectors, per-date metrics/recommendations) —
+    // not paginated list views. The stations admin table uses the paged fetcher below instead.
+    const params = new URLSearchParams({ size: '200' });
     appendTenantIfPresent(params, effectiveTenantId(tenantId));
     for (const [key, value] of Object.entries(extraParams ?? {})) {
       params.append(key, value);
@@ -111,6 +113,45 @@ export async function fetchGasStationLocationsServer(
   });
 }
 
+export interface GasStationLocationsPage {
+  content: GasStationLocationDTO[];
+  totalElements: number;
+  totalPages: number;
+}
+
+/** One server page for the stations admin table (totals from X-Total-Count). */
+export async function fetchGasStationLocationsPageServer(
+  page: number,
+  size: number,
+  tenantId?: string
+): Promise<GasStationLocationsPage> {
+  try {
+    const params = new URLSearchParams({
+      page: String(Math.max(0, page)),
+      size: String(Math.min(Math.max(1, size), 100)),
+      sort: 'tenantId,asc',
+    });
+    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/gas-station-locations?${params}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) return { content: [], totalElements: 0, totalPages: 0 };
+    const content = normalizeList<GasStationLocationDTO>(await res.json());
+    const rawTotal = res.headers.get('x-total-count');
+    const totalElements = rawTotal != null && Number.isFinite(parseInt(rawTotal, 10))
+      ? Math.max(0, parseInt(rawTotal, 10))
+      : content.length;
+    return {
+      content,
+      totalElements,
+      totalPages: Math.max(1, Math.ceil(totalElements / Math.max(1, size))),
+    };
+  } catch (error) {
+    console.error('[fetchGasStationLocationsPageServer]', error);
+    return { content: [], totalElements: 0, totalPages: 0 };
+  }
+}
+
 export async function createGasStationLocationServer(
   data: Omit<GasStationLocationDTO, 'id'> & { tenantId: string }
 ): Promise<GasStationLocationDTO | null> {
@@ -179,6 +220,7 @@ export async function fetchGasStationMetricsRangeServer(
   return fetchGasList<GasStationDailyMetricsDTO>('/api/gas-station-daily-metrics', tenantId, {
     'metricDate.greaterThanOrEqual': fromDate,
     'metricDate.lessThanOrEqual': toDate,
+    // Chart aggregation over a caller-bounded date range (days x stations), not a list view.
     size: '2000',
   });
 }
