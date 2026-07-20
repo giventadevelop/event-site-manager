@@ -512,24 +512,38 @@ alwaysApply: true
 - **Hero JSON parsing:** Use `parseTenantDefaultHeroSlides` from `@/lib/hero/defaultHeroImages` (event-site-manager passes `{ defaultHeroImageUrlsJson }` object; mosc-temp may pass raw JSON string where the helper overload supports it).
 - **References:** `src/app/admin/tenant-management/settings/[id]/TenantSettingsViewClient.tsx`, `src/app/admin/tenant-management/components/TenantDefaultHeroView.tsx`, `src/app/admin/tenant-management/components/TenantSettingsForm.tsx`, `src/app/admin/tenant-management/settings/ApiServerActions.ts` (`uploadDefaultHeroImageClient`, `patchTenantSetting`).
 
-- **App URL and fetch targets (client vs server) — use the right base**
+- **App URL and fetch targets (client vs server) — use the right base (PORT-AGNOSTIC)**
+  - **CRITICAL:** This Next app may run on **any port** (3000, 3001, Amplify, etc.). Never hardcode `localhost:3000` and never assume `NEXT_PUBLIC_APP_URL` / `getAppUrl()` matches the process that is serving the current request.
   - **Browser / `'use client'` calling `/api/proxy/*` (public data): use same-origin relative URLs**
     - **DO:** `fetch('/api/proxy/executive-committee-team-members?isActive.equals=true&sort=priorityOrder,asc', { ... })`
     - **DON'T:** `const baseUrl = getAppUrl(); fetch(\`${baseUrl}/api/proxy/...\`)` from the browser.
     - **Why:** `getAppUrl()` often resolves to `http://localhost:3000` while the tab may be `http://127.0.0.1:3001` (or another host/port). Browsers treat those as **different origins** → CORS / `TypeError: Failed to fetch` even though the proxy works. Relative paths always hit the current tab’s origin.
     - **Do NOT add `tenantId.equals` in the query** when calling the proxy for default tenant-scoped lists; tenant context comes from the proxy’s JWT / `X-Tenant-ID` merge. Only add `tenantId.equals` when the UI explicitly filters by tenant (e.g. tenant picker).
     - **References:** `src/components/TeamSection.tsx`, `src/components/OurSponsorsSection.tsx`, `src/components/TenantSettingsProvider.tsx`
-  - **Server code calling the backend API directly (server components, server actions, `ApiServerActions.ts`): use `getApiBaseUrl()` + `fetchWithJwtRetry`**
-    - **DO:** `await fetchWithJwtRetry(\`${getApiBaseUrl()}/api/resource?tenantId.equals=${getTenantId()}&...\`, { cache: 'no-store' })` (add `tenantId.equals` when the backend criteria require it; `fetchWithJwtRetry` adds `Authorization` and `X-Tenant-ID`).
-    - **DON'T:** Loop through the Next app with `getAppUrl() + '/api/proxy/...'` from server code unless you have a specific reason (extra hop, wrong port if env is stale).
-    - **References:** `src/app/admin/executive-committee/ApiServerActions.ts`, `src/app/admin/event-sponsors/ApiServerActions.ts`, `src/lib/proxyHandler.ts`
-  - **Server code that must call this Next app (e.g. multipart upload to a Pages API route): prefer request host, then env**
+  - **Server actions / `ApiServerActions.ts` calling the backend REST API: use `getApiBaseUrl()` + `fetchWithJwtRetry` (preferred, port-agnostic)**
+    - **DO:** `await fetchWithJwtRetry(\`${getApiBaseUrl()}/api/event-polls/${id}\`, { cache: 'no-store' })`
+    - **DON'T:** Module-level or per-call `const baseUrl = getAppUrl(); fetch(\`${baseUrl}/api/proxy/...\`)` from server actions.
+    - **Why (real bug):** Poll admin update used `getAppUrl()` → proxy on the **wrong Next port** while the UI ran on another port. Pre-update GET failed → `null` → false “Poll with ID X not found” even though the poll existed. Direct backend calls via `getApiBaseUrl()` do not depend on the Next listen port.
+    - `fetchWithJwtRetry` adds **`Authorization`** and **`X-Tenant-ID`**.
+    - **References:** `src/app/admin/polls/ApiServerActions.ts`, `src/app/admin/executive-committee/ApiServerActions.ts`, `src/lib/proxyHandler.ts`
+  - **Server code that must call this Next app’s `/api/proxy/*` (rare; prefer direct backend above): use request host, not a fixed env port**
+    - **DO:** `await getAdminProxyBaseUrl()` from `@/lib/adminProxyBaseUrl` (reads `host` / `x-forwarded-host` / proto from `headers()`, then falls back to `getAppUrl()`).
+    - **DON'T:** `getAppUrl() + '/api/proxy/...'` or hardcode `http://localhost:3000` in server actions — stale `NEXT_PUBLIC_APP_URL` breaks non-default ports.
+  - **Server code that must call this Next app for other reasons (e.g. multipart upload to a Pages API route): prefer request host, then env**
     - **DO:** `import { headers } from 'next/headers'` → build `proto://host` from `x-forwarded-host` / `host` and `x-forwarded-proto` when possible (matches actual dev port and deployment host).
     - **Fallback:** `getAppUrl()` from `@/lib/env` when not in a request context — never hardcode `http://localhost:3000` in application code.
   - **Legacy `getAppUrl()` note**
-    - `getAppUrl()` remains correct for **absolute links**, emails, QR bases, and **server→Next** when `headers()` is unavailable — not for **browser→proxy** fetches.
+    - `getAppUrl()` remains correct for **absolute links**, emails, QR bases, and **server→Next** when `headers()` is unavailable — **not** for browser→proxy fetches and **not** as the default base for server-action data CRUD (use `getApiBaseUrl()` + `fetchWithJwtRetry` instead).
+  - **Port-agnostic checklist for new server actions**
+    - [ ] No `const baseUrl = getAppUrl()` for CRUD to backend resources
+    - [ ] No absolute `http://localhost:3000/...` URLs
+    - [ ] Backend data: `getApiBaseUrl()` + `fetchWithJwtRetry`
+    - [ ] Must hit Next `/api/proxy/*` from server: `await getAdminProxyBaseUrl()`
+    - [ ] Browser: relative `/api/proxy/...` only
   - **References:**
     - See `src/lib/env.ts` for `getAppUrl()` and `getApiBaseUrl()`
+    - See `src/lib/adminProxyBaseUrl.ts` for request-origin proxy base
+    - See poll fix: `src/app/admin/polls/ApiServerActions.ts`
 
 - **Admin `/admin/*` list pages — tenant-agnostic criteria and pagination**
   - **Scope:** All admin listing flows under `/admin/*` (tables, grids, paginated lists) should treat tenant context as **HTTP + JWT** (`Authorization`, `X-Tenant-ID` via `fetchWithJwtRetry`, or the Pages proxy’s service JWT), **not** as a default `tenantId.equals` query param on every list request.

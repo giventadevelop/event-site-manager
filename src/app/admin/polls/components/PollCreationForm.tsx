@@ -25,6 +25,23 @@ interface PollCreationFormProps {
   isLoading?: boolean;
 }
 
+function mapInitialOptions(initialOptions: EventPollOptionDTO[]): PollOption[] {
+  if (initialOptions.length === 0) {
+    return [
+      { optionText: '', displayOrder: 0, isActive: true },
+      { optionText: '', displayOrder: 1, isActive: true },
+    ];
+  }
+  return [...initialOptions]
+    .map((opt) => ({
+      id: opt.id,
+      optionText: opt.optionText || '',
+      displayOrder: opt.displayOrder ?? 0,
+      isActive: opt.isActive ?? true,
+    }))
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
 export function PollCreationForm({ 
   onSubmit, 
   onCancel, 
@@ -41,23 +58,11 @@ export function PollCreationForm({
     startDate: initialData?.startDate ? new Date(initialData.startDate).toISOString().slice(0, 16) : '',
     endDate: initialData?.endDate ? new Date(initialData.endDate).toISOString().slice(0, 16) : '',
     maxResponsesPerUser: initialData?.maxResponsesPerUser ?? 1,
-    resultsVisibleTo: initialData?.resultsVisibleTo ?? 'ALL',
-    eventId: initialData?.eventId || undefined,
+    resultsVisibleTo: (initialData as { resultsVisibleTo?: string })?.resultsVisibleTo ?? 'ALL',
+    eventId: (initialData as { eventId?: number })?.eventId || undefined,
   });
 
-  const [options, setOptions] = useState<PollOption[]>(
-    initialOptions.length > 0 
-      ? initialOptions.map(opt => ({
-          id: opt.id,
-          optionText: opt.optionText,
-          displayOrder: opt.displayOrder || 0,
-          isActive: opt.isActive ?? true,
-        }))
-      : [
-          { optionText: '', displayOrder: 0, isActive: true },
-          { optionText: '', displayOrder: 1, isActive: true },
-        ]
-  );
+  const [options, setOptions] = useState<PollOption[]>(() => mapInitialOptions(initialOptions));
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 

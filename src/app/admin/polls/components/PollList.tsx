@@ -147,8 +147,20 @@ export function PollList({
           placeholder="Search polls..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-12 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 transition-all"
+          className="pl-12 pr-10 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 transition-all"
         />
+        {searchTerm ? (
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setSearchTerm('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-1.5 text-gray-400 hover:text-gray-700"
+            title="Clear search"
+            aria-label="Clear search"
+          >
+            ×
+          </button>
+        ) : null}
       </div>
 
       {filteredPolls.length === 0 ? (

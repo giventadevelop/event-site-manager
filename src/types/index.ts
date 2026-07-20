@@ -466,9 +466,14 @@ export interface EventPollOptionDTO {
   id?: number;
   tenantId?: string;
   optionText: string;
+  displayOrder?: number;
+  isActive?: boolean;
+  /** Flat FK used by some clients / criteria filters (`pollId.equals`). */
+  pollId?: number;
   createdAt: string;
   updatedAt: string;
-  poll?: EventPollDTO;
+  /** Relationship object expected by backend create/PATCH bodies. */
+  poll?: EventPollDTO | { id: number };
 }
 
 export interface BulkOperationLogDTO {

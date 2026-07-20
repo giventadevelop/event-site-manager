@@ -5,20 +5,28 @@ import { PollList } from './components/PollList';
 import { PollCreationForm } from './components/PollCreationForm';
 import { PollDetailsModal } from './components/PollDetailsModal';
 import { SuccessDialog } from '@/components/ui/SuccessDialog';
+import { ErrorDialog } from '@/components/ui/ErrorDialog';
 import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
-import { 
-  createEventPollServer, 
-  updateEventPollServer, 
+import {
+  createEventPollServer,
+  updateEventPollServer,
   deleteEventPollServer,
   createEventPollOptionServer,
   updateEventPollOptionServer,
   fetchEventPollOptionsServer,
-  deleteEventPollOptionServer
+  deleteEventPollOptionServer,
 } from './ApiServerActions';
 import type { EventPollDTO, EventPollOptionDTO } from '@/types';
 
 interface PollManagementClientProps {
   initialPolls: EventPollDTO[];
+}
+
+function errorMessageFrom(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return fallback;
 }
 
 export function PollManagementClient({ initialPolls }: PollManagementClientProps) {
@@ -30,6 +38,8 @@ export function PollManagementClient({ initialPolls }: PollManagementClientProps
   const [pollOptions, setPollOptions] = useState<EventPollOptionDTO[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState({ title: '', message: '' });
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [errorMessage, setErrorMessage] = useState({ title: '', message: '' });
 
   useEffect(() => {
     setPolls(initialPolls);
@@ -40,35 +50,41 @@ export function PollManagementClient({ initialPolls }: PollManagementClientProps
     setShowSuccessDialog(true);
   };
 
+  const showError = (title: string, message: string) => {
+    setErrorMessage({ title, message });
+    setShowErrorDialog(true);
+  };
+
   const handleCreatePoll = async (
     pollData: Omit<EventPollDTO, 'id' | 'createdAt' | 'updatedAt'>,
     options: Omit<EventPollOptionDTO, 'id' | 'createdAt' | 'updatedAt' | 'pollId'>[]
   ) => {
     try {
       setIsLoading(true);
-      
-      // Create the poll first
+
       const createdPoll = await createEventPollServer(pollData);
-      
-      // Create poll options
-      const createdOptions = await Promise.all(
-        options.map(option => 
+
+      await Promise.all(
+        options.map((option) =>
           createEventPollOptionServer({
             ...option,
             pollId: createdPoll.id,
           })
         )
       );
-      
-      // Update local state
-      setPolls(prev => [createdPoll, ...prev]);
+
+      setPolls((prev) => [createdPoll, ...prev]);
       setShowCreateForm(false);
-      
-      // Show success message
-      showSuccess('Poll Created Successfully!', 'Your new poll has been created and is now available for voting.');
+      showSuccess(
+        'Poll Created Successfully!',
+        'Your new poll has been created and is now available for voting.'
+      );
     } catch (error) {
       console.error('Error creating poll:', error);
-      alert('Failed to create poll. Please try again.');
+      showError(
+        'Failed to Create Poll',
+        errorMessageFrom(error, 'Failed to create poll. Please try again.')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -76,69 +92,81 @@ export function PollManagementClient({ initialPolls }: PollManagementClientProps
 
   const handleUpdatePoll = async (
     pollData: Omit<EventPollDTO, 'id' | 'createdAt' | 'updatedAt'>,
-    options: (Omit<EventPollOptionDTO, 'id' | 'createdAt' | 'updatedAt' | 'pollId'> & { id?: number })[]
+    options: (Omit<EventPollOptionDTO, 'id' | 'createdAt' | 'updatedAt' | 'pollId'> & {
+      id?: number;
+    })[]
   ) => {
     if (!editingPoll?.id) return;
 
     try {
       setIsLoading(true);
-      
-      // Update the poll
-      const updatedPoll = await updateEventPollServer(editingPoll.id, pollData);
-      
-      // Get existing options
-      const existingOptions = await fetchEventPollOptionsServer({ 
-        'pollId.equals': editingPoll.id 
+
+      const updatedPoll = await updateEventPollServer(editingPoll.id, {
+        ...pollData,
+        // Preserve tenant/createdAt from the loaded poll so update does not depend on a re-fetch
+        tenantId: editingPoll.tenantId,
+        createdAt: editingPoll.createdAt,
       });
-      
-      // Separate options into existing (with ID) and new (without ID)
-      const existingOptionIds = options.filter(opt => opt.id).map(opt => opt.id!);
-      const newOptions = options.filter(opt => !opt.id);
-      
-      // Delete options that were removed (exist in database but not in form)
+
+      const existingOptions = await fetchEventPollOptionsServer({
+        'pollId.equals': editingPoll.id,
+      });
+
+      const existingOptionIds = options.filter((opt) => opt.id).map((opt) => opt.id!);
+      const newOptions = options.filter((opt) => !opt.id);
+
       const optionsToDelete = existingOptions.filter(
-        existing => !existingOptionIds.includes(existing.id!)
+        (existing) => !existingOptionIds.includes(existing.id!)
       );
-      
+
       await Promise.all(
-        optionsToDelete.map(option => 
+        optionsToDelete.map((option) =>
           option.id ? deleteEventPollOptionServer(option.id) : Promise.resolve()
         )
       );
-      
-      // Update existing options (PATCH calls)
+
       const updatePromises = options
-        .filter(opt => opt.id) // Only existing options
-        .map(option => {
+        .filter((opt) => opt.id)
+        .map((option) => {
           const { id, ...optionData } = option;
+          const existing = pollOptions.find((o) => o.id === id);
           return updateEventPollOptionServer(id!, {
             ...optionData,
             pollId: editingPoll.id,
+            tenantId: existing?.tenantId ?? editingPoll.tenantId,
+            createdAt: existing?.createdAt,
           });
         });
-      
-      // Create new options (POST calls)
-      const createPromises = newOptions.map(option => 
+
+      const createPromises = newOptions.map((option) =>
         createEventPollOptionServer({
           ...option,
           pollId: editingPoll.id,
         })
       );
-      
-      // Execute all updates and creates in parallel
+
       await Promise.all([...updatePromises, ...createPromises]);
-      
-      // Update local state
-      setPolls(prev => prev.map(poll => 
-        poll.id === editingPoll.id ? updatedPoll : poll
-      ));
+
+      // Re-fetch options so the next edit shows persisted values
+      const refreshedOptions = await fetchEventPollOptionsServer({
+        'pollId.equals': editingPoll.id,
+      });
+      setPollOptions(refreshedOptions);
+
+      setPolls((prev) =>
+        prev.map((poll) => (poll.id === editingPoll.id ? updatedPoll : poll))
+      );
       setEditingPoll(null);
-      
-      // Show success message
-      showSuccess('Poll Updated Successfully!', 'Your poll has been updated with the latest changes.');
+      showSuccess(
+        'Poll Updated Successfully!',
+        'Your poll has been updated with the latest changes.'
+      );
     } catch (error) {
       console.error('Error updating poll:', error);
-      alert('Failed to update poll. Please try again.');
+      showError(
+        'Failed to Update Poll',
+        errorMessageFrom(error, 'Failed to update poll. Please try again.')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -147,29 +175,30 @@ export function PollManagementClient({ initialPolls }: PollManagementClientProps
   const handleDeletePoll = async (pollId: number) => {
     try {
       setIsLoading(true);
-      
-      // Get and delete poll options first
-      const options = await fetchEventPollOptionsServer({ 
-        'pollId.equals': pollId 
+
+      const options = await fetchEventPollOptionsServer({
+        'pollId.equals': pollId,
       });
-      
+
       await Promise.all(
-        options.map(option => 
+        options.map((option) =>
           option.id ? deleteEventPollOptionServer(option.id) : Promise.resolve()
         )
       );
-      
-      // Delete the poll
+
       await deleteEventPollServer(pollId);
-      
-      // Update local state
-      setPolls(prev => prev.filter(poll => poll.id !== pollId));
-      
-      // Show success message
-      showSuccess('Poll Deleted Successfully!', 'The poll has been permanently removed from the system.');
+
+      setPolls((prev) => prev.filter((poll) => poll.id !== pollId));
+      showSuccess(
+        'Poll Deleted Successfully!',
+        'The poll has been permanently removed from the system.'
+      );
     } catch (error) {
       console.error('Error deleting poll:', error);
-      alert('Failed to delete poll. Please try again.');
+      showError(
+        'Failed to Delete Poll',
+        errorMessageFrom(error, 'Failed to delete poll. Please try again.')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -177,83 +206,109 @@ export function PollManagementClient({ initialPolls }: PollManagementClientProps
 
   const handleViewPoll = async (poll: EventPollDTO) => {
     try {
-      // Fetch poll options
-      const options = await fetchEventPollOptionsServer({ 
-        'pollId.equals': poll.id 
+      const options = await fetchEventPollOptionsServer({
+        'pollId.equals': poll.id,
       });
       setPollOptions(options);
       setViewingPoll(poll);
     } catch (error) {
       console.error('Error fetching poll options:', error);
-      alert('Failed to load poll details.');
+      showError(
+        'Failed to Load Poll',
+        errorMessageFrom(error, 'Failed to load poll details.')
+      );
     }
   };
 
   const handleEditPoll = async (poll: EventPollDTO) => {
     try {
-      // Fetch poll options
-      const options = await fetchEventPollOptionsServer({ 
-        'pollId.equals': poll.id 
+      const options = await fetchEventPollOptionsServer({
+        'pollId.equals': poll.id,
       });
       setPollOptions(options);
       setEditingPoll(poll);
     } catch (error) {
       console.error('Error fetching poll options:', error);
-      alert('Failed to load poll for editing.');
+      showError(
+        'Failed to Load Poll',
+        errorMessageFrom(error, 'Failed to load poll for editing.')
+      );
     }
   };
 
+  const dialogs = (
+    <>
+      <SuccessDialog
+        open={showSuccessDialog}
+        onClose={() => setShowSuccessDialog(false)}
+        title={successMessage.title}
+        message={successMessage.message}
+        buttonText="Continue"
+      />
+      <ErrorDialog
+        open={showErrorDialog}
+        onClose={() => setShowErrorDialog(false)}
+        title={errorMessage.title}
+        message={errorMessage.message}
+        buttonText="Close"
+      />
+    </>
+  );
+
   if (showCreateForm) {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold">Create New Poll</h2>
-          <p className="text-gray-600 mt-2">
-            Configure your poll settings and options
-          </p>
+      <>
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold">Create New Poll</h2>
+            <p className="text-gray-600 mt-2">Configure your poll settings and options</p>
+          </div>
+
+          <PollCreationForm
+            onSubmit={handleCreatePoll}
+            onCancel={() => setShowCreateForm(false)}
+            isLoading={isLoading}
+          />
         </div>
-        
-        <PollCreationForm
-          onSubmit={handleCreatePoll}
-          onCancel={() => setShowCreateForm(false)}
-          isLoading={isLoading}
-        />
-      </div>
+        {dialogs}
+      </>
     );
   }
 
   if (editingPoll) {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold">Edit Poll</h2>
-          <p className="text-gray-600 mt-2">
-            Update poll settings and options
-          </p>
-          <AdminTenantIdBanner
-            tenantId={editingPoll.tenantId}
-            entityLabel="poll"
+      <>
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold">Edit Poll</h2>
+            <p className="text-gray-600 mt-2">Update poll settings and options</p>
+            <AdminTenantIdBanner tenantId={editingPoll.tenantId} entityLabel="poll" />
+          </div>
+
+          <PollCreationForm
+            key={`edit-poll-${editingPoll.id}-${pollOptions.map((o) => `${o.id}:${o.optionText}`).join('|')}`}
+            onSubmit={handleUpdatePoll}
+            onCancel={() => setEditingPoll(null)}
+            initialData={editingPoll}
+            initialOptions={pollOptions}
+            isLoading={isLoading}
           />
         </div>
-        
-        <PollCreationForm
-          onSubmit={handleUpdatePoll}
-          onCancel={() => setEditingPoll(null)}
-          initialData={editingPoll}
-          initialOptions={pollOptions}
-          isLoading={isLoading}
-        />
-      </div>
+        {dialogs}
+      </>
     );
   }
 
   if (viewingPoll) {
     return (
-      <PollDetailsModal
-        poll={viewingPoll}
-        options={pollOptions}
-        onClose={() => setViewingPoll(null)}
-      />
+      <>
+        <PollDetailsModal
+          poll={viewingPoll}
+          options={pollOptions}
+          onClose={() => setViewingPoll(null)}
+        />
+        {dialogs}
+      </>
     );
   }
 
@@ -267,16 +322,7 @@ export function PollManagementClient({ initialPolls }: PollManagementClientProps
         onCreate={() => setShowCreateForm(true)}
         isLoading={isLoading}
       />
-
-      {/* Success Dialog */}
-      <SuccessDialog
-        open={showSuccessDialog}
-        onClose={() => setShowSuccessDialog(false)}
-        title={successMessage.title}
-        message={successMessage.message}
-        buttonText="Continue"
-      />
+      {dialogs}
     </>
   );
 }
-
