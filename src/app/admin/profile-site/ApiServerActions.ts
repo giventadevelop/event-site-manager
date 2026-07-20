@@ -8,6 +8,7 @@ import type {
   ProfileAchievementDTO,
   ProfileAffiliationDTO,
   ProfileMediaAssetDTO,
+  ProfileProjectDTO,
   ProfileAudienceContactDTO,
   ProfileAudienceBulkImportResultDTO,
 } from '@/types/profileSite';
@@ -18,7 +19,8 @@ export type ProfileCollectionPath =
   | '/api/profile-writings'
   | '/api/profile-achievements'
   | '/api/profile-affiliations'
-  | '/api/profile-media-assets';
+  | '/api/profile-media-assets'
+  | '/api/profile-projects';
 
 function normalizeList<T>(data: unknown): T[] {
   if (Array.isArray(data)) return data as T[];
@@ -175,6 +177,9 @@ export async function fetchProfileAffiliationsServer(tenantId: string) {
 }
 export async function fetchProfileMediaAssetsServer(tenantId: string) {
   return fetchProfileCollectionServer<ProfileMediaAssetDTO>('/api/profile-media-assets', tenantId);
+}
+export async function fetchProfileProjectsServer(tenantId: string) {
+  return fetchProfileCollectionServer<ProfileProjectDTO>('/api/profile-projects', tenantId);
 }
 
 export async function fetchProfileAudienceContactsServer(
