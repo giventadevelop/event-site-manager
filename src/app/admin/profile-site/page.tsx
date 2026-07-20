@@ -108,19 +108,52 @@ const COLLECTIONS: CollectionConfig[] = [
     ],
   },
   {
+    key: 'projects',
+    title: 'Projects / Case Studies',
+    path: '/api/profile-projects',
+    columns: [
+      { name: 'title', label: 'Title' },
+      { name: 'role', label: 'Role' },
+      { name: 'isFeatured', label: 'Featured' },
+      { name: 'displayOrder', label: 'Order' },
+    ],
+    fields: [
+      { name: 'title', label: 'Title', type: 'text', required: true },
+      { name: 'slug', label: 'URL slug', type: 'text' },
+      { name: 'role', label: 'Your role', type: 'text' },
+      { name: 'summary', label: 'Summary', type: 'textarea' },
+      { name: 'coverImageUrl', label: 'Cover image URL', type: 'text' },
+      { name: 'projectUrl', label: 'Project URL', type: 'text' },
+      {
+        name: 'outcomeMetricsJson',
+        label: 'Outcome metrics JSON',
+        type: 'textarea',
+      },
+      { name: 'displayOrder', label: 'Display order', type: 'number' },
+      { name: 'isFeatured', label: 'Featured', type: 'checkbox' },
+    ],
+  },
+  {
     key: 'media',
-    title: 'Media Downloads',
+    title: 'Media / Talks / Downloads',
     path: '/api/profile-media-assets',
     columns: [
       { name: 'title', label: 'Title' },
+      { name: 'mediaKind', label: 'Kind' },
       { name: 'fileType', label: 'File type' },
       { name: 'isDownloadable', label: 'Downloadable' },
       { name: 'displayOrder', label: 'Order' },
     ],
     fields: [
       { name: 'title', label: 'Title', type: 'text', required: true },
-      { name: 'fileUrl', label: 'File URL', type: 'text', required: true },
+      { name: 'fileUrl', label: 'File / media URL', type: 'text', required: true },
       { name: 'coverImageUrl', label: 'Cover image URL', type: 'text' },
+      {
+        name: 'mediaKind',
+        label: 'Media kind',
+        type: 'select',
+        options: ['DOCUMENT', 'VIDEO', 'PODCAST', 'PRESS', 'OTHER'],
+      },
       { name: 'fileType', label: 'File type', type: 'text' },
       { name: 'description', label: 'Description', type: 'textarea' },
       { name: 'displayOrder', label: 'Display order', type: 'number' },
@@ -364,6 +397,7 @@ const PROFILE_FIELDS: FieldConfig[] = [
   { name: 'headline', label: 'Headline', type: 'text' },
   { name: 'publicSlug', label: 'Public slug', type: 'text' },
   { name: 'contactEmail', label: 'Contact email', type: 'text' },
+  { name: 'bookingUrl', label: 'Booking URL (Calendly etc.)', type: 'text' },
   { name: 'location', label: 'Location', type: 'text' },
   { name: 'profileImageUrl', label: 'Profile image URL', type: 'text' },
   { name: 'coverImageUrl', label: 'Cover image URL', type: 'text' },
@@ -433,7 +467,8 @@ export default function ProfileSiteAdminPage() {
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             Administer a tenant&apos;s public personal-profile site (PERSONAL_PROFILE / HYBRID site
-            types): hero profile, writings, achievements, affiliations, and downloads
+            types): hero profile, writings, achievements, affiliations, projects, media/talks, and
+            audience CRM
           </p>
         </div>
 

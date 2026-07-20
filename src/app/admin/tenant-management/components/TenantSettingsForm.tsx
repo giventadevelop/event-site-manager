@@ -134,6 +134,7 @@ export default function TenantSettingsForm({
       showProfileAffiliationsSection: initialData?.showProfileAffiliationsSection ?? false,
       showProfileMediaDownloadsSection: initialData?.showProfileMediaDownloadsSection ?? false,
       showProfileContactSection: initialData?.showProfileContactSection ?? false,
+      showProfileProjectsSection: initialData?.showProfileProjectsSection ?? false,
       // Gas station COO module (GAS_STATION site type)
       enableGasStationModule: initialData?.enableGasStationModule ?? false,
       gasAiEngineBaseUrl: initialData?.gasAiEngineBaseUrl || '',
@@ -1048,6 +1049,16 @@ export default function TenantSettingsForm({
                   description="Display the profile contact section"
                   checked={watchedValues.showProfileContactSection || false}
                   onChange={(checked) => setValue('showProfileContactSection', checked)}
+                />
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="showProfileProjectsSection"
+                  label="Show Profile Projects Section"
+                  description="Display case-study / project cards on the homepage"
+                  checked={watchedValues.showProfileProjectsSection || false}
+                  onChange={(checked) => setValue('showProfileProjectsSection', checked)}
                 />
               </div>
             </div>

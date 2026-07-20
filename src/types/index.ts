@@ -716,6 +716,7 @@ export interface TenantSettingsDTO {
   showProfileAffiliationsSection?: boolean;
   showProfileMediaDownloadsSection?: boolean;
   showProfileContactSection?: boolean;
+  showProfileProjectsSection?: boolean;
   // Gas station COO module (GAS_STATION site type)
   /** Master on/off for the gas station admin module for this tenant */
   enableGasStationModule?: boolean;
