@@ -492,15 +492,21 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
   // CRITICAL: When user logs in client-side, isTenantAdmin prop may be stale (from initial SSR)
   // We need to re-check admin status from the database when userId changes
   useEffect(() => {
-    // If user is not loaded yet, use server-verified flag (from SSR)
+    // If auth is not loaded yet, use server-verified flag (from SSR)
     if (!isLoaded) {
       setIsAdmin(!!isTenantAdmin);
       return;
     }
 
-    // If user is not logged in, clear admin status
-    if (!userId || !user) {
+    // Clear admin only when there is no Clerk userId.
+    if (!userId) {
       setIsAdmin(false);
+      return;
+    }
+
+    // Wait for useUser() without clearing — requiring `user` too early caused Admin menu flicker.
+    if (!user) {
+      setIsAdmin(!!isTenantAdmin);
       return;
     }
 
