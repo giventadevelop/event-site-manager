@@ -45,27 +45,27 @@
       "domain": "https://www.mosc-temp.com",
       "hostname": "www.mosc-temp.com",
       "displayName": "MOSC Temp",
-      "tenantId": "tenant_demo_002",
+      "tenantId": "mosc_malankara_orthodox_2",
       "enabled": true,
       "addedDate": "2025-11-01",
       "branding": {
-        "orgName": "Unite India",
-        "fullName": "Unite India - Bringing Communities Together",
-        "tagline": "A NONPROFIT CORPORATION",
+        "orgName": "MOSC",
+        "fullName": "Malankara Orthodox Syrian Church",
+        "tagline": "",
         "logo": {
-          "type": "text",
-          "primaryColor": "#9333ea",
-          "secondaryColor": "#a855f7"
+          "type": "image",
+          "url": "https://eventapp-media-bucket.s3.us-east-2.amazonaws.com/dev/media/tenantId/mosc_malankara_orthodox_2/tenant_logo/mosc_current_web_logo_bg_removed_1785283811627_0f56e190.png",
+          "primaryColor": "#6B4E3D",
+          "secondaryColor": "#8B7D6B"
         },
         "theme": {
-          "primaryColor": "#60a5fa",
-          "hoverColor": "#3b82f6",
-          "activeColor": "#2563eb"
+          "primaryColor": "#8B7D6B",
+          "hoverColor": "#6B4E3D",
+          "activeColor": "#5a3f32"
         },
         "contact": {
-          "address": "123 Charity Lane, Hope City, HC 12345, United States",
-          "phone": "+1 (555) 123-4567",
-          "tollFree": "1-800-555-1234",
+          "address": "",
+          "phone": "",
           "email": "contact@mosc-temp.com"
         },
         "social": {
@@ -122,5 +122,5 @@
 
   ],
   "version": "1.0.0",
-  "lastUpdated": "2025-11-02"
+  "lastUpdated": "2026-07-28"
 }

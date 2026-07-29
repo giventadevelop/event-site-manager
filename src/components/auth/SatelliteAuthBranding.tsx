@@ -11,8 +11,8 @@ type Props = {
 };
 
 /**
- * Slim header above Clerk on auth pages: satellite branding from API (cached) with JSON fallback
- * when `redirect_url` matches a known satellite host.
+ * Slim header above Clerk on auth pages: satellite branding from the public API
+ * (DB + tenant logo, cached) with sync JSON fallback when `redirect_url` matches a satellite.
  */
 export default function SatelliteAuthBranding({ redirectUrl, className = '' }: Props) {
   const [runtimeConfigs, setRuntimeConfigs] = useState<SatelliteConfig[] | null>(null);
@@ -86,9 +86,9 @@ export default function SatelliteAuthBranding({ redirectUrl, className = '' }: P
               <Image
                 src={logo.url}
                 alt={b.orgName?.trim() || b.fullName?.trim() || 'Organization logo'}
-                width={200}
-                height={64}
-                className="h-14 w-auto max-w-[min(100%,280px)] object-contain"
+                width={280}
+                height={80}
+                className="h-16 w-auto max-w-[min(100%,320px)] object-contain sm:h-20"
                 unoptimized
               />
             </div>

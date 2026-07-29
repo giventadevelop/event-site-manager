@@ -135,6 +135,17 @@ export default function TenantSettingsForm({
       showProfileMediaDownloadsSection: initialData?.showProfileMediaDownloadsSection ?? false,
       showProfileContactSection: initialData?.showProfileContactSection ?? false,
       showProfileProjectsSection: initialData?.showProfileProjectsSection ?? false,
+      // Header menu (null/undefined → form defaults match app null-safe defaults)
+      showHeaderHome: initialData?.showHeaderHome ?? true,
+      showHeaderAbout: initialData?.showHeaderAbout ?? true,
+      showHeaderEvents: initialData?.showHeaderEvents ?? true,
+      showHeaderFeatures: initialData?.showHeaderFeatures ?? true,
+      showHeaderCalendar: initialData?.showHeaderCalendar ?? true,
+      showHeaderGallery: initialData?.showHeaderGallery ?? true,
+      showHeaderContact: initialData?.showHeaderContact ?? true,
+      showHeaderNews: initialData?.showHeaderNews ?? false,
+      showHeaderDownloads: initialData?.showHeaderDownloads ?? false,
+      showHeaderLinks: initialData?.showHeaderLinks ?? false,
       // Gas station COO module (GAS_STATION site type)
       enableGasStationModule: initialData?.enableGasStationModule ?? false,
       gasAiEngineBaseUrl: initialData?.gasAiEngineBaseUrl || '',
@@ -983,6 +994,48 @@ export default function TenantSettingsForm({
                   onChange={(checked) => setValue('isMembershipSubscriptionEnabled', checked)}
                 />
               </div>
+            </div>
+
+            {/* Header menu visibility */}
+            <div className="space-y-4">
+              <h4 className="text-md font-medium text-gray-900">Header Menu</h4>
+              <p className="text-sm text-gray-600">
+                Choose which items appear in the top site header. News, Downloads, and Links reuse content managed under{' '}
+                <a href="/admin/profile-site" className="text-blue-600 hover:underline font-medium">
+                  Admin → Profile Site
+                </a>
+                .
+              </p>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+                Manage News (writings), Downloads (media assets), and external-link writings under Profile Site. Social URLs on
+                the public profile also appear on the Links page.
+              </div>
+
+              {(
+                [
+                  ['showHeaderHome', 'Home', 'Show Home in the header'],
+                  ['showHeaderAbout', 'About', 'Show About in the header'],
+                  ['showHeaderEvents', 'Events', 'Show Events in the header'],
+                  ['showHeaderFeatures', 'Features', 'Show Features dropdown in the header'],
+                  ['showHeaderCalendar', 'Calendar', 'Show Calendar in the header'],
+                  ['showHeaderGallery', 'Gallery', 'Show Gallery in the header'],
+                  ['showHeaderContact', 'Contact', 'Show Contact in the header'],
+                  ['showHeaderNews', 'News', 'Show News / Perspectives (profile writings list)'],
+                  ['showHeaderDownloads', 'Downloads', 'Show Downloads (profile media assets list)'],
+                  ['showHeaderLinks', 'Links', 'Show Links (social URLs + external-link writings)'],
+                ] as const
+              ).map(([name, label, description]) => (
+                <div key={name} className="bg-gray-50 p-4 rounded-lg">
+                  <ToggleSwitch
+                    name={name}
+                    label={label}
+                    description={description}
+                    checked={!!watchedValues[name]}
+                    onChange={(checked) => setValue(name, checked)}
+                  />
+                </div>
+              ))}
             </div>
 
             {/* Personal Profile Homepage Sections */}

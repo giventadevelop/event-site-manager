@@ -10,6 +10,16 @@ interface TenantSettingsContextType {
   showEventsSection: boolean;
   showTeamSection: boolean;
   showSponsorsSection: boolean;
+  showHeaderHome: boolean;
+  showHeaderAbout: boolean;
+  showHeaderEvents: boolean;
+  showHeaderFeatures: boolean;
+  showHeaderCalendar: boolean;
+  showHeaderGallery: boolean;
+  showHeaderContact: boolean;
+  showHeaderNews: boolean;
+  showHeaderDownloads: boolean;
+  showHeaderLinks: boolean;
 }
 
 function normalizeTenantSettings(settings: TenantSettingsDTO): TenantSettingsDTO {
@@ -29,6 +39,16 @@ const TenantSettingsContext = React.createContext<TenantSettingsContextType>({
   showEventsSection: true, // Default to true for backward compatibility
   showTeamSection: true,
   showSponsorsSection: true,
+  showHeaderHome: true,
+  showHeaderAbout: true,
+  showHeaderEvents: true,
+  showHeaderFeatures: true,
+  showHeaderCalendar: true,
+  showHeaderGallery: true,
+  showHeaderContact: true,
+  showHeaderNews: false,
+  showHeaderDownloads: false,
+  showHeaderLinks: false,
 });
 
 export const useTenantSettings = () => React.useContext(TenantSettingsContext);
@@ -159,6 +179,17 @@ export const TenantSettingsProvider: React.FC<TenantSettingsProviderProps> = ({ 
   const showEventsSection = settings?.showEventsSectionInHomePage ?? true;
   const showTeamSection = settings?.showTeamMembersSectionInHomePage ?? true;
   const showSponsorsSection = settings?.showSponsorsSectionInHomePage ?? true;
+  // Header menu: legacy items default ON; news/downloads/links default OFF
+  const showHeaderHome = settings?.showHeaderHome ?? true;
+  const showHeaderAbout = settings?.showHeaderAbout ?? true;
+  const showHeaderEvents = settings?.showHeaderEvents ?? true;
+  const showHeaderFeatures = settings?.showHeaderFeatures ?? true;
+  const showHeaderCalendar = settings?.showHeaderCalendar ?? true;
+  const showHeaderGallery = settings?.showHeaderGallery ?? true;
+  const showHeaderContact = settings?.showHeaderContact ?? true;
+  const showHeaderNews = settings?.showHeaderNews ?? false;
+  const showHeaderDownloads = settings?.showHeaderDownloads ?? false;
+  const showHeaderLinks = settings?.showHeaderLinks ?? false;
 
   const contextValue: TenantSettingsContextType = {
     settings,
@@ -166,6 +197,16 @@ export const TenantSettingsProvider: React.FC<TenantSettingsProviderProps> = ({ 
     showEventsSection,
     showTeamSection,
     showSponsorsSection,
+    showHeaderHome,
+    showHeaderAbout,
+    showHeaderEvents,
+    showHeaderFeatures,
+    showHeaderCalendar,
+    showHeaderGallery,
+    showHeaderContact,
+    showHeaderNews,
+    showHeaderDownloads,
+    showHeaderLinks,
   };
 
   return (

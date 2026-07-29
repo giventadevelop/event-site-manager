@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getMergedSatelliteConfigs } from '@/lib/satelliteConfigRuntime';
+import {
+  getMergedSatelliteConfigs,
+  SATELLITE_CONFIG_REVALIDATE_SECONDS,
+} from '@/lib/satelliteConfigRuntime';
 import {
   getAllowedRedirectOrigins,
   getSatelliteBareDomains,
@@ -11,16 +14,21 @@ import {
  * under pages/api; Next.js forbids the same path in both routers).
  *
  * Data flow (matches satelliteConfigRuntime):
- * 1. Enabled rows from backend `/api/satellite-domains` (service JWT via fetchWithJwtRetry)
- * 2. Next.js `unstable_cache` (revalidate 300s + tag for admin invalidation)
- * 3. Fallback to config/satellites.json + env when API returns no rows or errors
+ * 1. Enabled rows from backend `/api/satellite-domains` (DB source of truth)
+ * 2. Enrich auth logos from `tenant_settings.logoImageUrl` when present
+ * 3. Next.js `unstable_cache` (revalidate 300s + tag for admin invalidation)
+ * 4. Fallback to config/satellites.json + env only when API returns no rows or errors
  *
- * Used by: signout-redirect allowlist, Header sign-out, SatelliteAuthBranding (satellites JSON).
+ * Used by: signout-redirect allowlist, Header sign-out, SatelliteAuthBranding.
  */
 export async function GET() {
   const headers = new Headers();
-  // CDN / browser: align with unstable_cache revalidate (300s) + SWR
-  headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+  const maxAge = SATELLITE_CONFIG_REVALIDATE_SECONDS;
+  // CDN / browser: align with unstable_cache revalidate + SWR
+  headers.set(
+    'Cache-Control',
+    `public, s-maxage=${maxAge}, stale-while-revalidate=${maxAge * 2}`
+  );
 
   try {
     const configs = await getMergedSatelliteConfigs();

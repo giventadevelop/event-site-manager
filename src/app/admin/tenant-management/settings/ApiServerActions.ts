@@ -15,8 +15,16 @@ import type {
   PaginatedResponse
 } from '@/app/admin/tenant-management/types';
 import { normalizeDefaultHeroImageUrlsJsonForApi } from '@/lib/hero/defaultHeroImages';
+import { revalidateSatelliteConfigCache } from '@/lib/satelliteConfigRuntime';
 
 const API_BASE_URL = getApiBaseUrl();
+
+/** Logo changes feed auth branding via getMergedSatelliteConfigs — bust that cache. */
+function maybeRevalidateSatelliteAuthBranding(data: Partial<TenantSettingsFormDTO>) {
+  if ('logoImageUrl' in data) {
+    revalidateSatelliteConfigCache();
+  }
+}
 
 /**
  * Fetch paginated list of tenant settings
@@ -361,7 +369,9 @@ export async function updateTenantSetting(
       throw new Error(`Failed to update tenant setting: ${errorText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    maybeRevalidateSatelliteAuthBranding(data);
+    return result;
   } catch (error) {
     console.error('Error updating tenant setting:', error);
     throw new Error('Failed to update tenant setting');
@@ -447,7 +457,9 @@ export async function patchTenantSetting(
       throw new Error(`Failed to update tenant setting: ${errorText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    maybeRevalidateSatelliteAuthBranding(data);
+    return result;
   } catch (error) {
     console.error('Error patching tenant setting:', error);
     throw new Error('Failed to update tenant setting');

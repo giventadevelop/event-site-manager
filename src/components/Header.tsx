@@ -10,24 +10,28 @@ import Image from 'next/image';
 import { isAdminRole } from '@/lib/utils';
 import { pickFirstUserProfile } from '@/lib/pickFirstUserProfile';
 
-const navItems = [
+const navItemCatalog = [
   {
+    key: 'home' as const,
     name: 'Home',
     href: '/home',
-    active: false
+    active: false,
   },
   {
+    key: 'about' as const,
     name: 'About',
     href: '/home#about-us',
     active: false,
-    dropdown: [] // Will be populated dynamically based on tenant settings
+    dropdown: [] as { name: string; href: string }[],
   },
   {
+    key: 'events' as const,
     name: 'Events',
     href: '/events',
-    active: false
+    active: false,
   },
   {
+    key: 'features' as const,
     name: 'Features',
     href: '#',
     active: false,
@@ -36,24 +40,45 @@ const navItems = [
       { name: 'Focus Groups', href: '/focus-groups' },
       { name: 'Profile', href: '/profile', requiresAuth: true },
       { name: 'Membership', href: '/membership' },
-      { name: 'MOSC', href: '/mosc' }
-    ]
+      { name: 'MOSC', href: '/mosc' },
+    ],
   },
   {
+    key: 'calendar' as const,
     name: 'Calendar',
     href: '/calendar',
-    active: false
+    active: false,
   },
   {
+    key: 'gallery' as const,
     name: 'Gallery',
     href: '/gallery',
-    active: false
+    active: false,
   },
   {
+    key: 'news' as const,
+    name: 'News',
+    href: '/news',
+    active: false,
+  },
+  {
+    key: 'downloads' as const,
+    name: 'Downloads',
+    href: '/downloads',
+    active: false,
+  },
+  {
+    key: 'links' as const,
+    name: 'Links',
+    href: '/links',
+    active: false,
+  },
+  {
+    key: 'contact' as const,
     name: 'Contact',
     href: '/home#contact',
-    active: false
-  }
+    active: false,
+  },
 ];
 
 // Admin submenu items
@@ -61,6 +86,7 @@ const adminSubmenuItems = [
   { name: 'Admin Home', href: '/admin' },
   { name: 'Manage Users', href: '/admin/manage-usage' },
   { name: 'Manage Events', href: '/admin/manage-events' },
+  { name: 'Profile Site', href: '/admin/profile-site' },
   { name: 'Event Analytics', href: '/admin/events/dashboard' },
   { name: 'Registrations', href: '/admin/events/registrations' },
   { name: 'QR Scanner', href: '/admin/qr-scanner' },
@@ -419,7 +445,21 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
   const { userId, isLoaded } = useAuth();
   const { user } = useUser();
   const { signOut } = useClerk();
-  const { settings, showTeamSection, loading: settingsLoading } = useTenantSettings();
+  const {
+    settings,
+    showTeamSection,
+    showHeaderHome,
+    showHeaderAbout,
+    showHeaderEvents,
+    showHeaderFeatures,
+    showHeaderCalendar,
+    showHeaderGallery,
+    showHeaderContact,
+    showHeaderNews,
+    showHeaderDownloads,
+    showHeaderLinks,
+    loading: settingsLoading,
+  } = useTenantSettings();
   const [isAdmin, setIsAdmin] = useState(!!isTenantAdmin);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -797,22 +837,41 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
   // Always add Sponsors menu item
   aboutDropdown.push({ name: 'Sponsors', href: '/sponsors' });
 
-  // Update nav items with dynamic About dropdown
-  // About always has a dropdown now (at minimum "About Us")
-  const navItemsWithDropdown = navItems.map(item => {
-    if (item.name === 'About') {
-      return {
-        ...item,
-        dropdown: aboutDropdown
-      };
-    }
-    return item;
-  });
+  const headerVisibility: Record<(typeof navItemCatalog)[number]['key'], boolean> = {
+    home: showHeaderHome,
+    about: showHeaderAbout,
+    events: showHeaderEvents,
+    features: showHeaderFeatures,
+    calendar: showHeaderCalendar,
+    gallery: showHeaderGallery,
+    news: showHeaderNews,
+    downloads: showHeaderDownloads,
+    links: showHeaderLinks,
+    contact: showHeaderContact,
+  };
+
+  // Filter catalog by tenant header flags, then attach About dropdown
+  const navItemsWithDropdown = navItemCatalog
+    .filter((item) => headerVisibility[item.key])
+    .map((item) => {
+      if (item.key === 'about') {
+        return {
+          ...item,
+          dropdown: aboutDropdown,
+        };
+      }
+      return item;
+    });
 
   // Update active state based on current route
   const updatedNavItems = navItemsWithDropdown.map(item => ({
     ...item,
-    active: item.href === pathname || (item.href === '/home' && (pathname === '/charity-theme' || pathname === '/home'))
+    active:
+      item.href === pathname ||
+      (item.href === '/home' && (pathname === '/charity-theme' || pathname === '/home')) ||
+      (item.href === '/news' && (pathname === '/news' || pathname?.startsWith('/writings'))) ||
+      (item.href === '/downloads' && pathname?.startsWith('/downloads')) ||
+      (item.href === '/links' && pathname === '/links'),
   }));
 
   return (
