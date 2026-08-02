@@ -11,6 +11,7 @@ import type {
   TenantSettingsDTO,
   TenantSettingsFormDTO,
   TenantSettingsFilters,
+  TenantOrganizationDTO,
   PaginationParams,
   PaginatedResponse
 } from '@/app/admin/tenant-management/types';
@@ -24,6 +25,38 @@ function maybeRevalidateSatelliteAuthBranding(data: Partial<TenantSettingsFormDT
   if ('logoImageUrl' in data) {
     revalidateSatelliteConfigCache();
   }
+}
+
+/**
+ * Resolve the tenant_organization row for a tenantId so create/update can set
+ * tenant_organization_id (form DTO omits tenantOrganization).
+ */
+async function resolveTenantOrganizationByTenantId(
+  tenantId: string | undefined,
+  logLabel: string,
+): Promise<TenantOrganizationDTO | null> {
+  const tid = effectiveTenantId(tenantId);
+  if (!tid) return null;
+
+  try {
+    const orgResult = await fetchTenantOrganizations(
+      { page: 0, pageSize: 1 },
+      { tenantId: tid },
+    );
+    const org = orgResult.data?.[0];
+    if (org?.id) {
+      console.log(`[${logLabel}] Found tenantOrganization:`, {
+        id: org.id,
+        organizationName: org.organizationName,
+        tenantId: org.tenantId,
+      });
+      return org;
+    }
+    console.warn(`[${logLabel}] No tenant organization found for tenantId:`, tid);
+  } catch (orgError) {
+    console.error(`[${logLabel}] Error fetching tenant organization:`, orgError);
+  }
+  return null;
 }
 
 /**
@@ -253,12 +286,26 @@ export async function createTenantSetting(data: TenantSettingsFormDTO): Promise<
         ? {}
         : getOnboardingDefaultHeroPayload(data.tenantId);
 
+    // Form omits tenantOrganization — auto-link by tenantId (same as update/patch).
+    const tenantOrganization = await resolveTenantOrganizationByTenantId(
+      data.tenantId,
+      'createTenantSetting',
+    );
+
     const payload = withTenantId({
       ...stripDeprecatedSettingsIdentityFields(data as Record<string, unknown>),
       ...heroDefaults,
       displayEventHeroImages: data.displayEventHeroImages ?? true,
+      tenantOrganization: tenantOrganization || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+    });
+
+    console.log('[createTenantSetting] Payload with tenantOrganization:', {
+      tenantId: payload.tenantId,
+      organizationId: tenantOrganization?.id,
+      organizationName: tenantOrganization?.organizationName,
+      hasOrganization: !!tenantOrganization,
     });
 
     const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/tenant-settings`, {
@@ -309,29 +356,9 @@ export async function updateTenantSetting(
 
     if (!tenantOrganization || !tenantOrganization.id) {
       console.log('[updateTenantSetting] Missing tenantOrganization, fetching by tenantId:', existingSetting.tenantId);
-
-      try {
-        // Import the function to fetch tenant organizations
-        const { fetchTenantOrganizations } = await import('@/app/admin/tenant-management/organizations/ApiServerActions');
-
-        const orgResult = await fetchTenantOrganizations(
-          { page: 0, pageSize: 1 },
-          { tenantId: existingSetting.tenantId }
-        );
-
-        if (orgResult.data && orgResult.data.length > 0) {
-          tenantOrganization = orgResult.data[0];
-          console.log('[updateTenantSetting] Found tenantOrganization:', {
-            id: tenantOrganization.id,
-            organizationName: tenantOrganization.organizationName,
-            tenantId: tenantOrganization.tenantId
-          });
-        } else {
-          console.warn('[updateTenantSetting] No tenant organization found for tenantId:', existingSetting.tenantId);
-        }
-      } catch (orgError) {
-        console.error('[updateTenantSetting] Error fetching tenant organization:', orgError);
-      }
+      tenantOrganization =
+        (await resolveTenantOrganizationByTenantId(existingSetting.tenantId, 'updateTenantSetting')) ??
+        undefined;
     }
 
     const payload = withTenantId({
@@ -398,29 +425,9 @@ export async function patchTenantSetting(
 
     if (!tenantOrganization || !tenantOrganization.id) {
       console.log('[patchTenantSetting] Missing tenantOrganization, fetching by tenantId:', existingSetting.tenantId);
-
-      try {
-        // Import the function to fetch tenant organizations
-        const { fetchTenantOrganizations } = await import('@/app/admin/tenant-management/organizations/ApiServerActions');
-
-        const orgResult = await fetchTenantOrganizations(
-          { page: 0, pageSize: 1 },
-          { tenantId: existingSetting.tenantId }
-        );
-
-        if (orgResult.data && orgResult.data.length > 0) {
-          tenantOrganization = orgResult.data[0];
-          console.log('[patchTenantSetting] Found tenantOrganization:', {
-            id: tenantOrganization.id,
-            organizationName: tenantOrganization.organizationName,
-            tenantId: tenantOrganization.tenantId
-          });
-        } else {
-          console.warn('[patchTenantSetting] No tenant organization found for tenantId:', existingSetting.tenantId);
-        }
-      } catch (orgError) {
-        console.error('[patchTenantSetting] Error fetching tenant organization:', orgError);
-      }
+      tenantOrganization =
+        (await resolveTenantOrganizationByTenantId(existingSetting.tenantId, 'patchTenantSetting')) ??
+        undefined;
     }
 
     const payload = withTenantId({
