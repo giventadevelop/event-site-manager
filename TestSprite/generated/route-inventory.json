@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-22T13:42:06.876Z",
+  "generatedAt": "2026-07-30T15:42:50.162Z",
   "root": "src/app",
-  "totalPages": 377,
-  "totalUniqueRoutes": 377,
+  "totalPages": 383,
+  "totalUniqueRoutes": 383,
   "byKind": {
-    "public": 90,
+    "public": 96,
     "admin": 95,
     "mosc": 192
   },
@@ -814,6 +814,22 @@
       "sourceFile": "src/app/donate/page.tsx"
     },
     {
+      "path": "/downloads",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/downloads/page.tsx"
+    },
+    {
+      "path": "/downloads/[id]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/downloads/[id]/page.tsx"
+    },
+    {
       "path": "/event",
       "kind": "public",
       "dynamic": false,
@@ -1024,6 +1040,13 @@
       "dynamic": false,
       "dynamicParams": [],
       "sourceFile": "src/app/ipartner-test/page.tsx"
+    },
+    {
+      "path": "/links",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/links/page.tsx"
     },
     {
       "path": "/membership",
@@ -2465,6 +2488,13 @@
       "sourceFile": "src/app/mosc/training/st-basil-bible-school/page.tsx"
     },
     {
+      "path": "/news",
+      "kind": "public",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/news/page.tsx"
+    },
+    {
       "path": "/philanthrop",
       "kind": "public",
       "dynamic": false,
@@ -2774,6 +2804,24 @@
       "dynamic": false,
       "dynamicParams": [],
       "sourceFile": "src/app/unsubscribe-email/page.tsx"
+    },
+    {
+      "path": "/writings/[slug]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "slug"
+      ],
+      "sourceFile": "src/app/writings/[slug]/page.tsx"
+    },
+    {
+      "path": "/writings/id/[id]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/writings/id/[id]/page.tsx"
     }
   ]
 }
