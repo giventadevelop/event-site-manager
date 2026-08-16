@@ -1,13 +1,24 @@
 import { fetchEventsForMonthServer } from './ApiServerActions';
 import CalendarClient from './CalendarClient';
 
-export default async function CalendarPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams?:
+    | Promise<{ [key: string]: string | string[] | undefined }>
+    | { [key: string]: string | string[] | undefined };
+}) {
+  const resolvedSearchParams =
+    searchParams && typeof (searchParams as Promise<unknown>).then === 'function'
+      ? await searchParams
+      : searchParams;
+
   const today = new Date();
   let year = today.getFullYear();
   let month = today.getMonth() + 1;
 
   // Parse date from query params if provided
-  const dateParam = typeof searchParams?.date === 'string' ? searchParams.date : undefined;
+  const dateParam = typeof resolvedSearchParams?.date === 'string' ? resolvedSearchParams.date : undefined;
   if (dateParam) {
     try {
       const date = new Date(dateParam);
@@ -20,8 +31,8 @@ export default async function CalendarPage({ searchParams }: { searchParams?: { 
     }
   }
 
-  const focusGroup = typeof searchParams?.focusGroup === 'string' ? searchParams?.focusGroup : undefined;
-  const initialView = typeof searchParams?.view === 'string' ? searchParams.view : 'month';
+  const focusGroup = typeof resolvedSearchParams?.focusGroup === 'string' ? resolvedSearchParams?.focusGroup : undefined;
+  const initialView = typeof resolvedSearchParams?.view === 'string' ? resolvedSearchParams.view : 'month';
   const initialDate = dateParam ? new Date(dateParam) : today;
   const initialEvents = await fetchEventsForMonthServer(year, month, focusGroup);
 
