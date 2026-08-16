@@ -7,6 +7,7 @@ import type { EventWithMedia, EventDetailsDTO } from "@/types";
 import { formatInTimeZone } from 'date-fns-tz';
 import { isRecurringEvent, getNextOccurrenceDate } from '@/lib/eventUtils';
 import { isDonationBasedEvent, isTicketedFundraiserEvent } from '@/lib/donation/utils';
+import { resolveBuyTicketsTarget } from '@/lib/eventcube/utils';
 
 // Component to handle event image loading errors and hide container when image fails
 function EventImageWithErrorHandling({
@@ -507,11 +508,19 @@ const UpcomingEventsSection: React.FC = () => {
                 >
                   <div className="flex flex-col h-full">
                     {/* Image Section - Top on all screen sizes, exactly like events page */}
-                    {event.thumbnailUrl && (
+                    {event.thumbnailUrl && (() => {
+                      const buyTicketsTarget = isUpcomingEvents ? resolveBuyTicketsTarget(event) : null;
+                      const imageHref = buyTicketsTarget?.href ?? `/events/${event.id}`;
+                      const externalProps =
+                        buyTicketsTarget?.kind === 'external'
+                          ? { target: '_blank' as const, rel: 'noopener noreferrer' }
+                          : {};
+                      return (
                       <Link
-                        href={`/events/${event.id}/checkout`}
+                        href={imageHref}
                         className="block cursor-pointer"
                         onClick={(e) => e.stopPropagation()}
+                        {...externalProps}
                       >
                         <EventImageWithErrorHandling
                           src={event.thumbnailUrl}
@@ -519,7 +528,8 @@ const UpcomingEventsSection: React.FC = () => {
                           isPastEvent={!isUpcomingEvents}
                         />
                       </Link>
-                    )}
+                      );
+                    })()}
                     {/* Past Event Badge - Show at top of content if no image */}
                     {!event.thumbnailUrl && !isUpcomingEvents && (
                       <div className="relative w-full pt-3 pr-3">
@@ -620,17 +630,29 @@ const UpcomingEventsSection: React.FC = () => {
                           </Link>
                         )}
 
-                        {/* Fundraiser Image - Show for ticketed fundraiser/charity events (replaces Buy Tickets button) */}
-                        {isUpcomingEvents && isTicketedFundraiserEvent(event) && (
+                        {/* Buy Tickets / Fundraiser / External vendor */}
+                        {isUpcomingEvents && (() => {
+                          const buyTicketsTarget = resolveBuyTicketsTarget(event);
+                          if (!buyTicketsTarget) return null;
+                          const useFundraiserImage =
+                            isTicketedFundraiserEvent(event) &&
+                            buyTicketsTarget.kind === 'internal' &&
+                            buyTicketsTarget.href.includes('donation-checkout');
+                          return (
                           <Link
-                            href={`/events/${event.id}/donation-checkout`}
+                            href={buyTicketsTarget.href}
                             onClick={(e) => e.stopPropagation()}
                             className="transition-transform hover:scale-105 inline-block"
                             title="Buy Tickets"
                             aria-label="Buy Tickets"
+                            {...(buyTicketsTarget.kind === 'external'
+                              ? { target: '_blank', rel: 'noopener noreferrer' }
+                              : {})}
                           >
                             <img
-                              src="/images/buy_tickets_click_here_fundraiser.png"
+                              src={useFundraiserImage
+                                ? '/images/buy_tickets_click_here_fundraiser.png'
+                                : '/images/buy_tickets_click_here_red.webp'}
                               alt="Buy Tickets"
                               className="object-contain"
                               style={{
@@ -639,29 +661,8 @@ const UpcomingEventsSection: React.FC = () => {
                               }}
                             />
                           </Link>
-                        )}
-
-                        {/* Buy Tickets Button - Only for TICKETED events and upcoming events (case-insensitive) */}
-                        {/* BUT NOT if it's a ticketed fundraiser (use fundraiser image instead) */}
-                        {isUpcomingEvents && event.admissionType?.toUpperCase() === 'TICKETED' && !isTicketedFundraiserEvent(event) && (
-                          <Link
-                            href={`/events/${event.id}/checkout`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="transition-transform hover:scale-105 inline-block"
-                            title="Buy Tickets"
-                            aria-label="Buy Tickets"
-                          >
-                            <img
-                              src="/images/buy_tickets_click_here_red.webp"
-                              alt="Buy Tickets"
-                              className="object-contain"
-                              style={{
-                                width: '200px',
-                                height: '70px'
-                              }}
-                            />
-                          </Link>
-                        )}
+                          );
+                        })()}
 
                         {/* Make a Donation Button - Show for donation-based events (not ticketed fundraiser) */}
                         {isUpcomingEvents && isDonationBasedEvent(event) && !isTicketedFundraiserEvent(event) && (

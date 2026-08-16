@@ -6,7 +6,7 @@ import Link from 'next/link';
 import type { EventWithMedia } from '@/types';
 import { useFilteredEvents } from '@/hooks/useFilteredEvents';
 import { isRecurringEvent, getNextOccurrenceDate } from '@/lib/eventUtils';
-import { isTicketedFundraiserEvent } from '@/lib/donation/utils';
+import { getOverlayInfo } from '@/lib/heroOverlay';
 import { Ticket, ArrowRight, Sparkles, Users, Heart, Play, Pause, ChevronLeft, ChevronRight } from 'lucide-react';
 import GivebutterDonateButton from '@/components/GivebutterDonateButton';
 import { useTenantSettings } from '@/components/TenantSettingsProvider';
@@ -605,53 +605,6 @@ const DynamicHeroImage: React.FC<{
 const HeroSection: React.FC = () => {
   const [currentEvent, setCurrentEvent] = useState<EventWithMediaExtended | null>(null);
 
-  // Determine overlay image and route based on event type (matching events page logic)
-  const getOverlayInfo = (event: EventWithMediaExtended | null) => {
-    if (!event || !event.id) return null;
-
-    // Check if event is upcoming (today or future)
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    const eventDateStr = event.startDate ? event.startDate.split('T')[0] : null;
-    
-    if (!eventDateStr) return null;
-    
-    const isToday = eventDateStr === todayStr;
-    const isFuture = eventDateStr > todayStr;
-    const isUpcomingLocal = isToday || isFuture;
-
-    if (!isUpcomingLocal) return null; // Don't show overlay for past events
-
-    // Check if event is ticketed fundraiser/charity (shows special fundraiser image)
-    const isTicketedFundraiser = isTicketedFundraiserEvent(event);
-    
-    if (isTicketedFundraiser) {
-      return {
-        image: '/images/buy_tickets_click_here_fundraiser.png',
-        href: `/events/${event.id}/donation-checkout`,
-        alt: 'Buy Tickets'
-      };
-    }
-
-    // Check if event is regular ticketed event
-    if (event.admissionType?.toUpperCase() === 'TICKETED') {
-      // Route to manual checkout if manual payment is enabled, otherwise Stripe checkout
-      const checkoutRoute =
-        event.manualPaymentEnabled === true &&
-        (event.paymentFlowMode === 'MANUAL_ONLY' || event.paymentFlowMode === 'HYBRID')
-          ? `/events/${event.id}/manual-checkout`
-          : `/events/${event.id}/checkout`;
-
-      return {
-        image: '/images/buy_tickets_click_here_red.webp',
-        href: checkoutRoute,
-        alt: 'Buy Tickets'
-      };
-    }
-
-    return null;
-  };
-
   const overlayInfo = getOverlayInfo(currentEvent);
 
   return (
@@ -669,6 +622,9 @@ const HeroSection: React.FC = () => {
               onClick={(e) => e.stopPropagation()}
               title={overlayInfo.alt}
               aria-label={overlayInfo.alt}
+              {...(overlayInfo.external
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : {})}
             >
               <img
                 src={overlayInfo.image}

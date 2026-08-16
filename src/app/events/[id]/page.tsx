@@ -12,6 +12,7 @@ import styles from './GalleryThumbnails.module.css';
 import cardGridStyles from './CenteredCardGrid.module.css';
 import { SponsorCard } from '@/components/sponsors/SponsorCard';
 import { isDonationBasedEvent, isTicketedFundraiserEvent } from '@/lib/donation/utils';
+import { resolveBuyTicketsTarget } from '@/lib/eventcube/utils';
 import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 // Helper function to get initials from a name
@@ -536,18 +537,15 @@ export default function EventDetailsPage() {
 
                 // Determine which buttons to show
                 const showRegisterButton = event.isRegistrationRequired === true && isUpcomingLocal;
-                // Check if event is ticketed fundraiser/charity (shows special fundraiser image)
-                const isTicketedFundraiser = isTicketedFundraiserEvent(event) && isUpcomingLocal;
-                // Only show Buy Tickets button for TICKETED events (case-insensitive check)
-                // Handles both 'TICKETED' and 'ticketed' from database/backend
-                // BUT NOT if it's a ticketed fundraiser (use fundraiser image instead)
-                const showBuyTicketsButton = event.admissionType?.toUpperCase() === 'TICKETED' && isUpcomingLocal && !isTicketedFundraiser;
+                const buyTicketsTarget = isUpcomingLocal
+                  ? resolveBuyTicketsTarget(event, { internalPath: 'tickets' })
+                  : null;
                 // Show Make a Donation button for donation-based events
                 // BUT NOT if it's a ticketed fundraiser (use fundraiser image instead)
-                const showDonationButton = isDonationBasedEvent(event) && isUpcomingLocal && !isTicketedFundraiser;
+                const showDonationButton = isDonationBasedEvent(event) && isUpcomingLocal && !isTicketedFundraiserEvent(event);
 
                 // Don't render if no buttons should be shown
-                if (!showRegisterButton && !showBuyTicketsButton && !showDonationButton && !isTicketedFundraiser) return null;
+                if (!showRegisterButton && !buyTicketsTarget && !showDonationButton) return null;
 
                 return (
                   <div className="absolute top-4 right-4 lg:top-6 lg:right-6 z-10 flex flex-col gap-2">
@@ -568,37 +566,31 @@ export default function EventDetailsPage() {
                       </Link>
                     )}
 
-                    {/* Fundraiser Image - Show for ticketed fundraiser/charity events (replaces both Buy Tickets and Make a Donation buttons) */}
-                    {isTicketedFundraiser && (
+                    {buyTicketsTarget && (() => {
+                      const useFundraiserImage =
+                        isTicketedFundraiserEvent(event) &&
+                        buyTicketsTarget.kind === 'internal' &&
+                        buyTicketsTarget.href.includes('donation-checkout');
+                      return (
                     <Link
-                      href={`/events/${event.id}/donation-checkout`}
+                      href={buyTicketsTarget.href}
                       className={`transition-transform hover:scale-105 ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
                       title="Buy Tickets"
                       aria-label="Buy Tickets"
+                      {...(buyTicketsTarget.kind === 'external'
+                        ? { target: '_blank', rel: 'noopener noreferrer' }
+                        : {})}
                     >
                       <img
                         alt="Buy Tickets"
                         className="object-contain w-[150px] h-[52px] sm:w-[200px] sm:h-[70px]"
-                        src="/images/buy_tickets_click_here_fundraiser.png"
+                        src={useFundraiserImage
+                          ? '/images/buy_tickets_click_here_fundraiser.png'
+                          : '/images/buy_tickets_click_here_red.webp'}
                       />
                     </Link>
-                    )}
-
-                    {/* Buy Tickets Image - Show only for TICKETED events (not fundraiser) */}
-                    {showBuyTicketsButton && (
-                    <Link
-                      href={`/events/${event.id}/tickets`}
-                      className={`transition-transform hover:scale-105 ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      title="Buy Tickets"
-                      aria-label="Buy Tickets"
-                    >
-                      <img
-                        alt="Buy Tickets"
-                        className="object-contain w-[150px] h-[52px] sm:w-[200px] sm:h-[70px]"
-                        src="/images/buy_tickets_click_here_red.webp"
-                      />
-                    </Link>
-                    )}
+                      );
+                    })()}
 
                     {/* Make a Donation Button - Show for donation-based events (not ticketed fundraiser) */}
                     {showDonationButton && (
@@ -1115,29 +1107,44 @@ export default function EventDetailsPage() {
                   const isFuture = eventDateStr > todayStr;
                   const isUpcomingLocal = isToday || isFuture;
 
-                  // Only show Buy Tickets image for TICKETED events (case-insensitive check)
-                  const showBuyTicketsButton = event.admissionType?.toUpperCase() === 'TICKETED' && isUpcomingLocal;
+                  const buyTicketsTarget = isUpcomingLocal
+                    ? resolveBuyTicketsTarget(event, { internalPath: 'tickets' })
+                    : null;
                   // Show Make a Donation button for donation-based events
-                  const showDonationButton = isDonationBasedEvent(event) && isUpcomingLocal;
+                  const showDonationButton =
+                    isDonationBasedEvent(event) &&
+                    isUpcomingLocal &&
+                    !isTicketedFundraiserEvent(event);
 
-                  if (!showBuyTicketsButton && !showDonationButton) return null;
+                  if (!buyTicketsTarget && !showDonationButton) return null;
 
                   return (
                     <div className="flex flex-col gap-2">
-                      {showBuyTicketsButton && (
+                      {buyTicketsTarget && (() => {
+                        const useFundraiserImage =
+                          isTicketedFundraiserEvent(event) &&
+                          buyTicketsTarget.kind === 'internal' &&
+                          buyTicketsTarget.href.includes('donation-checkout');
+                        return (
                         <Link
-                          href={`/events/${event.id}/tickets`}
+                          href={buyTicketsTarget.href}
                           className="transition-transform hover:scale-105"
                           title="Buy Tickets"
                           aria-label="Buy Tickets"
+                          {...(buyTicketsTarget.kind === 'external'
+                            ? { target: '_blank', rel: 'noopener noreferrer' }
+                            : {})}
                         >
                           <img
                             alt="Buy Tickets"
                             className="object-contain w-[150px] h-[52px] sm:w-[200px] sm:h-[70px]"
-                            src="/images/buy_tickets_click_here_red.webp"
+                            src={useFundraiserImage
+                              ? '/images/buy_tickets_click_here_fundraiser.png'
+                              : '/images/buy_tickets_click_here_red.webp'}
                           />
                         </Link>
-                      )}
+                        );
+                      })()}
                       {showDonationButton && (
                         <Link
                           href={`/events/${event.id}/donation`}

@@ -111,6 +111,10 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
   const [zeroFeeProvider, setZeroFeeProvider] = useState<string>('');
   const [givebutterCampaignId, setGivebutterCampaignId] = useState<string>('');
 
+  // External vendor ticket URL (Zeffy, etc.)
+  const [useExternalTicketUrl, setUseExternalTicketUrl] = useState(false);
+  const [externalTicketUrl, setExternalTicketUrl] = useState<string>('');
+
   // Recurrence configuration state
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern | ''>('');
@@ -182,6 +186,10 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
           } catch (e) {
             console.error('Failed to parse donation metadata', e);
           }
+        }
+        if (event.externalTicketUrl?.trim()) {
+          setUseExternalTicketUrl(true);
+          setExternalTicketUrl(event.externalTicketUrl.trim());
         }
         // Fallback: Load from old metadata field (backward compatibility)
         else if (event.metadata) {
@@ -388,6 +396,15 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
         console.log('[EventForm validate] fromEmail error: Invalid format');
       } else {
         console.log('[EventForm validate] fromEmail validation passed');
+      }
+    }
+
+    // Validate external ticket URL
+    if (useExternalTicketUrl) {
+      if (!externalTicketUrl?.trim()) {
+        errs.externalTicketUrl = 'External ticket URL is required when enabled';
+      } else if (!/^https?:\/\//i.test(externalTicketUrl.trim())) {
+        errs.externalTicketUrl = 'Enter a valid URL starting with http:// or https://';
       }
     }
 
@@ -1006,6 +1023,7 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
       liveEventPriorityRanking: Number(form.liveEventPriorityRanking) || 0,
       paymentFlowMode: form.paymentFlowMode || 'STRIPE_ONLY',
       manualPaymentEnabled: !!form.manualPaymentEnabled,
+      externalTicketUrl: useExternalTicketUrl ? (externalTicketUrl?.trim() || undefined) : undefined,
     };
     onSubmit(sanitizedForm);
   }
@@ -1488,6 +1506,67 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
                 : 'When enabled, users can pay via Zelle, Venmo, Cash App, Cash, Check, or other manual methods.'}
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* External ticket purchase URL (Zeffy, Eventbrite, etc.) */}
+      <div className="border-t border-gray-200 pt-6 mt-6 bg-gradient-to-br from-teal-50 via-cyan-50 to-sky-50 rounded-xl p-6 border border-teal-200/60 shadow-sm">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">External ticket purchase URL</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Send Buy Tickets to an external vendor (e.g. Zeffy) in a new tab. Set Admission type to &quot;Ticketed&quot;.
+        </p>
+        <div className="space-y-4">
+          <label className="flex items-center gap-3 cursor-pointer" htmlFor="useExternalTicketUrl">
+            <span className="relative flex items-center justify-center flex-shrink-0">
+              <input
+                type="checkbox"
+                id="useExternalTicketUrl"
+                checked={useExternalTicketUrl}
+                onChange={(e) => setUseExternalTicketUrl(e.target.checked)}
+                onClick={(e) => e.stopPropagation()}
+                className="custom-checkbox custom-checkbox--yellow"
+              />
+              <span className="custom-checkbox-tick">
+                {useExternalTicketUrl && (
+                  <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l5 5L19 7" />
+                  </svg>
+                )}
+              </span>
+            </span>
+            <span className="text-xl font-semibold text-gray-900">Use external ticket purchase URL</span>
+          </label>
+          {useExternalTicketUrl && (
+            <div>
+              <label htmlFor="externalTicketUrl" className="block font-medium mb-1 text-gray-700">
+                External ticket URL *
+              </label>
+              <input
+                ref={(el) => { if (el) fieldRefs.current.externalTicketUrl = el; }}
+                type="url"
+                id="externalTicketUrl"
+                value={externalTicketUrl}
+                onChange={(e) => {
+                  setExternalTicketUrl(e.target.value);
+                  if (errors.externalTicketUrl) {
+                    setErrors(prev => {
+                      const next = { ...prev };
+                      delete next.externalTicketUrl;
+                      return next;
+                    });
+                  }
+                }}
+                placeholder="https://www.zeffy.com/en-US/ticketing/…"
+                className={`w-full border rounded-xl focus:ring-blue-500 px-4 py-3 text-base ${errors.externalTicketUrl ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-400 focus:border-blue-500'}`}
+              />
+              {errors.externalTicketUrl && (
+                <div className="text-red-500 text-sm mt-1">{errors.externalTicketUrl}</div>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Full URL to the vendor ticketing page. Buy Tickets opens this link in a new browser tab.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

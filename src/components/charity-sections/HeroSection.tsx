@@ -6,6 +6,8 @@ import Link from 'next/link';
 import type { EventDetailsDTO } from '@/types';
 import { useTenantSettings } from '@/components/TenantSettingsProvider';
 import { BUNDLED_EMERGENCY_HERO_IMAGE, resolveHeroImages } from '@/lib/hero/defaultHeroImages';
+import { resolveBuyTicketsTarget } from '@/lib/eventcube/utils';
+import { isTicketedFundraiserEvent } from '@/lib/donation/utils';
 
 // Add EventWithMedia type for local use
 interface EventWithMedia extends EventDetailsDTO {
@@ -401,15 +403,29 @@ const DynamicHeroImage: React.FC = () => {
         </Link>
 
         {/* Buy Tickets Overlay - Show only for event flyers, not fallback image */}
-        {hasTicketedEvents && currentEvent && isShowingEventFlyer && currentEvent.id && (
+        {hasTicketedEvents && currentEvent && isShowingEventFlyer && currentEvent.id && (() => {
+          const buyTicketsTarget = resolveBuyTicketsTarget(currentEvent);
+          if (!buyTicketsTarget) return null;
+          const useFundraiserImage =
+            isTicketedFundraiserEvent(currentEvent) &&
+            buyTicketsTarget.kind === 'internal' &&
+            buyTicketsTarget.href.includes('donation-checkout');
+          return (
           <div className="absolute bottom-4 right-4 z-10">
             <Link
-              href={`/events/${currentEvent.id}/checkout`}
+              href={buyTicketsTarget.href}
               className="block cursor-pointer hover:scale-105 transition-transform duration-300"
               onClick={(e) => e.stopPropagation()}
+              title="Buy Tickets"
+              aria-label="Buy Tickets"
+              {...(buyTicketsTarget.kind === 'external'
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : {})}
             >
               <Image
-                src="/images/buy_tickets_click_here_red.webp"
+                src={useFundraiserImage
+                  ? '/images/buy_tickets_click_here_fundraiser.png'
+                  : '/images/buy_tickets_click_here_red.webp'}
                 alt="Buy Tickets Click Here"
                 width={180}
                 height={90}
@@ -417,7 +433,8 @@ const DynamicHeroImage: React.FC = () => {
               />
             </Link>
           </div>
-        )}
+          );
+        })()}
       </div>
     );
   }

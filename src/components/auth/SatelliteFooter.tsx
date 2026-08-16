@@ -226,6 +226,7 @@ export default function SatelliteFooter({ branding, satelliteDomain }: Satellite
       <div className="bg-gray-900 border-t border-gray-800 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <div className="flex flex-col items-center md:items-start gap-1">
             <p className="text-gray-400 font-inter text-sm text-center md:text-left">
               © {currentYear}{' '}
               <a
@@ -236,6 +237,29 @@ export default function SatelliteFooter({ branding, satelliteDomain }: Satellite
               </a>
               . All rights reserved.
             </p>
+            <p className="text-gray-500 font-inter text-[11px] md:text-xs text-center md:text-left">
+              Powered by{' '}
+              <a
+                href="https://www.giventa.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-gray-200 underline-offset-2 hover:underline"
+              >
+                Giventa Inc., USA
+              </a>
+              .
+            </p>
+            <p className="text-gray-500 font-inter text-[11px] md:text-xs text-center md:text-left">
+              <a
+                href="https://www.giventa.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-gray-200 underline-offset-2 hover:underline"
+              >
+                www.giventa.com
+              </a>
+            </p>
+            </div>
 
             <nav className="flex items-center space-x-6">
               <a
