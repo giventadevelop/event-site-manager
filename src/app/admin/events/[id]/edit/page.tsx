@@ -7,6 +7,39 @@ import Link from 'next/link';
 import { FaUsers, FaPhotoVideo, FaCalendarAlt, FaTags, FaTicketAlt, FaHome, FaMicrophone, FaAddressBook, FaHandshake, FaEnvelope, FaUserTie, FaClipboardCheck, FaChartLine, FaDollarSign } from 'react-icons/fa';
 import SaveStatusDialog, { type SaveStatus } from '@/components/SaveStatusDialog';
 import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
+import { fetchEventDetailsServer, fetchEventTypesServer, updateEventServer } from '@/app/admin/ApiServerActions';
+
+function parseEventUpdateError(errorText: string): string {
+  let errorMessage = 'Failed to update event';
+  try {
+    const errorJson = JSON.parse(errorText);
+    if (errorJson.detail) {
+      const detail = errorJson.detail;
+      if (detail.includes('Unable to bind parameter')) {
+        errorMessage = 'Invalid data format. Please check all fields and try again.';
+      } else if (detail.includes('null') && detail.includes('Unknown Types value')) {
+        errorMessage = 'Some required fields are missing or invalid. Please review your event configuration and try again.';
+      } else if (detail.includes('recurrence_weekly_days') && detail.includes('integer[]')) {
+        errorMessage = 'Recurrence configuration error. Please check your recurrence settings and try again.';
+      } else if (detail.includes('could not execute batch')) {
+        errorMessage = 'Database error occurred while saving. Please check all fields and try again.';
+      } else {
+        errorMessage = detail.length > 150 ? detail.substring(0, 150) + '...' : detail;
+      }
+    } else if (errorJson.message) {
+      errorMessage = errorJson.message;
+    } else if (errorJson.title) {
+      errorMessage = errorJson.title;
+    }
+  } catch {
+    if (errorText.length > 200) {
+      errorMessage = errorText.substring(0, 200) + '...';
+    } else if (errorText) {
+      errorMessage = errorText;
+    }
+  }
+  return errorMessage;
+}
 
 export default function EditEventPage() {
   const router = useRouter();
@@ -20,12 +53,12 @@ export default function EditEventPage() {
 
   useEffect(() => {
     if (!eventId) return;
-    fetch(`/api/proxy/event-details/${eventId}`)
-      .then(res => res.ok ? res.json() : null)
-      .then(data => setEvent(data));
-    fetch('/api/proxy/event-type-details')
-      .then(res => res.ok ? res.json() : [])
-      .then(data => setEventTypes(Array.isArray(data) ? data : []));
+    const id = Number(eventId);
+    if (!Number.isFinite(id)) return;
+    void fetchEventDetailsServer(id).then(data => setEvent(data));
+    void fetchEventTypesServer()
+      .then(data => setEventTypes(Array.isArray(data) ? data : []))
+      .catch(() => setEventTypes([]));
   }, [eventId]);
 
   async function handleSubmit(updatedEvent: EventDetailsDTO) {
@@ -34,53 +67,11 @@ export default function EditEventPage() {
     setSaveMessage('Please wait while we save your event details.');
 
     try {
-      const res = await fetch(`/api/proxy/event-details/${eventId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedEvent),
-      });
-
-      if (!res.ok) {
-        let errorMessage = 'Failed to update event';
-        try {
-          const errorText = await res.text();
-          // Try to parse as JSON (JHipster error format)
-          try {
-            const errorJson = JSON.parse(errorText);
-            // Extract meaningful error message
-            if (errorJson.detail) {
-              // Parse JHipster error detail
-              const detail = errorJson.detail;
-              if (detail.includes('Unable to bind parameter')) {
-                errorMessage = 'Invalid data format. Please check all fields and try again.';
-              } else if (detail.includes('null') && detail.includes('Unknown Types value')) {
-                errorMessage = 'Some required fields are missing or invalid. Please review your event configuration and try again.';
-              } else if (detail.includes('recurrence_weekly_days') && detail.includes('integer[]')) {
-                errorMessage = 'Recurrence configuration error. Please check your recurrence settings and try again.';
-              } else if (detail.includes('could not execute batch')) {
-                errorMessage = 'Database error occurred while saving. Please check all fields and try again.';
-              } else {
-                // Use detail but truncate if too long
-                errorMessage = detail.length > 150 ? detail.substring(0, 150) + '...' : detail;
-              }
-            } else if (errorJson.message) {
-              errorMessage = errorJson.message;
-            } else if (errorJson.title) {
-              errorMessage = errorJson.title;
-            }
-          } catch {
-            // Not JSON, use text as-is but make it more concise
-            if (errorText.length > 200) {
-              errorMessage = errorText.substring(0, 200) + '...';
-            } else {
-              errorMessage = errorText;
-            }
-          }
-        } catch {
-          errorMessage = 'Failed to update event. Please try again.';
-        }
-        throw new Error(errorMessage);
+      const id = Number(eventId);
+      if (!Number.isFinite(id)) {
+        throw new Error('Invalid event ID');
       }
+      await updateEventServer({ ...updatedEvent, id });
 
       // Show success message
       setSaveStatus('success');
@@ -92,7 +83,7 @@ export default function EditEventPage() {
       }, 1500);
     } catch (e: any) {
       setSaveStatus('error');
-      const userMessage = e.message || 'Failed to update event. Please try again.';
+      const userMessage = parseEventUpdateError(e?.message || '') || 'Failed to update event. Please try again.';
       setSaveMessage(userMessage);
     } finally {
       setLoading(false);

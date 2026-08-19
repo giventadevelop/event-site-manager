@@ -3,6 +3,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { EventForm } from '@/components/EventForm';
 import type { EventDetailsDTO, EventTypeDetailsDTO } from '@/types';
+import { fetchEventDetailsServer, fetchEventTypesServer, updateEventServer } from '@/app/admin/ApiServerActions';
 import Link from 'next/link';
 import { FaUsers, FaPhotoVideo, FaCalendarAlt, FaTags, FaTicketAlt, FaHome, FaMicrophone, FaAddressBook, FaHandshake, FaEnvelope, FaUserTie } from 'react-icons/fa';
 
@@ -17,24 +18,21 @@ export default function EditEventPage() {
 
   useEffect(() => {
     if (!eventId) return;
-    fetch(`/api/proxy/event-details/${eventId}`)
-      .then(res => res.ok ? res.json() : null)
-      .then(data => setEvent(data));
-    fetch('/api/proxy/event-type-details')
-      .then(res => res.ok ? res.json() : [])
-      .then(data => setEventTypes(Array.isArray(data) ? data : []));
+    const id = Number(eventId);
+    if (!Number.isFinite(id)) return;
+    void fetchEventDetailsServer(id).then(data => setEvent(data));
+    void fetchEventTypesServer()
+      .then(data => setEventTypes(Array.isArray(data) ? data : []))
+      .catch(() => setEventTypes([]));
   }, [eventId]);
 
   async function handleSubmit(updatedEvent: EventDetailsDTO) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/proxy/event-details/${eventId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedEvent),
-      });
-      if (!res.ok) throw new Error('Failed to update event');
+      const id = Number(eventId);
+      if (!Number.isFinite(id)) throw new Error('Invalid event ID');
+      await updateEventServer({ ...updatedEvent, id });
       router.push('/admin');
     } catch (e: any) {
       setError(e.message || 'Failed to update event');

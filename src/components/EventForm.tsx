@@ -92,6 +92,31 @@ function to24HourFormat(time12: string): string {
   return convertTo24Hour(time12);
 }
 
+/** Local calendar day as YYYY-MM-DD (no UTC off-by-one). */
+function toLocalYmdFromDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Normalize backend/form dates to YYYY-MM-DD.
+ * Accepts YYYY-MM-DD, MM/DD/YYYY, and ISO datetimes without shifting the day.
+ */
+function toDateOnlyYmd(dateStr: string | undefined | null): string {
+  if (!dateStr) return '';
+  const trimmed = dateStr.trim();
+  if (!trimmed) return '';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
+    const [month, day, year] = trimmed.split('/');
+    return `${year}-${month}-${day}`;
+  }
+  const ymd = trimmed.split('T')[0].split(' ')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
+  return '';
+}
+
 export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: EventFormProps) {
   const router = useRouter();
   const [form, setForm] = useState<EventDetailsDTO>(() => ({
@@ -99,6 +124,9 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
     ...event,
     startTime: event?.startTime ? to12HourFormat(event.startTime) : (event?.startTime ?? ''),
     endTime: event?.endTime ? to12HourFormat(event.endTime) : (event?.endTime ?? ''),
+    startDate: event?.startDate ? (toDateOnlyYmd(event.startDate) || event.startDate) : (event?.startDate ?? ''),
+    endDate: event?.endDate ? (toDateOnlyYmd(event.endDate) || event.endDate) : (event?.endDate ?? ''),
+    promotionStartDate: event?.promotionStartDate ? (toDateOnlyYmd(event.promotionStartDate) || event.promotionStartDate) : (event?.promotionStartDate ?? ''),
   }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showErrors, setShowErrors] = useState(false);
@@ -171,6 +199,9 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
           fromEmail: validFromEmail,
           startTime: event.startTime ? to12HourFormat(event.startTime) : '',
           endTime: event.endTime ? to12HourFormat(event.endTime) : '',
+          startDate: toDateOnlyYmd(event.startDate) || event.startDate || '',
+          endDate: toDateOnlyYmd(event.endDate) || event.endDate || '',
+          promotionStartDate: toDateOnlyYmd(event.promotionStartDate) || event.promotionStartDate || '',
         };
         setForm(formData);
 
@@ -213,7 +244,7 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
             setRecurrencePattern((recurrenceConfig.pattern as RecurrencePattern) || '');
             setRecurrenceInterval(recurrenceConfig.interval || 1);
             setRecurrenceEndType((recurrenceConfig.endType as RecurrenceEndType) || 'END_DATE');
-            setRecurrenceEndDate(recurrenceConfig.endDate || '');
+            setRecurrenceEndDate(toDateOnlyYmd(recurrenceConfig.endDate) || recurrenceConfig.endDate || '');
             setRecurrenceOccurrences(recurrenceConfig.occurrences || 1);
             setRecurrenceWeeklyDays(recurrenceConfig.weeklyDays || []);
             if (recurrenceConfig.monthlyDay === 'LAST') {
@@ -237,7 +268,7 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
               setRecurrencePattern((recurrenceConfig.pattern as RecurrencePattern) || '');
               setRecurrenceInterval(recurrenceConfig.interval || 1);
               setRecurrenceEndType((recurrenceConfig.endType as RecurrenceEndType) || 'END_DATE');
-              setRecurrenceEndDate(recurrenceConfig.endDate || '');
+              setRecurrenceEndDate(toDateOnlyYmd(recurrenceConfig.endDate) || recurrenceConfig.endDate || '');
               setRecurrenceOccurrences(recurrenceConfig.occurrences || 1);
               setRecurrenceWeeklyDays(recurrenceConfig.weeklyDays || []);
               if (recurrenceConfig.monthlyDay === 'LAST') {
@@ -541,27 +572,17 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
   // Helper to convert YYYY-MM-DD to MM/DD/YYYY for display
   function formatDateForDisplay(dateStr: string): string {
     if (!dateStr) return '';
-    // If already in MM/DD/YYYY format, return as is
     if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) return dateStr;
-    // Convert from YYYY-MM-DD to MM/DD/YYYY
-    const [year, month, day] = dateStr.split('-');
-    if (year && month && day) {
-      return `${month}/${day}/${year}`;
-    }
-    return dateStr;
+    const ymd = toDateOnlyYmd(dateStr);
+    if (!ymd) return dateStr;
+    const [year, month, day] = ymd.split('-');
+    return `${month}/${day}/${year}`;
   }
 
   // Helper to convert MM/DD/YYYY to YYYY-MM-DD for storage
   function formatDateForStorage(dateStr: string): string {
     if (!dateStr) return '';
-    // If already in YYYY-MM-DD format, return as is
-    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) return dateStr;
-    // Convert from MM/DD/YYYY to YYYY-MM-DD
-    const [month, day, year] = dateStr.split('/');
-    if (year && month && day && year.length === 4 && month.length === 2 && day.length === 2) {
-      return `${year}-${month}-${day}`;
-    }
-    return dateStr;
+    return toDateOnlyYmd(dateStr) || dateStr;
   }
 
   // Helper to validate MM/DD/YYYY format (exactly 2 digits for month and day)
@@ -931,7 +952,7 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
         if (occurrenceDates.length > 0) {
           const lastDate = occurrenceDates[occurrenceDates.length - 1];
           // Format as YYYY-MM-DD
-          calculatedEndDate = lastDate.toISOString().split('T')[0];
+          calculatedEndDate = toLocalYmdFromDate(lastDate);
         }
       } catch (e) {
         console.error('Failed to calculate recurrence end date', e);

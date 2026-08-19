@@ -59,13 +59,16 @@ export async function updateEventServer(event: any, tenantId?: string): Promise<
   if (!event.id) throw new Error('Event ID required for update');
   const url = `${getBackendApiUrl()}/api/event-details/${event.id}`;
   const tid = effectiveTenantId(tenantId);
-  const payload = tid != null ? { ...event, tenantId: tid } : event;
+  const payload = tid != null ? { ...event, tenantId: tid, id: event.id } : { ...event, id: event.id };
   const res = await fetchWithJwtRetry(url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error('Failed to update event');
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to update event');
+  }
   return await res.json();
 }
 
