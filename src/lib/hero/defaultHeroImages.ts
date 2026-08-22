@@ -1,6 +1,10 @@
 import type { TenantSettingsDTO } from '@/types';
 
-/** Platform-wide emergency fallback when tenant settings and S3 URLs are unavailable. */
+/**
+ * Platform emergency homepage hero. Tenants replace this file in `public/`;
+ * do not hardcode a different path in hero components.
+ * Path: `/images/hero_section/hero_images/fallback/default-hero.webp`
+ */
 export const BUNDLED_EMERGENCY_HERO_IMAGE =
   '/images/hero_section/hero_images/fallback/default-hero.webp';
 
@@ -316,6 +320,11 @@ export function resolveHeroImages(input: ResolveHeroImagesInput): ResolveHeroIma
   if (imageUrls.length === 0) {
     imageUrls = [BUNDLED_EMERGENCY_HERO_IMAGE];
     defaultSlideCount = 1;
+  }
+
+  if (imageUrls.length < 2 && !imageUrls.includes(BUNDLED_EMERGENCY_HERO_IMAGE)) {
+    imageUrls.push(BUNDLED_EMERGENCY_HERO_IMAGE);
+    defaultSlideCount += 1;
   }
 
   const durationsMs = imageUrls.map(() => DEFAULT_SLIDE_DURATION_MS);

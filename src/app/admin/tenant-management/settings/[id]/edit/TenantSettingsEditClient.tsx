@@ -6,17 +6,24 @@ import TenantSettingsFormWrapper from '@/app/admin/tenant-management/components/
 import SaveStatusDialog, { type SaveStatus } from '@/components/SaveStatusDialog';
 import { updateTenantSettingAction } from './actions';
 import type { TenantSettingsFormDTO, TenantSettingsDTO, TenantOrganizationDTO } from '@/app/admin/tenant-management/types';
+import {
+  parseTenantSettingsTab,
+  tenantSettingsTabQuery,
+  type TenantSettingsTab,
+} from '@/lib/tenantSettingsTabs';
 
 interface TenantSettingsEditClientProps {
   settings: TenantSettingsDTO;
   settingsId: number;
   organizations: TenantOrganizationDTO[];
+  initialTab?: TenantSettingsTab;
 }
 
 export default function TenantSettingsEditClient({
   settings,
   settingsId,
-  organizations
+  organizations,
+  initialTab = 'general',
 }: TenantSettingsEditClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -37,7 +44,12 @@ export default function TenantSettingsEditClient({
 
       // Redirect after a brief delay
       setTimeout(() => {
-        router.push(`/admin/tenant-management/settings/${settingsId}`);
+        const tab = parseTenantSettingsTab(
+          typeof window !== 'undefined'
+            ? new URLSearchParams(window.location.search).get('tab')
+            : initialTab
+        );
+        router.push(`/admin/tenant-management/settings/${settingsId}${tenantSettingsTabQuery(tab)}`);
       }, 1500);
     } catch (error: any) {
       setSaveStatus('error');
@@ -56,6 +68,7 @@ export default function TenantSettingsEditClient({
         settingsId={settingsId}
         organizations={organizations}
         loading={loading}
+        initialTab={initialTab}
         initialData={{
           ...settings,
           tenantId: settings?.tenantId || '',

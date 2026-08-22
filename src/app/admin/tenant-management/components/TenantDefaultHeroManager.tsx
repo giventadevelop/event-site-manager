@@ -552,7 +552,11 @@ void persistSlides(slidesRef.current).catch((err: Error) => {
                 onDragOver={(e) => handleSlideDragOver(e, slide.id)}
                 onDragEnd={handleSlideDragEnd}
                 className={`relative rounded-lg border overflow-hidden bg-gray-100 ${
-                  dragSlideId === slide.id ? 'border-teal-500 ring-2 ring-teal-300' : 'border-gray-300'
+                  dragSlideId === slide.id
+                    ? 'border-teal-500 ring-2 ring-teal-300'
+                    : slide.active
+                      ? 'border-green-200'
+                      : 'border-orange-300'
                 }`}
               >
                 <div className="relative h-24 w-full">
@@ -576,7 +580,7 @@ void persistSlides(slidesRef.current).catch((err: Error) => {
                     className={`absolute bottom-1 left-1 text-xs font-semibold px-2 py-0.5 rounded transition-colors ${
                       slide.active
                         ? 'bg-green-600 text-white hover:bg-green-700'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        : 'bg-orange-500 text-white hover:bg-orange-600'
                     }`}
                     title={slide.active ? 'Mark inactive for homepage' : 'Mark active for homepage'}
                     aria-label={slide.active ? 'Mark slide inactive for homepage' : 'Mark slide active for homepage'}
