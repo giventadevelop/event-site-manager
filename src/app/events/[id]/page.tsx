@@ -543,9 +543,10 @@ export default function EventDetailsPage() {
                 // Show Make a Donation button for donation-based events
                 // BUT NOT if it's a ticketed fundraiser (use fundraiser image instead)
                 const showDonationButton = isDonationBasedEvent(event) && isUpcomingLocal && !isTicketedFundraiserEvent(event);
+                const showCompetitionLinks = event.isCompetitionEvent === true;
 
                 // Don't render if no buttons should be shown
-                if (!showRegisterButton && !buyTicketsTarget && !showDonationButton) return null;
+                if (!showRegisterButton && !buyTicketsTarget && !showDonationButton && !showCompetitionLinks) return null;
 
                 return (
                   <div className="absolute top-4 right-4 lg:top-6 lg:right-6 z-10 flex flex-col gap-2">
@@ -606,6 +607,22 @@ export default function EventDetailsPage() {
                           </svg>
                         </div>
                         <span className="font-semibold text-teal-700">Make a Donation</span>
+                      </Link>
+                    )}
+
+                    {showCompetitionLinks && (
+                      <Link
+                        href={`/events/${event.id}/competitions`}
+                        className="flex-shrink-0 h-14 rounded-xl bg-rose-100 hover:bg-rose-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"
+                        title="Competitions"
+                        aria-label="Competitions"
+                      >
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-rose-200 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                          </svg>
+                        </div>
+                        <span className="font-semibold text-rose-700">Competitions</span>
                       </Link>
                     )}
                   </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
+import Link from 'next/link';
 import type { EventDetailsDTO, EventTypeDetailsDTO } from '@/types';
 import timezones from '@/lib/timezones'; // (We'll create this file for the IANA timezone list)
 import { FaCalendarAlt, FaEnvelope } from 'react-icons/fa';
@@ -43,6 +44,7 @@ export const defaultEvent: EventDetailsDTO = {
   enableGuestPricing: false,
   isRegistrationRequired: false,
   isSportsEvent: false,
+  isCompetitionEvent: false,
   isLive: false,
   isFeaturedEvent: false,
   featuredEventPriorityRanking: 0,
@@ -1038,6 +1040,7 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
       enableGuestPricing: !!form.enableGuestPricing,
       isRegistrationRequired: !!form.isRegistrationRequired,
       isSportsEvent: !!form.isSportsEvent,
+      isCompetitionEvent: !!form.isCompetitionEvent,
       isLive: !!form.isLive,
       isFeaturedEvent: !!form.isFeaturedEvent,
       featuredEventPriorityRanking: Number(form.featuredEventPriorityRanking) || 0,
@@ -1433,6 +1436,7 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
           { name: 'enableGuestPricing', label: 'Enable Guest Pricing', checked: form.enableGuestPricing ?? false },
           { name: 'isRegistrationRequired', label: 'Registration Required', checked: form.isRegistrationRequired ?? false },
           { name: 'isSportsEvent', label: 'Sports Event', checked: form.isSportsEvent ?? false },
+          { name: 'isCompetitionEvent', label: 'Competition Event', checked: form.isCompetitionEvent ?? false },
           { name: 'isLive', label: 'Live Event', checked: form.isLive ?? false },
           { name: 'isFeaturedEvent', label: 'Featured Event', checked: form.isFeaturedEvent ?? false },
         ].map(({ name, label, checked }) => (
@@ -1460,6 +1464,27 @@ export function EventForm({ event, eventTypes, onSubmit, loading, onCancel }: Ev
           </div>
         ))}
       </div>
+
+      {form.isCompetitionEvent && form.id && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg">
+          <p className="text-sm text-rose-800 mb-3">
+            Competition mode is enabled. Configure settings, schedule, and catalog in the admin competitions section.
+          </p>
+          <Link
+            href={`/admin/events/${form.id}/competitions/settings`}
+            className="w-full flex-shrink-0 h-14 rounded-xl bg-indigo-100 hover:bg-indigo-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105"
+            title="Open Competition Admin"
+            aria-label="Open Competition Admin"
+          >
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-200 flex items-center justify-center">
+              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </div>
+            <span className="font-semibold text-indigo-700">Open Competition Admin</span>
+          </Link>
+        </div>
+      )}
 
       {/* Payment Configuration Section */}
       <div className="border-t border-gray-200 pt-6 mt-6 bg-gradient-to-br from-green-50 via-teal-50 to-blue-50 rounded-lg p-6">

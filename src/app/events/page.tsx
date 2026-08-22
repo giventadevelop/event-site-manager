@@ -11,6 +11,7 @@ import { isDonationBasedEvent, isTicketedFundraiserEvent } from '@/lib/donation/
 import { resolveBuyTicketsTarget } from '@/lib/eventcube/utils';
 import { BUNDLED_EMERGENCY_HERO_IMAGE } from '@/lib/hero/defaultHeroImages';
 import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
+import EventCardResultsPanel from '@/components/competitions/EventCardResultsPanel';
 // import { formatInTimeZone } from 'date-fns-tz';
 
 const EVENTS_PAGE_SIZE = 20; // Minimum events to display per page
@@ -70,6 +71,7 @@ export default function EventsPage() {
   const [hasCheckedInitialLoad, setHasCheckedInitialLoad] = useState(false);
   const [isAutoSwitching, setIsAutoSwitching] = useState(false);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<number, boolean>>({});
+  const [expandedResults, setExpandedResults] = useState<Record<number, boolean>>({});
 
   // Array of modern background colors inspired by the Dribbble design
   const cardBackgrounds = [
@@ -1377,6 +1379,46 @@ export default function EventsPage() {
                           <span className="font-semibold text-green-700">See Event Details</span>
                         </Link>
 
+                        {/* Competition results (past competition events) */}
+                        {(() => {
+                          if (!event.startDate || !event.id || event.isCompetitionEvent !== true) return null;
+                          const today = new Date();
+                          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                          const eventDateStr = event.startDate.split('T')[0];
+                          const isUpcomingLocal = eventDateStr === todayStr || eventDateStr > todayStr;
+                          if (isUpcomingLocal) return null;
+                          const resultsOpen = !!expandedResults[event.id];
+                          return (
+                            <button
+                              type="button"
+                              className="flex-shrink-0 h-14 rounded-xl bg-amber-100 hover:bg-amber-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"
+                              title={resultsOpen ? 'Hide Result' : 'Show Result'}
+                              aria-label={resultsOpen ? 'Hide Result' : 'Show Result'}
+                              aria-expanded={resultsOpen}
+                              aria-controls={`event-results-${event.id}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedResults((prev) => ({
+                                  ...prev,
+                                  [event.id!]: !prev[event.id!],
+                                }));
+                              }}
+                            >
+                              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-200 flex items-center justify-center">
+                                <svg className="w-6 h-6 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zm-2 4h14"
+                                  />
+                                </svg>
+                              </div>
+                              <span className="font-semibold text-amber-800">{resultsOpen ? 'Hide Result' : 'Result'}</span>
+                            </button>
+                          );
+                        })()}
+
                         {/* Buy Tickets Image - Show only for TICKETED events */}
                         {(() => {
                           if (!event.startDate) return null;
@@ -1448,6 +1490,13 @@ export default function EventsPage() {
                           );
                         })()}
                       </div>
+                      {event.isCompetitionEvent === true &&
+                        event.id &&
+                        expandedResults[event.id] && (
+                          <div className="px-4 mt-4" id={`event-results-${event.id}`}>
+                            <EventCardResultsPanel eventId={event.id} eventTitle={event.title} />
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>

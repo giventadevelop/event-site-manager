@@ -8,7 +8,7 @@ import getRawBody from 'raw-body';
 import { fetchUserProfileServer } from '@/app/admin/ApiServerActions';
 import { createEventTicketTransactionServer, updateTicketTypeInventoryServer } from './ApiServerActions';
 import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
-import { getTenantId, getPaymentMethodDomainId } from '@/lib/env';
+import { getTenantId, getPaymentMethodDomainId, getApiBaseUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 
@@ -298,6 +298,63 @@ async function handleChargeFeeUpdate(charge: Stripe.Charge) {
   }
 }
 
+async function handleCompetitionPaymentIntentSucceeded(
+  paymentIntent: Stripe.PaymentIntent
+): Promise<NextResponse | null> {
+  const md = (paymentIntent.metadata || {}) as Record<string, string>;
+  if (md.registrationType !== 'event_competition') {
+    return null;
+  }
+
+  const ids = (md.competitionRegistrationIds || '')
+    .split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((id) => !Number.isNaN(id));
+
+  if (ids.length === 0) {
+    console.warn('[STRIPE-WEBHOOK] [COMPETITION] No registration IDs in metadata');
+    return new NextResponse('No competition registration IDs', { status: 200 });
+  }
+
+  let token = await getCachedApiJwt();
+  if (!token) token = await generateApiJwt();
+
+  const now = new Date().toISOString();
+  const apiBase = getApiBaseUrl();
+
+  for (const registrationId of ids) {
+    const patchPayload = {
+      id: registrationId,
+      registrationStatus: 'CONFIRMED',
+      stripePaymentIntentId: paymentIntent.id,
+      updatedAt: now,
+    };
+    const patchRes = await fetch(`${apiBase}/api/event-competition-registrations/${registrationId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/merge-patch+json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(patchPayload),
+    });
+    if (!patchRes.ok) {
+      const text = await patchRes.text();
+      console.error('[STRIPE-WEBHOOK] [COMPETITION] Failed to confirm registration', {
+        registrationId,
+        status: patchRes.status,
+        text,
+      });
+    } else {
+      console.log('[STRIPE-WEBHOOK] [COMPETITION] Confirmed registration', registrationId);
+    }
+  }
+
+  return new NextResponse(JSON.stringify({ ok: true, confirmed: ids.length }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 // Disable body parsing for App Router (not needed, but kept for reference)
 // App Router doesn't parse body by default for POST requests
 
@@ -372,6 +429,24 @@ export async function POST(req: NextRequest) {
     console.log('[STRIPE-WEBHOOK] API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL);
     console.log('[STRIPE-WEBHOOK] NEXT_PUBLIC_TENANT_ID from env:', process.env.NEXT_PUBLIC_TENANT_ID);
     console.log('[STRIPE-WEBHOOK] ============================================');
+
+    const webhookSecret = getStripeEnvVar('STRIPE_WEBHOOK_SECRET');
+    const stripeClient = initStripeConfig();
+    if (stripeClient && webhookSecret && signature) {
+      try {
+        const stripeEvent = stripeClient.webhooks.constructEvent(rawBody, signature, webhookSecret);
+        if (stripeEvent.type === 'payment_intent.succeeded') {
+          const competitionResponse = await handleCompetitionPaymentIntentSucceeded(
+            stripeEvent.data.object as Stripe.PaymentIntent
+          );
+          if (competitionResponse) {
+            return competitionResponse;
+          }
+        }
+      } catch (verifyErr) {
+        console.warn('[STRIPE-WEBHOOK] Local event verification skipped or failed:', verifyErr);
+      }
+    }
 
     // CRITICAL: Forward webhook to backend for processing
     // Backend will:

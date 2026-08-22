@@ -16,7 +16,8 @@ import {
   FaCalendarAlt,
   FaClock,
   FaMapMarkerAlt,
-  FaTicketAlt
+  FaTicketAlt,
+  FaTrophy
 } from 'react-icons/fa';
 import type { EventDetailsDTO } from '@/types';
 
@@ -226,6 +227,20 @@ export default function EventOverviewPage() {
                 </div>
                 <span className="font-semibold text-center leading-tight">Event Media</span>
               </Link>
+
+              {event.isCompetitionEvent && (
+                <Link
+                  href={`/admin/events/${eventId}/competitions/settings`}
+                  className="flex flex-col items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-lg shadow-md p-4 text-xs transition-all group"
+                  title="Competitions"
+                  aria-label="Competitions"
+                >
+                  <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-rose-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                    <FaTrophy className="w-10 h-10 text-rose-500" />
+                  </div>
+                  <span className="font-semibold text-center leading-tight">Competitions</span>
+                </Link>
+              )}
 
               <Link
                 href={`/admin/events/${eventId}/ticket-types/list`}

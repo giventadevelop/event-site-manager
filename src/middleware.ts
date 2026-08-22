@@ -49,6 +49,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/stripe/payment-intent(.*)',
   '/api/stripe/event-checkout(.*)',
   '/api/stripe/membership-payment-intent(.*)',
+  '/api/stripe/competition-payment-intent(.*)',
   '/api/payment(.*)',
   '/api/billing(.*)',
   '/api/checkout(.*)',
@@ -82,6 +83,14 @@ export default clerkMiddleware(async (auth, req) => {
   const isApiProxy = pathname.startsWith('/api/proxy');
   const isDiagnostic = pathname.startsWith('/api/diagnostic');
   const userAgent = req.headers.get('user-agent') || 'unknown';
+
+  // Competition register / my-registrations require sign-in (public /events otherwise)
+  const needsCompetitionAuth = /^\/events\/[^/]+\/competitions\/(register|my-registrations)(\/|$)/.test(
+    pathname
+  );
+  if (needsCompetitionAuth) {
+    await auth.protect();
+  }
 
   // Enhanced mobile detection
   const userAgentMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|WhatsApp|Mobile|CriOS|FxiOS/i.test(userAgent);
