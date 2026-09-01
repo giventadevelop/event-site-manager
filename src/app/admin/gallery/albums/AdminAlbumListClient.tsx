@@ -15,6 +15,18 @@ import { Modal } from '@/components/Modal';
 import AdminTenantFilterField from '../../AdminTenantFilterField';
 import { useAdminTenantId } from '../../AdminTenantContext';
 import type { GalleryCategoryDTO } from '@/types';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import ErrorDialog from '@/components/ErrorDialog';
+import { FormApiErrorBanner } from '@/components/FormApiErrorBanner';
+import { formatUnknownError, type FormattedBackendError } from '@/lib/api/formatBackendError';
 
 type SearchField = 'title' | 'description' | 'id';
 type VisibilityFilter = 'all' | 'public' | 'private';
@@ -84,7 +96,11 @@ function AdminAlbumListClientInner({
   const [sort, setSort] = useState('displayOrder,asc');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<FormattedBackendError | null>(null);
+  const [showCreateErrorDialog, setShowCreateErrorDialog] = useState(false);
+  const [albumToDelete, setAlbumToDelete] = useState<GalleryAlbumDTO | null>(null);
+  const [isDeletingAlbum, setIsDeletingAlbum] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -153,18 +169,33 @@ function AdminAlbumListClientInner({
     setCurrentPage(newPage);
   };
 
-  const handleDelete = async (albumId: number) => {
-    if (!confirm(`Are you sure you want to delete album "${albums.find(a => a.id === albumId)?.title}"? This action cannot be undone.`)) {
-      return;
-    }
+  const closeDeleteDialog = () => {
+    if (isDeletingAlbum) return;
+    setAlbumToDelete(null);
+    setDeleteError(null);
+  };
 
+  const handleDeleteClick = (album: GalleryAlbumDTO) => {
+    if (!album.id) return;
+    setDeleteError(null);
+    setAlbumToDelete(album);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!albumToDelete?.id || isDeletingAlbum) return;
+
+    setIsDeletingAlbum(true);
+    setDeleteError(null);
     try {
-      await deleteAlbumServer(albumId, tenantId);
+      await deleteAlbumServer(albumToDelete.id, tenantId);
+      setAlbumToDelete(null);
       const nextPage = albums.length <= 1 && currentPage > 0 ? currentPage - 1 : currentPage;
       if (nextPage !== currentPage) setCurrentPage(nextPage);
       else void loadAlbumsAt(currentPage);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete album');
+      setDeleteError(formatUnknownError(err, 'Failed to delete album').message);
+    } finally {
+      setIsDeletingAlbum(false);
     }
   };
 
@@ -172,6 +203,7 @@ function AdminAlbumListClientInner({
     e.preventDefault();
     setCreateLoading(true);
     setCreateError(null);
+    setShowCreateErrorDialog(false);
 
     try {
       await createAlbumServer(
@@ -202,7 +234,9 @@ function AdminAlbumListClientInner({
       if (currentPage === 0) void loadAlbumsAt(0);
       else setCurrentPage(0);
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Failed to create album');
+      const formatted = formatUnknownError(err, 'Failed to create album');
+      setCreateError(formatted);
+      setShowCreateErrorDialog(true);
     } finally {
       setCreateLoading(false);
     }
@@ -219,6 +253,7 @@ function AdminAlbumListClientInner({
       galleryCategoryId: '',
     });
     setCreateError(null);
+    setShowCreateErrorDialog(false);
   };
 
   const totalPages = Math.ceil(totalCount / pageSize) || 1;
@@ -496,7 +531,7 @@ function AdminAlbumListClientInner({
                         </svg>
                       </Link>
                       <button
-                        onClick={() => album.id && handleDelete(album.id)}
+                        onClick={() => handleDeleteClick(album)}
                         className="flex-shrink-0 w-14 h-14 rounded-xl bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
                         title="Delete Album"
                         aria-label="Delete Album"
@@ -578,21 +613,7 @@ function AdminAlbumListClientInner({
       >
         <form onSubmit={handleCreateAlbum} className="space-y-6">
           {createError && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Error creating album</h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <p>{createError}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <FormApiErrorBanner error={createError} heading="Error creating album" />
           )}
 
           <div>
@@ -686,7 +707,11 @@ function AdminAlbumListClientInner({
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, galleryCategoryId: e.target.value }))
               }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+                createError?.field === 'galleryCategoryId'
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              }`}
             >
               <option value="">Uncategorized</option>
               {categories.map((cat) => (
@@ -740,6 +765,80 @@ function AdminAlbumListClientInner({
           </div>
         </form>
       </Modal>
+
+      <ErrorDialog
+        isOpen={showCreateErrorDialog && !!createError}
+        onClose={() => setShowCreateErrorDialog(false)}
+        title={createError?.title || 'Error creating album'}
+        message={createError?.message || 'Failed to create album'}
+        detail={createError?.detail}
+      />
+
+      <AlertDialog
+        open={!!albumToDelete}
+        onOpenChange={(open) => {
+          if (!open) closeDeleteDialog();
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete album</AlertDialogTitle>
+            <AlertDialogDescription>
+              {albumToDelete ? (
+                <>
+                  Are you sure you want to delete album <strong>&quot;{albumToDelete.title}&quot;</strong>? This action cannot be undone.
+                  Media files associated with this album will not be deleted, but they will be removed from the album.
+                </>
+              ) : (
+                'Confirm delete'
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="text-sm font-medium text-red-800">{deleteError}</p>
+            </div>
+          )}
+          <AlertDialogFooter className="flex flex-row gap-3 sm:gap-4">
+            <AlertDialogCancel
+              onClick={closeDeleteDialog}
+              disabled={isDeletingAlbum}
+              className="flex-1 flex-shrink-0 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              title="Cancel"
+              aria-label="Cancel"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-200 flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <span className="font-semibold text-blue-700">Cancel</span>
+            </AlertDialogCancel>
+            <button
+              type="button"
+              onClick={() => void handleConfirmDelete()}
+              disabled={isDeletingAlbum}
+              className="flex-1 flex-shrink-0 h-14 rounded-xl bg-red-100 hover:bg-red-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              title="Delete Album"
+              aria-label="Delete Album"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-200 flex items-center justify-center">
+                {isDeletingAlbum ? (
+                  <svg className="animate-spin w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
+              </div>
+              <span className="font-semibold text-red-700">{isDeletingAlbum ? 'Deleting...' : 'Delete Album'}</span>
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

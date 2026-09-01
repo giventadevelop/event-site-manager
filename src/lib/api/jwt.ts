@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { getApiJwtUser, getApiJwtPass, getBackendApiUrl } from '../env';
+import { isNetworkFetchFailure, logServerFetchFailure } from '../logServerFetchFailure';
 
 /** Max time to wait for /api/authenticate response headers (prevents multi-minute hangs → UND_ERR_HEADERS_TIMEOUT). */
 const AUTH_FETCH_TIMEOUT_MS = 30_000;
@@ -83,7 +84,7 @@ export async function generateApiJwt() {
     return data.id_token;
   } catch (error) {
     clearTimeout(timeoutId);
-    console.error('[JWT DEBUG] Error during fetch:', error);
+    logServerFetchFailure('JWT DEBUG', error);
 
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error(
@@ -91,9 +92,7 @@ export async function generateApiJwt() {
       );
     }
 
-    // Provide more specific error message based on error type
-    if (error instanceof TypeError && error.message === 'fetch failed') {
-      console.error('[JWT DEBUG] Network error - unable to reach authentication server');
+    if (isNetworkFetchFailure(error)) {
       throw new Error('Network error: Unable to reach authentication server. Please check your connection and try again.');
     }
 

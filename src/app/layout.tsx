@@ -12,8 +12,9 @@ import MobileDebugConsole from "../components/MobileDebugConsole";
 import { TenantSettingsProvider } from "../components/TenantSettingsProvider";
 import { headers } from "next/headers";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { getAppUrl, getRequestOriginFromHeaders, getTenantIdOptional } from "@/lib/env";
+import { getApiBaseUrl, getAppUrl, getRequestOriginFromHeaders, getTenantIdOptional } from "@/lib/env";
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
+import { logServerFetchFailure } from "@/lib/logServerFetchFailure";
 import { getAllowedRedirectOrigins, isKnownSatelliteHost } from "@/lib/satelliteConfig";
 import { getMergedSatelliteConfigs } from "@/lib/satelliteConfigRuntime";
 import { fetchFooterContactPropsServer } from "@/app/ApiServerActions";
@@ -110,7 +111,8 @@ export default async function RootLayout({
     : {
       // Primary domain allows redirects from all satellites (DB + cache, fallback JSON)
       allowedRedirectOrigins: [
-        ...(appUrl ? [appUrl] : []),
+        ...(sameOriginApiBase ? [sameOriginApiBase] : []),
+        ...(appUrl && appUrl !== sameOriginApiBase ? [appUrl] : []),
         ...getAllowedRedirectOrigins(satelliteConfigs),
       ],
       afterSignOutUrl: '/', // Clerk v7: afterSignOutUrl moved from UserButton to provider
@@ -168,10 +170,11 @@ export default async function RootLayout({
 
       if (userId) {
         const baseUrl = sameOriginApiBase;
+        const apiBase = getApiBaseUrl();
         const tenantId = getTenantIdOptional();
-        console.log('[Layout] 🔍 Fetching user profile:', { userId, baseUrl, tenantId });
+        console.log('[Layout] 🔍 Fetching user profile:', { userId, baseUrl, apiBase, tenantId });
 
-        // Step 1: Check if userId exists in the active tenant
+        // Step 1: Check if userId exists in the active tenant (direct backend, not Next self-proxy)
         const profileQuery = new URLSearchParams({
           'userId.equals': userId,
           size: '1',
@@ -179,9 +182,9 @@ export default async function RootLayout({
         if (tenantId) {
           profileQuery.set('tenantId.equals', tenantId);
         }
-        const url = `${baseUrl}/api/proxy/user-profiles?${profileQuery.toString()}`;
+        const url = `${apiBase}/api/user-profiles?${profileQuery.toString()}`;
         console.log('[Layout] 🔍 Profile fetch URL:', url);
-        const resp = await fetch(url, { cache: 'no-store', headers: { 'Content-Type': 'application/json' } });
+        const resp = await fetchWithJwtRetry(url, { cache: 'no-store', headers: { 'Content-Type': 'application/json' } });
         console.log('[Layout] 🔍 Profile fetch response:', { status: resp.status, ok: resp.ok });
 
         if (resp.ok) {
@@ -203,8 +206,8 @@ export default async function RootLayout({
               if (tenantId) {
                 emailQuery.set('tenantId.equals', tenantId);
               }
-              const emailCheckUrl = `${baseUrl}/api/proxy/user-profiles?${emailQuery.toString()}`;
-              const emailResp = await fetch(emailCheckUrl, { cache: 'no-store', headers: { 'Content-Type': 'application/json' } });
+              const emailCheckUrl = `${apiBase}/api/user-profiles?${emailQuery.toString()}`;
+              const emailResp = await fetchWithJwtRetry(emailCheckUrl, { cache: 'no-store', headers: { 'Content-Type': 'application/json' } });
 
               if (emailResp.ok) {
                 const existingProfile = pickFirstUserProfile(await emailResp.json());
@@ -223,7 +226,7 @@ export default async function RootLayout({
                   });
 
                   // Use direct backend call with JWT (not proxy) for PATCH operations
-                  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+                  const API_BASE_URL = apiBase;
 
                   // CRITICAL: Build update payload that ONLY updates userId/clerkUserId
                   // Preserve ALL existing fields - do NOT include fields that might overwrite existing data
@@ -332,7 +335,7 @@ export default async function RootLayout({
               console.warn('[Layout] User has no email address, skipping profile creation');
             }
           } catch (err) {
-            console.error('[Layout] Error in user profile creation/update logic:', err);
+            logServerFetchFailure('Layout profile create/update', err);
           }
         } else {
           // Step 5: Profile found by userId + tenantId - check admin status
@@ -358,7 +361,7 @@ export default async function RootLayout({
       }
     } catch (e) {
       // Fail closed (no admin) on error
-      console.error('[Layout] ❌ Error determining admin status:', e);
+      logServerFetchFailure('Layout admin status', e);
       isTenantAdmin = false;
     }
   } else {

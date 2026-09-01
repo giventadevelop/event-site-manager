@@ -12,6 +12,7 @@ import { updateEventSponsorServer, fetchSponsorMediaServer } from '../ApiServerA
 import PaginatedMediaList from './PaginatedMediaList';
 import { useAdminTenantId } from '../../AdminTenantContext';
 import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
+import SuccessDialog from '@/components/SuccessDialog';
 
 interface SponsorEditClientProps {
   sponsor: EventSponsorsDTO;
@@ -36,6 +37,7 @@ export default function SponsorEditClient({
   const [formData, setFormData] = useState<Partial<EventSponsorsDTO>>(initialSponsor);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   // Upload dialog states (kept for backward compatibility, but not used in new UI)
   const [logoUploadOpen, setLogoUploadOpen] = useState(false);
@@ -52,6 +54,10 @@ export default function SponsorEditClient({
     }
   }, [toastMessage]);
 
+  React.useEffect(() => {
+    setShowSuccessDialog(false);
+  }, [initialSponsor.id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sponsor.id) return;
@@ -60,7 +66,7 @@ export default function SponsorEditClient({
       setLoading(true);
       const updatedSponsor = await updateEventSponsorServer(sponsor.id, formData, tenantId);
       setSponsor(updatedSponsor);
-      setToastMessage({ type: 'success', message: 'Sponsor updated successfully' });
+      setShowSuccessDialog(true);
 
       // Refresh media list after update in case URLs changed
       setMediaRefreshKey(prev => prev + 1);
@@ -483,6 +489,15 @@ export default function SponsorEditClient({
           />
         </>
       )}
+
+      <SuccessDialog
+        isOpen={showSuccessDialog}
+        onClose={() => setShowSuccessDialog(false)}
+        title="Sponsor updated"
+        message={`${sponsor.name || 'Sponsor'} was saved successfully.`}
+        buttonText="OK"
+        showRefreshButton={false}
+      />
     </div>
   );
 }

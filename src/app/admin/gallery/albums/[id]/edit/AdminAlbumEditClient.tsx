@@ -12,6 +12,9 @@ import {
 import { Modal } from '@/components/Modal';
 import GalleryAlbumCoverImageUpload from '@/components/admin/gallery/GalleryAlbumCoverImageUpload';
 import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
+import ErrorDialog from '@/components/ErrorDialog';
+import { FormApiErrorBanner } from '@/components/FormApiErrorBanner';
+import { formatUnknownError, type FormattedBackendError } from '@/lib/api/formatBackendError';
 
 interface AdminAlbumEditClientProps {
   initialAlbum: GalleryAlbumDTO;
@@ -22,8 +25,11 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
   const [loading, setLoading] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
   const [showAdvancedCoverUrl, setShowAdvancedCoverUrl] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<FormattedBackendError | null>(null);
+  const [showSaveErrorDialog, setShowSaveErrorDialog] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteError, setDeleteError] = useState<FormattedBackendError | null>(null);
+  const [showDeleteErrorDialog, setShowDeleteErrorDialog] = useState(false);
   const [categories, setCategories] = useState<GalleryCategoryDTO[]>([]);
   const [formData, setFormData] = useState({
     title: initialAlbum.title || '',
@@ -64,6 +70,7 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setShowSaveErrorDialog(false);
 
     try {
       await updateAlbumServer(
@@ -83,7 +90,9 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
 
       router.push(albumsListHref);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update album');
+      const formatted = formatUnknownError(err, 'Failed to update album');
+      setError(formatted);
+      setShowSaveErrorDialog(true);
     } finally {
       setLoading(false);
     }
@@ -96,7 +105,8 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
       await deleteAlbumServer(initialAlbum.id, initialAlbum.tenantId);
       router.push(albumsListHref);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete album');
+      setDeleteError(formatUnknownError(err, 'Failed to delete album'));
+      setShowDeleteErrorDialog(true);
     }
   };
 
@@ -150,23 +160,8 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
         <AdminTenantIdBanner tenantId={albumTenantId} entityLabel="album" />
       </div>
 
-      {/* Error State */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error updating album</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>{error}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <FormApiErrorBanner error={error} heading="Error updating album" />
       )}
 
       {/* Edit Form */}
@@ -302,7 +297,11 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, galleryCategoryId: e.target.value }))
               }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+                error?.field === 'galleryCategoryId'
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              }`}
             >
               <option value="">Uncategorized</option>
               {categories.map((cat) => (
@@ -377,6 +376,21 @@ export default function AdminAlbumEditClient({ initialAlbum }: AdminAlbumEditCli
           </div>
         </div>
       </Modal>
+
+      <ErrorDialog
+        isOpen={showSaveErrorDialog && !!error}
+        onClose={() => setShowSaveErrorDialog(false)}
+        title={error?.title || 'Error updating album'}
+        message={error?.message || 'Failed to update album'}
+        detail={error?.detail}
+      />
+      <ErrorDialog
+        isOpen={showDeleteErrorDialog && !!deleteError}
+        onClose={() => setShowDeleteErrorDialog(false)}
+        title={deleteError?.title || 'Error deleting album'}
+        message={deleteError?.message || 'Failed to delete album'}
+        detail={deleteError?.detail}
+      />
     </div>
   );
 }

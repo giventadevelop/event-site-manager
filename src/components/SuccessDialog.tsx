@@ -7,6 +7,7 @@ interface SuccessDialogProps {
   onClose: () => void;
   title: string;
   message: string;
+  buttonText?: string;
   showRefreshButton?: boolean;
   onRefresh?: () => void;
 }
@@ -16,8 +17,9 @@ export default function SuccessDialog({
   onClose,
   title,
   message,
+  buttonText = 'OK',
   showRefreshButton = false,
-  onRefresh
+  onRefresh,
 }: SuccessDialogProps) {
   if (!isOpen) return null;
 
@@ -64,8 +66,9 @@ export default function SuccessDialog({
           <button
             onClick={onClose}
             className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+            type="button"
           >
-            Close
+            {buttonText}
           </button>
         </div>
       </div>

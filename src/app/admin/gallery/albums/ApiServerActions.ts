@@ -4,6 +4,7 @@ import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import type { GalleryAlbumDTO, EventMediaDTO, GalleryCategoryDTO } from '@/types';
+import { throwFormattedBackendError } from '@/lib/api/formatBackendError';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -86,7 +87,7 @@ export async function createAlbumServer(
     if (!res.ok) {
       const errorText = await res.text();
       console.error('Failed to create album:', res.status, errorText);
-      throw new Error(`Failed to create album: ${errorText}`);
+      throwFormattedBackendError(errorText, 'Failed to create album');
     }
 
     return await res.json();
@@ -226,7 +227,7 @@ export async function updateAlbumServer(
     if (!res.ok) {
       const errorText = await res.text();
       console.error('Failed to update album:', res.status, errorText);
-      throw new Error(`Failed to update album: ${errorText}`);
+      throwFormattedBackendError(errorText, 'Failed to update album');
     }
 
     return await res.json();
@@ -251,7 +252,7 @@ export async function deleteAlbumServer(albumId: number, tenantId?: string): Pro
     if (!res.ok) {
       const errorText = await res.text();
       console.error('Failed to delete album:', res.status, errorText);
-      throw new Error(`Failed to delete album: ${errorText}`);
+      throwFormattedBackendError(errorText, 'Failed to delete album');
     }
   } catch (error) {
     console.error('Error deleting album:', error);

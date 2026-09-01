@@ -242,19 +242,21 @@ alwaysApply: true
   - JWT caching: [`src/lib/api/jwt.ts`](mdc:src/lib/api/jwt.ts)
 
 - **Always use absolute URLs for proxy API fetches in server components/pages**
-  - In server components/pages (e.g., `src/app/pricing/page.tsx`), use an absolute URL for all fetches to `/api/proxy/...` endpoints.
-  - Use `process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'` as the base URL.
+  - Prefer **`getApiBaseUrl()` + `fetchWithJwtRetry`** for backend REST CRUD (no Next self-fetch).
+  - When the server must call this Next app’s `/api/proxy/*`, use **`await getAdminProxyBaseUrl()`** (request Host / forwarded headers). Fallback: `await getAppUrlFromRequestHeaders()`.
+  - Never use `process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'` — local env ports are stale.
   - In client components, relative URLs (e.g., `/api/proxy/user-profiles/by-user/${userId}`) are fine.
 
 - **Rationale**
   - Server-side fetch requires an absolute URL; relative URLs will throw a "Failed to parse URL" error.
-  - Ensures consistent, working API calls in all environments.
+  - Local `NEXT_PUBLIC_APP_URL` often points at yesterday’s port while `next dev -p` is on another.
 
 - **Correct Implementation Example (Server Component)**
   ```typescript
-  // ✅ DO: Use absolute URL in server component
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const response = await fetch(`${baseUrl}/api/proxy/user-profiles/by-user/${userId}`, { ... });
+  // ✅ DO: backend JWT (preferred) or live request origin for Next proxy
+  import { getApiBaseUrl } from '@/lib/env';
+  import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+  const response = await fetchWithJwtRetry(`${getApiBaseUrl()}/api/user-profiles/by-user/${userId}`, { ... });
   ```
 
 - **Correct Implementation Example (Client Component)**

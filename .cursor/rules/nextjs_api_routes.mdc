@@ -514,6 +514,8 @@ alwaysApply: true
 
 - **App URL and fetch targets (client vs server) — use the right base (PORT-AGNOSTIC)**
   - **CRITICAL:** This Next app may run on **any port** (3000, 3001, Amplify, etc.). Never hardcode `localhost:3000` and never assume `NEXT_PUBLIC_APP_URL` / `getAppUrl()` matches the process that is serving the current request.
+  - **Local `NEXT_PUBLIC_APP_URL` loopback ports are ignored** by `getAppUrl()` (e.g. `.env` says `:3002` while `next dev -p 3003` is listening). Production still uses the real domain from `AMPLIFY_NEXT_PUBLIC_APP_URL` / `NEXT_PUBLIC_APP_URL`.
+  - Extra helpers: `getAppUrlFromRequestHeaders()` and `getRequestOriginFromHeaders()` in [env.ts](mdc:src/lib/env.ts). Admin `/api/proxy/*` from server actions still uses **`await getAdminProxyBaseUrl()`** (do not replace that pattern).
   - **Browser / `'use client'` calling `/api/proxy/*` (public data): use same-origin relative URLs**
     - **DO:** `fetch('/api/proxy/executive-committee-team-members?isActive.equals=true&sort=priorityOrder,asc', { ... })`
     - **DON'T:** `const baseUrl = getAppUrl(); fetch(\`${baseUrl}/api/proxy/...\`)` from the browser.
