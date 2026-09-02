@@ -122,6 +122,7 @@ export default function EventDetailsPage() {
   const eventId = params?.id;
   const [event, setEvent] = useState<EventDetailsDTO | null>(null);
   const [media, setMedia] = useState<EventMediaDTO[]>([]);
+  const [agendaFlyer, setAgendaFlyer] = useState<EventMediaDTO | null>(null);
   const [featuredPerformers, setFeaturedPerformers] = useState<EventFeaturedPerformersDTO[]>([]);
   const [contacts, setContacts] = useState<EventContactsDTO[]>([]);
   const [programDirectors, setProgramDirectors] = useState<EventProgramDirectorsDTO[]>([]);
@@ -129,15 +130,16 @@ export default function EventDetailsPage() {
   const [sponsorBannerImages, setSponsorBannerImages] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showSlideshow, setShowSlideshow] = useState(false);
+  const [showAgendaFlyerSlideshow, setShowAgendaFlyerSlideshow] = useState(false);
   const [slideshowInitialIndex, setSlideshowInitialIndex] = useState(0);
   // Track failed images for placeholder fallback
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const heroImage = useMemo(
     () =>
-      media.find((m) => m.isHomePageHeroImage && m.fileUrl) ||
-      media.find((m) => m.eventFlyer && m.fileUrl) ||
-      media.find((m) => m.fileUrl),
+      media.find((m) => m.isHomePageHeroImage && m.fileUrl && !m.isAgendaFlyer) ||
+      media.find((m) => m.eventFlyer && m.fileUrl && !m.isAgendaFlyer) ||
+      media.find((m) => m.fileUrl && !m.isAgendaFlyer),
     [media]
   );
   const heroImageUrl = useHeroFallbackUrl(heroImage?.fileUrl);
@@ -156,6 +158,22 @@ export default function EventDetailsPage() {
         const mediaRes = await fetch(`/api/proxy/event-medias?eventId.equals=${eventId}&isEventManagementOfficialDocument.equals=false&sort=updatedAt,desc`);
         const mediaData = await mediaRes.json();
         setMedia(Array.isArray(mediaData) ? mediaData : [mediaData]);
+
+        const flyerParams = new URLSearchParams({
+          'eventId.equals': String(eventId),
+          'isAgendaFlyer.equals': 'true',
+          'isPublic.equals': 'true',
+          size: '1',
+        });
+        const flyerRes = await fetch(`/api/proxy/event-medias?${flyerParams.toString()}`);
+        if (flyerRes.ok) {
+          const flyerData = await flyerRes.json();
+          const flyerList = Array.isArray(flyerData) ? flyerData : flyerData ? [flyerData] : [];
+          const first = flyerList[0] as EventMediaDTO | undefined;
+          setAgendaFlyer(first?.fileUrl || first?.preSignedUrl ? first : null);
+        } else {
+          setAgendaFlyer(null);
+        }
 
         // Fetch featured performers
         try {
@@ -354,6 +372,7 @@ export default function EventDetailsPage() {
       } catch (err) {
         setEvent(null);
         setMedia([]);
+        setAgendaFlyer(null);
         setFeaturedPerformers([]);
         setContacts([]);
         setProgramDirectors([]);
@@ -368,7 +387,8 @@ export default function EventDetailsPage() {
   if (loading) return <div className="p-8 text-center">Loading event details...</div>;
   if (!event) return <div className="p-8 text-center text-red-500">Event not found.</div>;
 
-  const gallery = media.filter((m) => m.fileUrl && (!heroImage || m.id !== heroImage.id));
+  const gallery = media.filter((m) => m.fileUrl && (!heroImage || m.id !== heroImage.id) && !m.isAgendaFlyer);
+  const agendaFlyerUrl = agendaFlyer?.fileUrl || agendaFlyer?.preSignedUrl || null;
 
   // Get preview images (first 12 media items for grid display)
   const previewMedia = gallery.slice(0, 12);
@@ -1254,6 +1274,69 @@ export default function EventDetailsPage() {
             </div>
           );
         })()}
+        {/* Agenda Flyer — one event-level schedule image */}
+        {agendaFlyer && agendaFlyerUrl && (
+          <div className="mb-10">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center">
+                <svg className="w-8 h-8 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              Agenda Flyer
+            </h2>
+            <div className="group relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col sm:flex-row sm:items-center gap-4 p-4">
+              <div className="relative flex-shrink-0 w-full sm:w-40 h-40 rounded-xl overflow-hidden bg-white border border-sky-100">
+                <Image
+                  src={agendaFlyerUrl}
+                  alt={agendaFlyer.title || 'Agenda Flyer'}
+                  fill
+                  className="object-contain"
+                  sizes="160px"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-heading text-lg font-semibold text-gray-900">
+                  {agendaFlyer.title || 'Agenda Flyer'}
+                </h3>
+                <p className="text-sm text-gray-700 mt-1">
+                  View or download the full-day event schedule.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAgendaFlyerSlideshow(true)}
+                    className="flex-shrink-0 h-14 rounded-xl bg-sky-100 hover:bg-sky-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"
+                    title="View Agenda Flyer"
+                    aria-label="View Agenda Flyer"
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-sky-200 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </div>
+                    <span className="font-semibold text-sky-700">View</span>
+                  </button>
+                  <a
+                    href={agendaFlyerUrl}
+                    download={agendaFlyer.title || 'agenda-flyer'}
+                    className="flex-shrink-0 h-14 rounded-xl bg-teal-100 hover:bg-teal-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"
+                    title="Download Agenda Flyer"
+                    aria-label="Download Agenda Flyer"
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-teal-200 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </div>
+                    <span className="font-semibold text-teal-700">Download</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Gallery Section - Styled like gallery page */}
         {gallery.length > 0 && (
           <div className="mb-12 mt-12">
@@ -1342,6 +1425,14 @@ export default function EventDetailsPage() {
             media={gallery}
             onClose={() => setShowSlideshow(false)}
             initialIndex={slideshowInitialIndex}
+          />
+        )}
+        {showAgendaFlyerSlideshow && event && agendaFlyer && (
+          <EventMediaSlideshow
+            event={event}
+            media={[agendaFlyer]}
+            onClose={() => setShowAgendaFlyerSlideshow(false)}
+            initialIndex={0}
           />
         )}
         <div className="mt-8 text-center">

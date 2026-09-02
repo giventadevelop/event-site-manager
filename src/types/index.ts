@@ -192,6 +192,7 @@ export interface EventMediaDTO {
   fileSize?: number;
   isPublic?: boolean;
   eventFlyer?: boolean;
+  isAgendaFlyer?: boolean;
   isEventManagementOfficialDocument?: boolean;
   preSignedUrl?: string;
   preSignedUrlExpiresAt?: string;
