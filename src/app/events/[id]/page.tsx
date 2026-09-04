@@ -135,12 +135,27 @@ export default function EventDetailsPage() {
   // Track failed images for placeholder fallback
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
+  const isAgendaItemThumbnail = (m: EventMediaDTO) =>
+    /\bagenda thumbnail\b/i.test(m.title || '');
+  const isWrongEventMediaPath = (m: EventMediaDTO) => {
+    const match = (m.fileUrl || '').match(/\/event-id\/(\d+)\//i);
+    return Boolean(match && eventId && String(match[1]) !== String(eventId));
+  };
+  const galleryPriority = (m: EventMediaDTO) => {
+    if (m.isHomePageHeroImage || m.isActiveHeroImage) return 100;
+    if (m.isFeaturedEventImage || m.isHeroImage) return 90;
+    if (m.eventFlyer) return 80;
+    if (m.isAgendaFlyer) return 70;
+    if (m.isLiveEventImage) return 60;
+    return 0;
+  };
+
   const heroImage = useMemo(
     () =>
       media.find((m) => m.isHomePageHeroImage && m.fileUrl && !m.isAgendaFlyer) ||
       media.find((m) => m.eventFlyer && m.fileUrl && !m.isAgendaFlyer) ||
-      media.find((m) => m.fileUrl && !m.isAgendaFlyer),
-    [media]
+      media.find((m) => m.fileUrl && !m.isAgendaFlyer && !isAgendaItemThumbnail(m)),
+    [media, eventId]
   );
   const heroImageUrl = useHeroFallbackUrl(heroImage?.fileUrl);
 
@@ -154,8 +169,15 @@ export default function EventDetailsPage() {
         const eventData: EventDetailsDTO = await eventRes.json();
         setEvent(eventData);
 
-        // Fetch media
-        const mediaRes = await fetch(`/api/proxy/event-medias?eventId.equals=${eventId}&isEventManagementOfficialDocument.equals=false&sort=updatedAt,desc`);
+        // Fetch media via proxy (tenantId injected by proxy; do not add tenantId.equals)
+        const mediaParams = new URLSearchParams({
+          'eventId.equals': String(eventId),
+          'isEventManagementOfficialDocument.equals': 'false',
+          'isPublic.equals': 'true',
+          size: '100',
+          sort: 'updatedAt,desc',
+        });
+        const mediaRes = await fetch(`/api/proxy/event-medias?${mediaParams.toString()}`);
         const mediaData = await mediaRes.json();
         setMedia(Array.isArray(mediaData) ? mediaData : [mediaData]);
 
@@ -387,7 +409,27 @@ export default function EventDetailsPage() {
   if (loading) return <div className="p-8 text-center">Loading event details...</div>;
   if (!event) return <div className="p-8 text-center text-red-500">Event not found.</div>;
 
-  const gallery = media.filter((m) => m.fileUrl && (!heroImage || m.id !== heroImage.id) && !m.isAgendaFlyer);
+  // Bottom gallery: include hero / cover / agenda flyer and other current event images.
+  // Exclude per-row agenda thumbnails and stale S3 paths from a different event-id.
+  const gallerySources = [...media];
+  if (agendaFlyer?.id && !gallerySources.some((m) => m.id === agendaFlyer.id)) {
+    gallerySources.push(agendaFlyer);
+  }
+  const gallery = gallerySources
+    .filter((m) =>
+      Boolean(m.fileUrl || m.preSignedUrl) &&
+      !isAgendaItemThumbnail(m) &&
+      !isWrongEventMediaPath(m) &&
+      m.isPublic !== false
+    )
+    .slice()
+    .sort((a, b) => {
+      const byPriority = galleryPriority(b) - galleryPriority(a);
+      if (byPriority !== 0) return byPriority;
+      const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return bTime - aTime;
+    });
   const agendaFlyerUrl = agendaFlyer?.fileUrl || agendaFlyer?.preSignedUrl || null;
 
   // Get preview images (first 12 media items for grid display)
@@ -1381,9 +1423,9 @@ export default function EventDetailsPage() {
                           }}
                           className={`${styles.galleryThumbnail} relative overflow-hidden cursor-pointer group`}
                         >
-                          {mediaItem.fileUrl ? (
+                          {(mediaItem.fileUrl || mediaItem.preSignedUrl) ? (
                             <Image
-                              src={mediaItem.fileUrl}
+                              src={mediaItem.fileUrl || mediaItem.preSignedUrl || ''}
                               alt={mediaItem.altText || mediaItem.title}
                               fill
                               className="object-cover transition-transform duration-500 group-hover:scale-110"
