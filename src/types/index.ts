@@ -1223,6 +1223,28 @@ export interface SatelliteDomainDTO {
   updatedAt?: string;
 }
 
+
+/**
+ * Timed event-day program item (Onam-style agenda). Overlapping times are allowed.
+ * `scheduleDate` null means inherit the event start date / single-day list.
+ */
+export interface EventAgendaItemDTO {
+  id?: number;
+  tenantId?: string;
+  scheduleDate?: string | null;
+  startTime: string;
+  endTime?: string | null;
+  title: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  sortOrder: number;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+  event?: EventDetailsDTO;
+  eventMedia?: EventMediaDTO | null;
+}
+
 // WhatsApp Integration Types
 
 /**

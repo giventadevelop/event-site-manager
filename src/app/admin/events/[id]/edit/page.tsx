@@ -5,7 +5,7 @@ import { EventForm } from '@/components/EventForm';
 import AgendaFlyerPanel from '@/app/admin/events/[id]/agenda/AgendaFlyerPanel';
 import type { EventDetailsDTO, EventTypeDetailsDTO } from '@/types';
 import Link from 'next/link';
-import { FaUsers, FaPhotoVideo, FaCalendarAlt, FaTags, FaTicketAlt, FaHome, FaMicrophone, FaAddressBook, FaHandshake, FaEnvelope, FaUserTie, FaClipboardCheck, FaChartLine, FaDollarSign } from 'react-icons/fa';
+import { FaUsers, FaPhotoVideo, FaCalendarAlt, FaTags, FaTicketAlt, FaHome, FaMicrophone, FaAddressBook, FaHandshake, FaEnvelope, FaUserTie, FaClock, FaClipboardCheck, FaChartLine, FaDollarSign } from 'react-icons/fa';
 import SaveStatusDialog, { type SaveStatus } from '@/components/SaveStatusDialog';
 import AdminTenantIdBanner from '@/components/admin/AdminTenantIdBanner';
 import { fetchEventDetailsServer, fetchEventTypesServer, updateEventServer } from '@/app/admin/ApiServerActions';
@@ -217,9 +217,9 @@ export default function EditEventPage() {
         <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl shadow-lg p-6 w-full max-w-4xl">
           <div className="text-center mb-4">
             <h2 className="text-xl font-bold text-purple-800 mb-2">🎭 Event Management Features</h2>
-            <p className="text-sm text-purple-600">Manage performers, contacts, sponsors, emails, and program directors for this event</p>
+            <p className="text-sm text-purple-600">Manage performers, contacts, sponsors, emails, program directors, and agenda for this event</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <Link
               href={`/admin/events/${eventId}/performers`}
               className="flex flex-col items-center justify-center bg-pink-50 hover:bg-pink-100 text-pink-800 rounded-lg shadow-md p-4 text-xs transition-all group"
@@ -275,6 +275,17 @@ export default function EditEventPage() {
               </div>
               <span className="font-semibold text-center leading-tight">Program Directors</span>
             </Link>
+            <Link
+              href={`/admin/events/${eventId}/agenda`}
+              className="flex flex-col items-center justify-center bg-cyan-50 hover:bg-cyan-100 text-cyan-800 rounded-lg shadow-md p-4 text-xs transition-all group"
+              title="Event Day Agenda"
+              aria-label="Event Day Agenda"
+            >
+              <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-cyan-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                <FaClock className="w-10 h-10 text-cyan-500" />
+              </div>
+              <span className="font-semibold text-center leading-tight">Event Day Agenda</span>
+            </Link>
           </div>
         </div>
       </div>
@@ -282,7 +293,7 @@ export default function EditEventPage() {
         <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-blue-800 shadow-sm">
           <strong className="block font-semibold mb-1 text-blue-900">Tip:</strong>
           Use the management shortcuts above to add or associate performers, sponsors, contacts, emails,
-          and program directors with this event.
+          program directors, and the event-day agenda with this event.
         </div>
       </div>
 
