@@ -13,6 +13,7 @@ import cardGridStyles from './CenteredCardGrid.module.css';
 import { SponsorCard } from '@/components/sponsors/SponsorCard';
 import { isDonationBasedEvent, isTicketedFundraiserEvent } from '@/lib/donation/utils';
 import { resolveBuyTicketsTarget } from '@/lib/eventcube/utils';
+import EventCardResultsPanel from '@/components/competitions/EventCardResultsPanel';
 import { useHeroFallbackUrl } from '@/hooks/useHeroFallbackUrl';
 
 // Helper function to get initials from a name
@@ -134,6 +135,7 @@ export default function EventDetailsPage() {
   const [slideshowInitialIndex, setSlideshowInitialIndex] = useState(0);
   // Track failed images for placeholder fallback
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [resultsOpen, setResultsOpen] = useState(false);
 
   const isAgendaItemThumbnail = (m: EventMediaDTO) =>
     /\bagenda thumbnail\b/i.test(m.title || '');
@@ -606,9 +608,10 @@ export default function EventDetailsPage() {
                 // BUT NOT if it's a ticketed fundraiser (use fundraiser image instead)
                 const showDonationButton = isDonationBasedEvent(event) && isUpcomingLocal && !isTicketedFundraiserEvent(event);
                 const showCompetitionLinks = event.isCompetitionEvent === true;
+                const showResultsButton = event.isCompetitionEvent === true && isPast;
 
                 // Don't render if no buttons should be shown
-                if (!showRegisterButton && !buyTicketsTarget && !showDonationButton && !showCompetitionLinks) return null;
+                if (!showRegisterButton && !buyTicketsTarget && !showDonationButton && !showCompetitionLinks && !showResultsButton) return null;
 
                 return (
                   <div className="absolute top-4 right-4 lg:top-6 lg:right-6 z-10 flex flex-col gap-2">
@@ -687,6 +690,25 @@ export default function EventDetailsPage() {
                         <span className="font-semibold text-rose-700">Competitions</span>
                       </Link>
                     )}
+
+                    {showResultsButton && (
+                      <button
+                        type="button"
+                        className="flex-shrink-0 h-14 rounded-xl bg-amber-100 hover:bg-amber-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"
+                        title={resultsOpen ? 'Hide Result' : 'Show Result'}
+                        aria-label={resultsOpen ? 'Hide Result' : 'Show Result'}
+                        aria-expanded={resultsOpen}
+                        aria-controls={`event-results-${event.id}`}
+                        onClick={() => setResultsOpen((open) => !open)}
+                      >
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-200 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zm-2 4h14" />
+                          </svg>
+                        </div>
+                        <span className="font-semibold text-amber-700">{resultsOpen ? 'Hide Result' : 'Result'}</span>
+                      </button>
+                    )}
                   </div>
                 );
               })()}
@@ -701,6 +723,12 @@ export default function EventDetailsPage() {
                 <p className="text-gray-600 text-lg mb-4 sm:pr-48 lg:pr-56">
                   {event.caption}
                 </p>
+              )}
+
+              {resultsOpen && event.id && (
+                <div className="mt-6 mb-4">
+                  <EventCardResultsPanel eventId={event.id} eventTitle={event.title} />
+                </div>
               )}
 
               {/* Event Details - Centered flexbox layout */}

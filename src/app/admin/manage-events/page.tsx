@@ -1,9 +1,10 @@
 'use client';
 import { EventDetailsDTO, EventTypeDetailsDTO, UserProfileDTO, EventCalendarEntryDTO } from '@/types';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { EventList } from '@/components/EventList';
 // Icons removed - using inline SVGs instead
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import AdminNavigation from '@/components/AdminNavigation';
 import Image from 'next/image';
 import DeleteConfirmationDialog, { type DeleteStatus } from '@/components/DeleteConfirmationDialog';
@@ -24,6 +25,9 @@ import {
 
 export default function ManageEventsPage() {
   const tenantId = useAdminTenantId();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [events, setEvents] = useState<EventDetailsDTO[]>([]);
   const [eventTypes, setEventTypes] = useState<EventTypeDetailsDTO[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<EventCalendarEntryDTO[]>([]);
@@ -39,7 +43,7 @@ export default function ManageEventsPage() {
   const [searchEndDate, setSearchEndDate] = useState('');
   const [searchAdmissionType, setSearchAdmissionType] = useState('');
   const [sort, setSort] = useState('startDate,asc');
-  const [searchField, setSearchField] = useState<'title' | 'id' | 'caption'>('title');
+  const [searchField, setSearchField] = useState<'title' | 'caption'>('title');
   const [searchId, setSearchId] = useState('');
   const [showPastEvents, setShowPastEvents] = useState(false);
   // Track event counts for both future and past to determine auto-switch and messages
@@ -47,6 +51,8 @@ export default function ManageEventsPage() {
   const [pastEventCount, setPastEventCount] = useState<number | null>(null);
   const [hasCheckedInitialLoad, setHasCheckedInitialLoad] = useState(false);
   const [isAutoSwitching, setIsAutoSwitching] = useState(false);
+  const lastCountCheckTenantRef = useRef<string | null>(null);
+  const prevTenantIdRef = useRef<string | undefined>(tenantId);
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState<DeleteStatus>('idle');
@@ -62,79 +68,79 @@ export default function ManageEventsPage() {
   const [eventToActivate, setEventToActivate] = useState<EventDetailsDTO | null>(null);
   const [activateChildEventCount, setActivateChildEventCount] = useState(0);
 
-  async function loadAll(pageNum = 0, checkInitialLoad = false) {
+  async function loadAll(pageNum = 0, checkCounts = false) {
     setLoading(true);
     setError(null);
     try {
-      // Build date filtering based on toggle
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-
-      // Determine which view we're loading (future or past)
+      const lookupByEventId = Boolean(searchId.trim());
       let loadingPastEvents = showPastEvents;
 
-      // On initial load, check both future and past event counts
-      if (checkInitialLoad && !hasCheckedInitialLoad && pageNum === 0 && !searchTitle && !searchId && !searchCaption && !searchStartDate && !searchEndDate) {
-        // Check future events count
-        const futureParams: any = {
+      // Re-check future vs past counts on first load and whenever the tenant filter changes
+      if (checkCounts && pageNum === 0 && !lookupByEventId && !searchTitle && !searchCaption && !searchStartDate && !searchEndDate) {
+        const futureParams = {
           admissionType: searchAdmissionType,
           sort: 'startDate,asc',
           pageNum: 0,
-          pageSize: 1, // Just need count, not data
+          pageSize: 1,
           startDate: today,
           tenantId,
         };
-        const { totalCount: futureCount } = await fetchEventsFilteredServer(futureParams);
-        setFutureEventCount(futureCount);
-
-        // Check past events count
-        const pastParams: any = {
+        const pastParams = {
           admissionType: searchAdmissionType,
           sort: 'startDate,desc',
           pageNum: 0,
-          pageSize: 1, // Just need count, not data
+          pageSize: 1,
           endDate: today,
           tenantId,
         };
-        const { totalCount: pastCount } = await fetchEventsFilteredServer(pastParams);
+
+        const [{ totalCount: futureCount }, { totalCount: pastCount }] = await Promise.all([
+          fetchEventsFilteredServer(futureParams),
+          fetchEventsFilteredServer(pastParams),
+        ]);
+        setFutureEventCount(futureCount);
         setPastEventCount(pastCount);
-
         setHasCheckedInitialLoad(true);
+        lastCountCheckTenantRef.current = tenantId ?? '';
 
-        // Auto-switch to past events if no future events but past events exist
         if (futureCount === 0 && pastCount > 0) {
+          if (!showPastEvents) {
+            setIsAutoSwitching(true);
+            setShowPastEvents(true);
+          }
+          loadingPastEvents = true;
+        } else if (futureCount > 0 && showPastEvents) {
           setIsAutoSwitching(true);
-          setShowPastEvents(true);
-          loadingPastEvents = true; // Load past events data in this same call
+          setShowPastEvents(false);
+          loadingPastEvents = false;
         }
       }
 
-      const filterParams: any = {
+      const filterParams: Record<string, unknown> = {
         admissionType: searchAdmissionType,
-        sort: loadingPastEvents ? 'startDate,desc' : 'startDate,asc', // Override sort based on toggle
+        sort: loadingPastEvents ? 'startDate,desc' : 'startDate,asc',
         pageNum,
         pageSize,
         tenantId,
       };
 
-      // Apply date filtering based on toggle (use loadingPastEvents which respects auto-switch)
-      if (loadingPastEvents) {
-        // Show events that ended before today
-        filterParams.endDate = today;
-      } else {
-        // Show events that start today or later (future events including today)
-        filterParams.startDate = today;
+      // Event ID lookup should find the event regardless of Future/Past
+      if (!lookupByEventId) {
+        if (loadingPastEvents) {
+          filterParams.endDate = today;
+        } else {
+          filterParams.startDate = today;
+        }
       }
 
-      // Override with manual date filters if provided
       if (searchStartDate) filterParams.startDate = searchStartDate;
       if (searchEndDate) filterParams.endDate = searchEndDate;
+      if (searchField === 'title' && searchTitle) filterParams.title = searchTitle;
+      else if (searchField === 'caption' && searchCaption) filterParams.caption = searchCaption;
+      if (lookupByEventId) filterParams.id = searchId.trim();
 
-      // Add search filters based on selected field
-      if (searchField === 'title') filterParams.title = searchTitle;
-      else if (searchField === 'id') filterParams.id = searchId;
-      else if (searchField === 'caption') filterParams.caption = searchCaption;
-
-      const { events: eventsResult, totalCount: fetchedTotalCount } = await fetchEventsFilteredServer(filterParams);
+      const { events: eventsResult, totalCount: fetchedTotalCount } = await fetchEventsFilteredServer(filterParams as Parameters<typeof fetchEventsFilteredServer>[0]);
       const types = await fetchEventTypesServer(tenantId);
       const eventIds = eventsResult.map(e => e.id).filter((id): id is number => id != null);
       const calendarEventsResult = await fetchCalendarEventsServer(tenantId, eventIds);
@@ -151,14 +157,33 @@ export default function ManageEventsPage() {
 
   useEffect(() => {
     // Layout already verifies auth; don't gate on userId (avoids stuck loading when useAuth lags).
-    // Skip reload if we're currently auto-switching (prevents double-load)
     if (isAutoSwitching) {
-      setIsAutoSwitching(false); // Reset flag after skipping
+      setIsAutoSwitching(false);
       return;
     }
-    // On initial load (first render), check both future and past counts
-    const isInitialLoad = !hasCheckedInitialLoad && page === 0 && !searchTitle && !searchId && !searchCaption && !searchStartDate && !searchEndDate;
-    loadAll(page, isInitialLoad);
+
+    const tenantChanged = prevTenantIdRef.current !== tenantId;
+    prevTenantIdRef.current = tenantId;
+    if (tenantChanged && page !== 0) {
+      setPage(0);
+      return;
+    }
+
+    const lookupByEventId = Boolean(searchId.trim());
+    if (lookupByEventId && page !== 0) {
+      setPage(0);
+      return;
+    }
+    const isDefaultView =
+      page === 0 &&
+      !lookupByEventId &&
+      !searchTitle &&
+      !searchCaption &&
+      !searchStartDate &&
+      !searchEndDate;
+    const tenantKey = tenantId ?? '';
+    const needsCountCheck = isDefaultView && lastCountCheckTenantRef.current !== tenantKey;
+    loadAll(page, needsCountCheck);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, searchTitle, searchId, searchCaption, searchField, searchStartDate, searchEndDate, searchAdmissionType, sort, showPastEvents, tenantId]);
 
@@ -376,6 +401,37 @@ export default function ManageEventsPage() {
     setPage((p) => p + 1);
   }
 
+  const hasSearchFilters =
+    Boolean(searchId.trim()) ||
+    Boolean(searchTitle.trim()) ||
+    Boolean(searchCaption.trim()) ||
+    Boolean(searchStartDate) ||
+    Boolean(searchEndDate) ||
+    Boolean(searchAdmissionType) ||
+    Boolean(tenantId) ||
+    searchField !== 'title' ||
+    sort !== 'startDate,asc';
+
+  function handleClearSearchForm() {
+    setSearchId('');
+    setSearchTitle('');
+    setSearchCaption('');
+    setSearchStartDate('');
+    setSearchEndDate('');
+    setSearchAdmissionType('');
+    setSearchField('title');
+    setSort('startDate,asc');
+    setPage(0);
+    lastCountCheckTenantRef.current = null;
+
+    const next = new URLSearchParams(searchParams.toString());
+    if (next.has('tenant')) {
+      next.delete('tenant');
+      const qs = next.toString();
+      router.replace(pathname + (qs ? `?${qs}` : ''), { scroll: false });
+    }
+  }
+
   // Layout already verifies auth; no need to block on userId (avoids stuck "Loading events..." when useAuth lags).
   return (
     <div className="max-w-5xl mx-auto px-8 py-8" style={{ paddingTop: '180px' }}>
@@ -486,22 +542,35 @@ export default function ManageEventsPage() {
           <div className="flex flex-wrap gap-4 items-end">
             <AdminTenantFilterField />
             <div>
+              <label className="block text-xs font-semibold mb-1" htmlFor="manage-events-event-id">
+                Event ID
+              </label>
+              <input
+                id="manage-events-event-id"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                className="border px-3 py-2 rounded w-36"
+                value={searchId}
+                onChange={(e) => setSearchId(e.target.value)}
+                placeholder="Event ID"
+              />
+            </div>
+            <div>
               <label className="block text-xs font-semibold mb-1">Search By</label>
-              <select className="border px-3 py-2 rounded w-40" value={searchField} onChange={e => setSearchField(e.target.value as 'title' | 'id' | 'caption')}>
+              <select className="border px-3 py-2 rounded w-40" value={searchField} onChange={e => setSearchField(e.target.value as 'title' | 'caption')}>
                 <option value="title">Title</option>
-                <option value="id">ID</option>
                 <option value="caption">Caption</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold mb-1">{searchField === 'id' ? 'Event ID' : searchField.charAt(0).toUpperCase() + searchField.slice(1)}</label>
+              <label className="block text-xs font-semibold mb-1">{searchField.charAt(0).toUpperCase() + searchField.slice(1)}</label>
               <input
-                type={searchField === 'id' ? 'number' : 'text'}
+                type="text"
                 className="border px-3 py-2 rounded w-48"
-                value={searchField === 'title' ? searchTitle : searchField === 'id' ? searchId : searchCaption}
+                value={searchField === 'title' ? searchTitle : searchCaption}
                 onChange={e => {
                   if (searchField === 'title') setSearchTitle(e.target.value);
-                  else if (searchField === 'id') setSearchId(e.target.value);
                   else setSearchCaption(e.target.value);
                 }}
                 placeholder={`Search by ${searchField}`}
@@ -534,6 +603,21 @@ export default function ManageEventsPage() {
                 <option value="id,asc">ID (Oldest)</option>
               </select>
             </div>
+            <button
+              type="button"
+              onClick={handleClearSearchForm}
+              disabled={!hasSearchFilters}
+              className="flex-shrink-0 h-14 rounded-xl bg-orange-100 hover:bg-orange-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              title="Clear search form"
+              aria-label="Clear search form"
+            >
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-orange-200 flex items-center justify-center">
+                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <span className="font-semibold text-orange-700">Clear</span>
+            </button>
           </div>
 
           {/* Event Filter Toggle */}
@@ -579,7 +663,7 @@ export default function ManageEventsPage() {
       )}
 
       {/* Info box when there are no events at all (both future and past) */}
-      {!loading && hasCheckedInitialLoad && futureEventCount === 0 && pastEventCount === 0 && (
+      {!loading && hasCheckedInitialLoad && !searchId.trim() && futureEventCount === 0 && pastEventCount === 0 && (
         <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
           <div className="flex items-start">
             <div className="flex-shrink-0">
@@ -600,7 +684,7 @@ export default function ManageEventsPage() {
       )}
 
       {/* Message above table when showing past events because no future events exist */}
-      {!loading && hasCheckedInitialLoad && showPastEvents && futureEventCount === 0 && pastEventCount > 0 && (
+      {!loading && hasCheckedInitialLoad && !searchId.trim() && showPastEvents && futureEventCount === 0 && pastEventCount > 0 && (
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
           <div className="flex items-start">
             <div className="flex-shrink-0">
@@ -618,7 +702,7 @@ export default function ManageEventsPage() {
       )}
 
       {/* Info box when showing future events but there are no future events */}
-      {!loading && hasCheckedInitialLoad && !showPastEvents && futureEventCount === 0 && (
+      {!loading && hasCheckedInitialLoad && !searchId.trim() && !showPastEvents && futureEventCount === 0 && (
         <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
           <div className="flex items-start">
             <div className="flex-shrink-0">

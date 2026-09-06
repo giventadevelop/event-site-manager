@@ -77,15 +77,28 @@
 .mh-event-results-row--silver .mh-event-results-medal { background: #8a8478; color: #fff8f0; }
 .mh-event-results-row--bronze .mh-event-results-medal { background: #b45309; color: #fff7ed; }
 .mh-event-results-copy { min-width: 0; }
+.mh-event-results-photos {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
 .mh-event-results-photo {
   display: block;
   width: 56px;
   height: 56px;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   border-radius: 10px;
   margin-bottom: 8px;
   border: 1px solid #d4d4d8;
   background: #f4f4f5;
+}
+.mh-event-results-photos .mh-event-results-photo {
+  margin-bottom: 0;
+}
+.mh-event-results-photo--work {
+  width: 72px;
+  height: 72px;
 }
 .mh-event-results-name {
   margin: 0;

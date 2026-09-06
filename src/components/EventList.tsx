@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import type { EventDetailsDTO, EventTypeDetailsDTO, EventCalendarEntryDTO } from '@/types';
 import { Modal } from './Modal';
 import { formatDateLocal } from '@/lib/date';
+import { formatInTimeZone } from 'date-fns-tz';
 import Link from 'next/link';
 import ReactDOM from 'react-dom';
 import Image from 'next/image';
@@ -12,7 +13,7 @@ interface EventListProps {
   events: EventDetailsDTO[];
   eventTypes: EventTypeDetailsDTO[];
   calendarEvents?: EventCalendarEntryDTO[];
-  onEdit: (event: EventDetailsDTO) => void;
+  onEdit?: (event: EventDetailsDTO) => void;
   onCancel: (event: EventDetailsDTO) => void;
   onHardDelete?: (event: EventDetailsDTO) => void;
   onActivate?: (event: EventDetailsDTO) => void;
@@ -24,6 +25,7 @@ interface EventListProps {
   totalCount?: number;
   pageSize?: number;
   boldEventIdLabel?: boolean;
+  showPastEvents?: boolean;
 }
 
 export function EventList({
@@ -50,6 +52,7 @@ export function EventList({
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [tooltipEvent, setTooltipEvent] = useState<EventDetailsDTO | null>(null);
   const [tooltipAnchor, setTooltipAnchor] = useState<DOMRect | null>(null);
+  const [viewModalEvent, setViewModalEvent] = useState<EventDetailsDTO | null>(null);
   const [isZoomingOut, setIsZoomingOut] = useState(false);
   const [showContent, setShowContent] = useState(false);
 
@@ -100,6 +103,9 @@ export function EventList({
       // Reset states when loading starts
       setShowContent(false);
       setIsZoomingOut(false);
+    } else if (!loading && events.length === 0) {
+      setShowContent(true);
+      setIsZoomingOut(false);
     }
   }, [loading, events.length]);
 
@@ -129,6 +135,79 @@ export function EventList({
     if (ampm && ampm.toUpperCase() === 'PM' && h !== 12) h += 12;
     if (ampm && ampm.toUpperCase() === 'AM' && h === 12) h = 0;
     return `${year}${month}${day}T${String(h).padStart(2, '0')}${minute}00`;
+  }
+
+  function formatEventFieldLabel(key: string): string {
+    return key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
+  }
+
+  function formatEventDetailValue(key: string, value: unknown, event: EventDetailsDTO): React.ReactNode {
+    if (value === null || value === undefined || value === '') {
+      return <span className="text-gray-400 italic">(empty)</span>;
+    }
+
+    if (typeof value === 'boolean') {
+      return (
+        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {value ? 'Yes' : 'No'}
+        </span>
+      );
+    }
+
+    if (key === 'eventType' && value && typeof value === 'object' && 'name' in (value as object)) {
+      const et = value as EventTypeDetailsDTO;
+      return `${et.name}${et.id != null ? ` (ID: ${et.id})` : ''}`;
+    }
+
+    if (key === 'createdBy' && value && typeof value === 'object') {
+      const profile = value as { id?: number; firstName?: string; lastName?: string; email?: string };
+      const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
+      if (name && profile.email) return `${name} (${profile.email})`;
+      if (profile.email) return profile.email;
+      if (profile.id != null) return `Profile ID: ${profile.id}`;
+      return JSON.stringify(value);
+    }
+
+    if (key === 'discountCodes' && Array.isArray(value)) {
+      return value.length === 0
+        ? <span className="text-gray-400 italic">(none)</span>
+        : `${value.length} discount code(s)`;
+    }
+
+    if (typeof value === 'object') {
+      return <pre className="text-xs whitespace-pre-wrap break-all">{JSON.stringify(value, null, 2)}</pre>;
+    }
+
+    const strValue = String(value);
+    if (key === 'startDate' || key === 'endDate' || key === 'promotionStartDate') {
+      return formatDateLocal(strValue) || strValue;
+    }
+    if (key === 'createdAt' || key === 'updatedAt') {
+      try {
+        return formatInTimeZone(strValue, event.timezone || 'America/New_York', 'EEEE, MMMM d, yyyy h:mm a zzz');
+      } catch {
+        return new Date(strValue).toLocaleString();
+      }
+    }
+
+    return strValue;
+  }
+
+  function renderEventDetailsBody(event: EventDetailsDTO) {
+    return (
+      <div className="max-h-[60vh] overflow-y-auto">
+        {Object.entries(event).map(([key, value]) => (
+          <div key={key} className="border-b border-gray-100 py-3 first:pt-0">
+            <div className="text-sm font-semibold text-gray-700 mb-0.5">
+              {formatEventFieldLabel(key)}
+            </div>
+            <div className="text-sm text-gray-600">
+              {formatEventDetailValue(key, value, event)}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   function EventDetailsTooltip({ event, anchorRect, onClose }: { event: EventDetailsDTO, anchorRect: DOMRect | null, onClose: () => void }) {
@@ -261,11 +340,26 @@ export function EventList({
 
   const handleTooltipClose = () => setTooltipEvent(null);
 
+  function handleViewClick(event: EventDetailsDTO, e: React.MouseEvent<HTMLButtonElement>) {
+    e.stopPropagation();
+    e.preventDefault();
+    setViewModalEvent(event);
+  }
+
+  function handleCloseViewModal() {
+    setViewModalEvent(null);
+  }
+
   return (
     <>
       {events.length > 0 && (
-        <div className="mb-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded px-4 py-2">
-          Mouse over the first 3 columns to see the full details about the event. Use the × button to close the tooltip once you have viewed the details.
+        <div className="mb-4 text-sm border rounded-lg px-4 py-3 text-blue-700 bg-blue-50 border-blue-200">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">💡 Tip:</span>
+            <span>
+              Click the <strong>View</strong> button in the Edit/View column to see full event details. Click the × button to close the dialog.
+            </span>
+          </div>
         </div>
       )}
       {events.length > 0 ? (
@@ -284,6 +378,7 @@ export function EventList({
             <th className="p-2 border" rowSpan={2}>Upload</th>
             <th className="p-2 border" rowSpan={2}>Calendar</th>
             <th className="p-2 border" rowSpan={2}>Tickets</th>
+            <th className="p-2 border" rowSpan={2}>Competitions</th>
           </tr>
           <tr className="bg-blue-50 font-bold border-b border-blue-200">
             <th className="p-2 border text-xs font-bold text-center">Deactivate</th>
@@ -431,23 +526,34 @@ export function EventList({
                   </div>
                 </td>
                 <td className="p-2 border text-center align-middle">
-                  <a
-                    href={`/admin/events/${event.id}/edit`}
-                    className="flex flex-col items-center focus:outline-none inline-block w-full h-full"
-                    onClick={(e) => {
-                      // Allow default behavior (navigation) but also call onEdit for backward compatibility
-                      onEdit(event);
-                    }}
-                    title="Edit/View Event Details"
-                    aria-label="Edit/View Event Details"
-                  >
-                    <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110">
-                      <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={(e) => handleViewClick(event, e)}
+                        className="flex-shrink-0 w-14 h-14 rounded-xl bg-green-100 hover:bg-green-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                        title="View event details"
+                        aria-label="View event details"
+                        type="button"
+                      >
+                        <svg className="w-10 h-10 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                      <a
+                        href={`/admin/events/${event.id}/edit`}
+                        className="flex-shrink-0 w-14 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                        onClick={() => onEdit?.(event)}
+                        title="Edit event details"
+                        aria-label="Edit event details"
+                      >
+                        <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </a>
                     </div>
-                    <span className="text-[10px] text-gray-600 mt-1 block font-bold">Edit/View,<br />Event Details</span>
-                  </a>
+                    <span className="text-[9px] text-gray-700 mt-1 block font-bold leading-tight">View / Edit<br />Event Details</span>
+                  </div>
                 </td>
                 {/* Deactivate Button Cell */}
                 <td className="p-2 border text-center align-middle">
@@ -551,6 +657,17 @@ export function EventList({
                   ) : (
                     <span className="text-gray-400 text-xs">—</span>
                   )}
+                </td>
+                {/* Competitions Button Cell */}
+                <td className="p-2 border text-center align-middle">
+                  <Link href={`/events/${event.id}/competitions`} className="inline-block w-full h-full" title="Manage Competitions" aria-label="Manage Competitions">
+                    <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-indigo-100 hover:bg-indigo-200 flex items-center justify-center transition-all duration-300 hover:scale-110 mx-auto">
+                      <svg className="w-10 h-10 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 21h8M12 17v4M7 4h10v4a5 5 0 01-10 0V4zM7 4H5a2 2 0 00-2 2 3 3 0 003 3M17 4h2a2 2 0 012 2 3 3 0 01-3 3" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] text-gray-600 mt-1 block font-bold">Competitions</span>
+                  </Link>
                 </td>
 
                 {showDetailsOnHover && hoveredEventId === event.id && (
@@ -664,6 +781,15 @@ export function EventList({
 
       {tooltipEvent && (
         <EventDetailsTooltip event={tooltipEvent} anchorRect={tooltipAnchor} onClose={handleTooltipClose} />
+      )}
+      {viewModalEvent && (
+        <Modal
+          open={true}
+          onClose={handleCloseViewModal}
+          title={viewModalEvent.id != null ? `Event Details #${viewModalEvent.id}` : 'Event Details'}
+        >
+          {renderEventDetailsBody(viewModalEvent)}
+        </Modal>
       )}
     </>
   );

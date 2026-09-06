@@ -30,13 +30,18 @@ interface EventFormHelpTooltipProps {
   fieldName: string;
   /** Optional custom content to display instead of fetching HTML */
   customContent?: React.ReactNode;
+  /** Optional tooltip title (used when customContent is set) */
+  title?: string;
 }
 
 /**
  * Help Tooltip Component for Event Form
  * Displays HTML documentation content in a tooltip when hovering over a question mark icon
  */
-export default function EventFormHelpTooltip({ fieldName, customContent }: EventFormHelpTooltipProps) {
+const DEFAULT_TITLE = 'Events Page Filtering and Display Rules';
+
+export default function EventFormHelpTooltip({ fieldName, customContent, title }: EventFormHelpTooltipProps) {
+  const tooltipTitle = title ?? DEFAULT_TITLE;
   const [isOpen, setIsOpen] = useState(false);
   const [htmlContent, setHtmlContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -318,7 +323,7 @@ export default function EventFormHelpTooltip({ fieldName, customContent }: Event
           {/* Header */}
           <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 flex items-center justify-between border-b border-blue-700 z-10">
             <h3 className="text-lg font-bold text-yellow-200 drop-shadow-md">
-              Events Page Filtering and Display Rules
+              {tooltipTitle}
             </h3>
             <button
               onClick={handleClose}
