@@ -34,7 +34,7 @@ export default function EventCompetitionList({ eventId, competitions }: Props) {
     startTransition(async () => {
       try {
         setError(null);
-        await deleteCompetitionServer(id);
+        await deleteCompetitionServer(id, eventId);
         setToDelete(null);
         router.refresh();
       } catch (err: unknown) {

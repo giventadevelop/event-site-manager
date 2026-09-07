@@ -52,7 +52,7 @@ export default function EventCompetitionDayList({ eventId, initialDays }: Props)
     if (!confirm('Delete this day?')) return;
     startTransition(async () => {
       try {
-        await deleteCompetitionDayServer(id);
+        await deleteCompetitionDayServer(id, eventId);
         setDays((d) => d.filter((x) => x.id !== id));
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Delete failed');

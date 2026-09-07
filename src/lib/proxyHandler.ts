@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
 import { withTenantId } from '@/lib/withTenantId';
 import { getRawBody } from '@/lib/getRawBody';
-import { getBackendApiUrl, getDefaultPageSize, getTenantIdOptional } from '@/lib/env';
+import { getBackendApiUrl, getDefaultPageSize, getTenantIdOptional, isAllTenantsAdmin } from '@/lib/env';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('PROXY-HANDLER');
@@ -432,9 +432,34 @@ export function createProxyHandler({ injectTenantId = false, allowedMethods = ['
           }
         }
 
+        // Forward caller X-Tenant-ID (all-tenants admin / event-scoped mutations). Fallback: body.tenantId.
+        const headerTenantRaw = req.headers['x-tenant-id'];
+        const headerTenant =
+          typeof headerTenantRaw === 'string'
+            ? headerTenantRaw.trim()
+            : Array.isArray(headerTenantRaw)
+              ? String(headerTenantRaw[0] || '').trim()
+              : '';
+        let bodyTenant = '';
+        if (!headerTenant && bodyToSend) {
+          try {
+            const parsedBody = JSON.parse(bodyToSend) as { tenantId?: unknown };
+            if (parsedBody?.tenantId != null && String(parsedBody.tenantId).trim() !== '') {
+              bodyTenant = String(parsedBody.tenantId).trim();
+            }
+          } catch {
+            /* ignore non-JSON bodies */
+          }
+        }
+        const scopedTenant = headerTenant || bodyTenant;
+
         const apiRes = await fetchWithJwtRetry(apiUrl, {
           method,
-          headers: { 'Content-Type': contentType, ...extraHeaders },
+          headers: {
+            'Content-Type': contentType,
+            ...extraHeaders,
+            ...(scopedTenant ? { 'X-Tenant-ID': scopedTenant } : {}),
+          },
           ...(bodyToSend ? { body: bodyToSend } : {}),
         }, `proxy-${backendPath}-${method}`);
         console.log('[ProxyHandler] fetchWithJwtRetry returned:', apiRes.status);
@@ -521,10 +546,13 @@ export async function fetchWithJwtRetry(apiUrl: string, options: any = {}, debug
     ...incoming,
     Authorization: `Bearer ${token}`,
   };
-  // Backend tenant context: service JWT often has no tenant claim; send default tenant when env is set.
-  // Callers may override via options.headers (e.g. upload proxies with row-specific tenant).
+  // Backend tenant context: service JWT often has no tenant claim.
+  // - Single-tenant apps: inject env tenant when caller did not set X-Tenant-ID.
+  // - All-tenants admin (ESM): do NOT inject env — callers must pass event/row tenant
+  //   (or omit for wildcard list/get-by-id). Matches isAllTenantsAdmin() docs in env.ts.
   const tenantFromEnv = getTenantIdOptional();
-  if (tenantFromEnv && !baseHeaders['X-Tenant-ID'] && !baseHeaders['x-tenant-id']) {
+  const hasCallerTenant = !!(baseHeaders['X-Tenant-ID'] || baseHeaders['x-tenant-id']);
+  if (tenantFromEnv && !hasCallerTenant && !isAllTenantsAdmin()) {
     baseHeaders['X-Tenant-ID'] = tenantFromEnv;
   }
 

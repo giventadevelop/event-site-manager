@@ -1,10 +1,11 @@
 'use server';
 
+import { cache } from 'react';
+import { fetchEventDetailsServer } from '@/app/admin/ApiServerActions';
 import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
-import { getApiBaseUrl, getAppUrl, getTenantId } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl, getTenantId, isAllTenantsAdmin } from '@/lib/env';
 import { parseApiListResponse } from '@/lib/parseApiListResponse';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { withTenantId } from '@/lib/withTenantId';
 import { hydrateCompetitionResults, matchCompetitionByName } from '@/lib/competitions/resultsPodium';
 import type {
   EventCompetitionContentBlockDTO,
@@ -24,12 +25,46 @@ function eventRef(eventId: string | number) {
   return { id: typeof eventId === 'string' ? parseInt(eventId, 10) : eventId };
 }
 
-async function proxyJson<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Resolve the owning tenant for an event.
+ * All-tenants admin (ESM) must use the event's tenantId — env NEXT_PUBLIC_TENANT_ID is often a platform tenant.
+ * Memoized per request via React cache().
+ */
+const resolveTenantIdForEvent = cache(async (eventId: string): Promise<string> => {
+  const numericId = parseInt(eventId, 10);
+  if (!Number.isNaN(numericId)) {
+    const event = await fetchEventDetailsServer(numericId);
+    if (event?.tenantId && String(event.tenantId).trim() !== '') {
+      return String(event.tenantId).trim();
+    }
+  }
+  if (isAllTenantsAdmin()) {
+    throw new Error(
+      `Could not resolve tenant for event ${eventId}. Event may be missing or inaccessible.`
+    );
+  }
+  return getTenantId();
+});
+
+function tenantHeaders(tenantId: string): Record<string, string> {
+  return { 'X-Tenant-ID': tenantId };
+}
+
+async function withEventTenant<T extends object>(
+  eventId: string,
+  dto: T
+): Promise<T & { tenantId: string }> {
+  const tenantId = await resolveTenantIdForEvent(eventId);
+  return { ...dto, tenantId };
+}
+
+async function proxyJson<T>(path: string, init?: RequestInit, tenantId?: string): Promise<T> {
   const baseUrl = getAppUrl();
   const res = await fetch(`${baseUrl}/api/proxy${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      ...(tenantId ? tenantHeaders(tenantId) : {}),
       ...(init?.headers || {}),
     },
     cache: 'no-store',
@@ -45,15 +80,18 @@ async function proxyJson<T>(path: string, init?: RequestInit): Promise<T> {
 async function listFromBackend<T>(
   resource: string,
   query: string,
-  options?: { throwOnError?: boolean }
+  options: { eventId: string; throwOnError?: boolean }
 ): Promise<T[]> {
-  const tenantId = getTenantId();
-  const url = `${getApiBase()}/api/${resource}?${query}&tenantId.equals=${tenantId}`;
-  const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
+  const tenantId = await resolveTenantIdForEvent(options.eventId);
+  const url = `${getApiBase()}/api/${resource}?${query}&tenantId.equals=${encodeURIComponent(tenantId)}`;
+  const res = await fetchWithJwtRetry(url, {
+    cache: 'no-store',
+    headers: tenantHeaders(tenantId),
+  });
   if (!res.ok) {
     const text = await res.text();
     console.error(`[competitions-admin] GET ${resource} failed:`, res.status, text);
-    if (options?.throwOnError) {
+    if (options.throwOnError) {
       throw new Error(`Could not load ${resource} (HTTP ${res.status}).`);
     }
     return [];
@@ -69,7 +107,8 @@ export async function fetchCompetitionSettingsForEventServer(
 ): Promise<EventCompetitionSettingsDTO | null> {
   const items = await listFromBackend<EventCompetitionSettingsDTO>(
     'event-competition-settings',
-    `eventId.equals=${eventId}`
+    `eventId.equals=${eventId}`,
+    { eventId }
   );
   return items[0] ?? null;
 }
@@ -79,18 +118,23 @@ export async function createCompetitionSettingsServer(
   payload: Omit<EventCompetitionSettingsDTO, 'id' | 'tenantId' | 'createdAt' | 'updatedAt' | 'event'>
 ): Promise<EventCompetitionSettingsDTO> {
   const now = new Date().toISOString();
-  return proxyJson<EventCompetitionSettingsDTO>('/event-competition-settings', {
-    method: 'POST',
-    body: JSON.stringify(
-      withTenantId({
-        ...payload,
-        id: null,
-        event: eventRef(eventId),
-        createdAt: now,
-        updatedAt: now,
-      })
-    ),
-  });
+  const tenantId = await resolveTenantIdForEvent(eventId);
+  return proxyJson<EventCompetitionSettingsDTO>(
+    '/event-competition-settings',
+    {
+      method: 'POST',
+      body: JSON.stringify(
+        await withEventTenant(eventId, {
+          ...payload,
+          id: null,
+          event: eventRef(eventId),
+          createdAt: now,
+          updatedAt: now,
+        })
+      ),
+    },
+    tenantId
+  );
 }
 
 export async function patchCompetitionSettingsServer(
@@ -99,24 +143,33 @@ export async function patchCompetitionSettingsServer(
   payload: Partial<EventCompetitionSettingsDTO>
 ): Promise<EventCompetitionSettingsDTO> {
   const now = new Date().toISOString();
-  return proxyJson<EventCompetitionSettingsDTO>(`/event-competition-settings/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/merge-patch+json' },
-    body: JSON.stringify(
-      withTenantId({
-        ...payload,
-        id,
-        event: eventRef(eventId),
-        updatedAt: now,
-      })
-    ),
-  });
+  const tenantId = await resolveTenantIdForEvent(eventId);
+  return proxyJson<EventCompetitionSettingsDTO>(
+    `/event-competition-settings/${id}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/merge-patch+json' },
+      body: JSON.stringify(
+        await withEventTenant(eventId, {
+          ...payload,
+          id,
+          event: eventRef(eventId),
+          updatedAt: now,
+        })
+      ),
+    },
+    tenantId
+  );
 }
 
 // --- Days ---
 
 export async function fetchCompetitionDaysForEventServer(eventId: string): Promise<EventCompetitionDayDTO[]> {
-  return listFromBackend<EventCompetitionDayDTO>('event-competition-days', `eventId.equals=${eventId}&sort=sortOrder,asc`);
+  return listFromBackend<EventCompetitionDayDTO>(
+    'event-competition-days',
+    `eventId.equals=${eventId}&sort=sortOrder,asc`,
+    { eventId }
+  );
 }
 
 export async function createCompetitionDayServer(
@@ -124,18 +177,23 @@ export async function createCompetitionDayServer(
   payload: Omit<EventCompetitionDayDTO, 'id' | 'tenantId' | 'createdAt' | 'updatedAt' | 'event'>
 ): Promise<EventCompetitionDayDTO> {
   const now = new Date().toISOString();
-  return proxyJson<EventCompetitionDayDTO>('/event-competition-days', {
-    method: 'POST',
-    body: JSON.stringify(
-      withTenantId({
-        ...payload,
-        id: null,
-        event: eventRef(eventId),
-        createdAt: now,
-        updatedAt: now,
-      })
-    ),
-  });
+  const tenantId = await resolveTenantIdForEvent(eventId);
+  return proxyJson<EventCompetitionDayDTO>(
+    '/event-competition-days',
+    {
+      method: 'POST',
+      body: JSON.stringify(
+        await withEventTenant(eventId, {
+          ...payload,
+          id: null,
+          event: eventRef(eventId),
+          createdAt: now,
+          updatedAt: now,
+        })
+      ),
+    },
+    tenantId
+  );
 }
 
 export async function patchCompetitionDayServer(
@@ -144,23 +202,32 @@ export async function patchCompetitionDayServer(
   payload: Partial<EventCompetitionDayDTO>
 ): Promise<EventCompetitionDayDTO> {
   const now = new Date().toISOString();
-  return proxyJson<EventCompetitionDayDTO>(`/event-competition-days/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/merge-patch+json' },
-    body: JSON.stringify(
-      withTenantId({
-        ...payload,
-        id,
-        event: eventRef(eventId),
-        updatedAt: now,
-      })
-    ),
-  });
+  const tenantId = await resolveTenantIdForEvent(eventId);
+  return proxyJson<EventCompetitionDayDTO>(
+    `/event-competition-days/${id}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/merge-patch+json' },
+      body: JSON.stringify(
+        await withEventTenant(eventId, {
+          ...payload,
+          id,
+          event: eventRef(eventId),
+          updatedAt: now,
+        })
+      ),
+    },
+    tenantId
+  );
 }
 
-export async function deleteCompetitionDayServer(id: number): Promise<void> {
+export async function deleteCompetitionDayServer(id: number, eventId: string): Promise<void> {
+  const tenantId = await resolveTenantIdForEvent(eventId);
   const url = `${getApiBase()}/api/event-competition-days/${id}`;
-  const res = await fetchWithJwtRetry(url, { method: 'DELETE' });
+  const res = await fetchWithJwtRetry(url, {
+    method: 'DELETE',
+    headers: tenantHeaders(tenantId),
+  });
   if (!res.ok) throw new Error(`Failed to delete competition day ${id}`);
 }
 
@@ -169,13 +236,18 @@ export async function deleteCompetitionDayServer(id: number): Promise<void> {
 export async function fetchCompetitionsForEventServer(eventId: string): Promise<EventCompetitionDTO[]> {
   return listFromBackend<EventCompetitionDTO>(
     'event-competitions',
-    `eventId.equals=${eventId}&sort=displayOrder,asc`
+    `eventId.equals=${eventId}&sort=displayOrder,asc`,
+    { eventId }
   );
 }
 
-export async function fetchCompetitionByIdServer(id: number): Promise<EventCompetitionDTO | null> {
+export async function fetchCompetitionByIdServer(
+  id: number,
+  eventId?: string
+): Promise<EventCompetitionDTO | null> {
   try {
-    return await proxyJson<EventCompetitionDTO>(`/event-competitions/${id}`);
+    const tenantId = eventId ? await resolveTenantIdForEvent(eventId) : undefined;
+    return await proxyJson<EventCompetitionDTO>(`/event-competitions/${id}`, undefined, tenantId);
   } catch {
     return null;
   }
@@ -187,19 +259,24 @@ export async function createCompetitionServer(
 ): Promise<EventCompetitionDTO> {
   const now = new Date().toISOString();
   const { competitionDay, ...rest } = payload;
-  return proxyJson<EventCompetitionDTO>('/event-competitions', {
-    method: 'POST',
-    body: JSON.stringify(
-      withTenantId({
-        ...rest,
-        id: null,
-        event: eventRef(eventId),
-        ...(competitionDay?.id ? { competitionDay: { id: competitionDay.id } } : {}),
-        createdAt: now,
-        updatedAt: now,
-      })
-    ),
-  });
+  const tenantId = await resolveTenantIdForEvent(eventId);
+  return proxyJson<EventCompetitionDTO>(
+    '/event-competitions',
+    {
+      method: 'POST',
+      body: JSON.stringify(
+        await withEventTenant(eventId, {
+          ...rest,
+          id: null,
+          event: eventRef(eventId),
+          ...(competitionDay?.id ? { competitionDay: { id: competitionDay.id } } : {}),
+          createdAt: now,
+          updatedAt: now,
+        })
+      ),
+    },
+    tenantId
+  );
 }
 
 export async function patchCompetitionServer(
@@ -208,23 +285,32 @@ export async function patchCompetitionServer(
   payload: Partial<EventCompetitionDTO>
 ): Promise<EventCompetitionDTO> {
   const now = new Date().toISOString();
-  return proxyJson<EventCompetitionDTO>(`/event-competitions/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/merge-patch+json' },
-    body: JSON.stringify(
-      withTenantId({
-        ...payload,
-        id,
-        event: eventRef(eventId),
-        updatedAt: now,
-      })
-    ),
-  });
+  const tenantId = await resolveTenantIdForEvent(eventId);
+  return proxyJson<EventCompetitionDTO>(
+    `/event-competitions/${id}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/merge-patch+json' },
+      body: JSON.stringify(
+        await withEventTenant(eventId, {
+          ...payload,
+          id,
+          event: eventRef(eventId),
+          updatedAt: now,
+        })
+      ),
+    },
+    tenantId
+  );
 }
 
-export async function deleteCompetitionServer(id: number): Promise<void> {
+export async function deleteCompetitionServer(id: number, eventId: string): Promise<void> {
+  const tenantId = await resolveTenantIdForEvent(eventId);
   const url = `${getApiBase()}/api/event-competitions/${id}`;
-  const res = await fetchWithJwtRetry(url, { method: 'DELETE' });
+  const res = await fetchWithJwtRetry(url, {
+    method: 'DELETE',
+    headers: tenantHeaders(tenantId),
+  });
   if (!res.ok) throw new Error(`Failed to delete competition ${id}`);
 }
 
@@ -246,10 +332,15 @@ function relatedEntityId(value: unknown): number | null {
 }
 
 async function fetchParticipantByIdServer(
-  id: number
+  id: number,
+  tenantId?: string
 ): Promise<EventCompetitionParticipantDTO | null> {
   try {
-    return await proxyJson<EventCompetitionParticipantDTO>(`/event-competition-participants/${id}`);
+    return await proxyJson<EventCompetitionParticipantDTO>(
+      `/event-competition-participants/${id}`,
+      undefined,
+      tenantId
+    );
   } catch {
     return null;
   }
@@ -258,10 +349,12 @@ async function fetchParticipantByIdServer(
 export async function fetchCompetitionRegistrationsForEventServer(
   eventId: string
 ): Promise<EventCompetitionRegistrationDTO[]> {
+  const tenantId = await resolveTenantIdForEvent(eventId);
   const [registrations, competitions] = await Promise.all([
     listFromBackend<EventCompetitionRegistrationDTO>(
       'event-competition-registrations',
-      `eventId.equals=${eventId}&sort=createdAt,desc`
+      `eventId.equals=${eventId}&sort=createdAt,desc`,
+      { eventId }
     ),
     fetchCompetitionsForEventServer(eventId),
   ]);
@@ -287,7 +380,7 @@ export async function fetchCompetitionRegistrationsForEventServer(
 
   const participantEntries = await Promise.all(
     participantIds.map(async (id) => {
-      const participant = await fetchParticipantByIdServer(id);
+      const participant = await fetchParticipantByIdServer(id, tenantId);
       return [id, participant] as const;
     })
   );
@@ -331,6 +424,7 @@ export async function reconcileFreeCompetitionRegistrationsServer(
   registrations: EventCompetitionRegistrationDTO[]
 ): Promise<EventCompetitionRegistrationDTO[]> {
   const now = new Date().toISOString();
+  const tenantId = await resolveTenantIdForEvent(eventId);
   const updated = await Promise.all(
     registrations.map(async (r) => {
       const isFree = !(Number(r.feeAmount) > 0);
@@ -348,13 +442,14 @@ export async function reconcileFreeCompetitionRegistrationsServer(
             method: 'PATCH',
             headers: { 'Content-Type': 'application/merge-patch+json' },
             body: JSON.stringify(
-              withTenantId({
+              await withEventTenant(eventId, {
                 id: r.id,
                 registrationStatus: 'CONFIRMED',
                 updatedAt: now,
               })
             ),
-          }
+          },
+          tenantId
         );
         return { ...r, ...patched, registrationStatus: 'CONFIRMED' as const };
       } catch (err) {
@@ -375,7 +470,7 @@ export async function fetchCompetitionResultsForEventServer(
   return listFromBackend<EventCompetitionResultDTO>(
     'event-competition-results',
     `eventId.equals=${eventId}&sort=placement,asc`,
-    options
+    { eventId, throwOnError: options?.throwOnError }
   );
 }
 
@@ -419,18 +514,23 @@ export async function createCompetitionResultServer(
   payload: Omit<EventCompetitionResultDTO, 'id' | 'tenantId' | 'createdAt' | 'updatedAt' | 'event'>
 ): Promise<EventCompetitionResultDTO> {
   const now = new Date().toISOString();
-  return proxyJson<EventCompetitionResultDTO>('/event-competition-results', {
-    method: 'POST',
-    body: JSON.stringify(
-      withTenantId({
-        ...payload,
-        id: null,
-        event: eventRef(eventId),
-        createdAt: now,
-        updatedAt: now,
-      })
-    ),
-  });
+  const tenantId = await resolveTenantIdForEvent(eventId);
+  return proxyJson<EventCompetitionResultDTO>(
+    '/event-competition-results',
+    {
+      method: 'POST',
+      body: JSON.stringify(
+        await withEventTenant(eventId, {
+          ...payload,
+          id: null,
+          event: eventRef(eventId),
+          createdAt: now,
+          updatedAt: now,
+        })
+      ),
+    },
+    tenantId
+  );
 }
 
 export async function patchCompetitionResultServer(
@@ -439,33 +539,46 @@ export async function patchCompetitionResultServer(
   payload: Partial<EventCompetitionResultDTO>
 ): Promise<EventCompetitionResultDTO> {
   const now = new Date().toISOString();
-  return proxyJson<EventCompetitionResultDTO>(`/event-competition-results/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/merge-patch+json' },
-    body: JSON.stringify(
-      withTenantId({
-        ...payload,
-        id,
-        event: eventRef(eventId),
-        updatedAt: now,
-      })
-    ),
-  });
+  const tenantId = await resolveTenantIdForEvent(eventId);
+  return proxyJson<EventCompetitionResultDTO>(
+    `/event-competition-results/${id}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/merge-patch+json' },
+      body: JSON.stringify(
+        await withEventTenant(eventId, {
+          ...payload,
+          id,
+          event: eventRef(eventId),
+          updatedAt: now,
+        })
+      ),
+    },
+    tenantId
+  );
 }
 
 export async function patchCompetitionResultDirectServer(
   resultId: number,
-  payload: Partial<EventCompetitionResultDTO>
+  payload: Partial<EventCompetitionResultDTO>,
+  eventId: string
 ): Promise<EventCompetitionResultDTO> {
+  const tenantId = await resolveTenantIdForEvent(eventId);
   let token = await getCachedApiJwt();
   if (!token) token = await generateApiJwt();
   const url = `${getApiBase()}/api/event-competition-results/${resultId}`;
-  const finalPayload = { ...payload, id: resultId, updatedAt: new Date().toISOString() };
+  const finalPayload = {
+    ...payload,
+    id: resultId,
+    tenantId,
+    updatedAt: new Date().toISOString(),
+  };
   const res = await fetchWithJwtRetry(url, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/merge-patch+json',
       Authorization: `Bearer ${token}`,
+      ...tenantHeaders(tenantId),
     },
     body: JSON.stringify(finalPayload),
   });
@@ -490,6 +603,7 @@ export async function uploadCompetitionWinnerPhotoServer(
     throw new Error('No image file provided');
   }
 
+  const tenantId = await resolveTenantIdForEvent(eventId);
   const isWork = kind === 'work';
   const uploadForm = new FormData();
   uploadForm.append('file', file, file instanceof File ? file.name : `${kind}-${resultId}.jpg`);
@@ -497,7 +611,7 @@ export async function uploadCompetitionWinnerPhotoServer(
   const today = new Date().toISOString().split('T')[0];
   const params = new URLSearchParams();
   params.append('eventId', String(eventId));
-  params.append('tenantId', getTenantId());
+  params.append('tenantId', tenantId);
   params.append('title', isWork ? `Winning work - result ${resultId}` : `Winner photo - result ${resultId}`);
   params.append(
     'description',
@@ -522,6 +636,7 @@ export async function uploadCompetitionWinnerPhotoServer(
       method: 'POST',
       body: uploadForm,
       timeout: 120000,
+      headers: tenantHeaders(tenantId),
     },
     isWork ? 'competition-work-photo-upload' : 'competition-winner-photo-upload'
   );
@@ -556,23 +671,35 @@ export async function uploadCompetitionWinnerPhotoServer(
   const urlField = isWork ? 'workPhotoUrl' : 'winnerPhotoUrl';
 
   try {
-    await patchCompetitionResultDirectServer(resultId, {
-      [mediaField]: null,
-    } as Partial<EventCompetitionResultDTO>);
+    await patchCompetitionResultDirectServer(
+      resultId,
+      {
+        [mediaField]: null,
+      } as Partial<EventCompetitionResultDTO>,
+      eventId
+    );
   } catch (clearErr) {
     console.warn('[competitions-admin] Could not clear previous media association (continuing):', clearErr);
   }
 
   try {
-    await patchCompetitionResultDirectServer(resultId, {
-      [mediaField]: { id: mediaId },
-      [urlField]: fileUrl,
-    } as Partial<EventCompetitionResultDTO>);
+    await patchCompetitionResultDirectServer(
+      resultId,
+      {
+        [mediaField]: { id: mediaId },
+        [urlField]: fileUrl,
+      } as Partial<EventCompetitionResultDTO>,
+      eventId
+    );
   } catch (linkErr) {
     console.warn('[competitions-admin] media link failed; saving URL only:', linkErr);
-    await patchCompetitionResultDirectServer(resultId, {
-      [urlField]: fileUrl,
-    } as Partial<EventCompetitionResultDTO>);
+    await patchCompetitionResultDirectServer(
+      resultId,
+      {
+        [urlField]: fileUrl,
+      } as Partial<EventCompetitionResultDTO>,
+      eventId
+    );
   }
 
   return { fileUrl, mediaId };
@@ -585,7 +712,8 @@ export async function fetchCompetitionContentBlocksForEventServer(
 ): Promise<EventCompetitionContentBlockDTO[]> {
   return listFromBackend<EventCompetitionContentBlockDTO>(
     'event-competition-content-blocks',
-    `eventId.equals=${eventId}&sort=sortOrder,asc`
+    `eventId.equals=${eventId}&sort=sortOrder,asc`,
+    { eventId }
   );
 }
 
@@ -596,32 +724,41 @@ export async function upsertCompetitionContentBlockServer(
   }
 ): Promise<EventCompetitionContentBlockDTO> {
   const now = new Date().toISOString();
+  const tenantId = await resolveTenantIdForEvent(eventId);
   if (payload.id) {
-    return proxyJson<EventCompetitionContentBlockDTO>(`/event-competition-content-blocks/${payload.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/merge-patch+json' },
+    return proxyJson<EventCompetitionContentBlockDTO>(
+      `/event-competition-content-blocks/${payload.id}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/merge-patch+json' },
+        body: JSON.stringify(
+          await withEventTenant(eventId, {
+            ...payload,
+            id: payload.id,
+            event: eventRef(eventId),
+            updatedAt: now,
+          })
+        ),
+      },
+      tenantId
+    );
+  }
+  return proxyJson<EventCompetitionContentBlockDTO>(
+    '/event-competition-content-blocks',
+    {
+      method: 'POST',
       body: JSON.stringify(
-        withTenantId({
+        await withEventTenant(eventId, {
           ...payload,
-          id: payload.id,
+          id: null,
           event: eventRef(eventId),
+          createdAt: now,
           updatedAt: now,
         })
       ),
-    });
-  }
-  return proxyJson<EventCompetitionContentBlockDTO>('/event-competition-content-blocks', {
-    method: 'POST',
-    body: JSON.stringify(
-      withTenantId({
-        ...payload,
-        id: null,
-        event: eventRef(eventId),
-        createdAt: now,
-        updatedAt: now,
-      })
-    ),
-  });
+    },
+    tenantId
+  );
 }
 
 // --- Participants (admin view) ---
@@ -631,6 +768,7 @@ export async function fetchCompetitionParticipantsForEventServer(
 ): Promise<EventCompetitionParticipantDTO[]> {
   return listFromBackend<EventCompetitionParticipantDTO>(
     'event-competition-participants',
-    `eventId.equals=${eventId}&sort=lastName,asc`
+    `eventId.equals=${eventId}&sort=lastName,asc`,
+    { eventId }
   );
 }

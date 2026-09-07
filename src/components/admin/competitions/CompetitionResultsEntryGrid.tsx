@@ -120,11 +120,12 @@ export default function CompetitionResultsEntryGrid({
             ? ({ workMedia: null, workPhotoUrl: '' } as Partial<EventCompetitionResultDTO>)
             : ({ winnerMedia: null, winnerPhotoUrl: '' } as Partial<EventCompetitionResultDTO>);
         try {
-          await patchCompetitionResultDirectServer(resultId, payload);
+          await patchCompetitionResultDirectServer(resultId, payload, eventId);
         } catch {
           await patchCompetitionResultDirectServer(
             resultId,
-            kind === 'work' ? { workPhotoUrl: '' } : { winnerPhotoUrl: '' }
+            kind === 'work' ? { workPhotoUrl: '' } : { winnerPhotoUrl: '' },
+            eventId
           );
         }
         setResults((prev) =>
@@ -149,17 +150,25 @@ export default function CompetitionResultsEntryGrid({
         setError(null);
         if (result.winnerPhotoUrl || result.winnerMedia?.id || result.workPhotoUrl || result.workMedia?.id) {
           try {
-            await patchCompetitionResultDirectServer(result.id, {
-              winnerMedia: null,
-              winnerPhotoUrl: '',
-              workMedia: null,
-              workPhotoUrl: '',
-            } as Partial<EventCompetitionResultDTO>);
+            await patchCompetitionResultDirectServer(
+              result.id,
+              {
+                winnerMedia: null,
+                winnerPhotoUrl: '',
+                workMedia: null,
+                workPhotoUrl: '',
+              } as Partial<EventCompetitionResultDTO>,
+              eventId
+            );
           } catch {
-            await patchCompetitionResultDirectServer(result.id, {
-              winnerPhotoUrl: '',
-              workPhotoUrl: '',
-            });
+            await patchCompetitionResultDirectServer(
+              result.id,
+              {
+                winnerPhotoUrl: '',
+                workPhotoUrl: '',
+              },
+              eventId
+            );
           }
         }
         resetResultFormFields(result.id);
