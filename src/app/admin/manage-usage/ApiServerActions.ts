@@ -95,6 +95,77 @@ export async function fetchUsersServer({ search, searchField, status, role, page
   return { data, totalCount: parsedTotal };
 }
 
+const TYPEAHEAD_FIELDS = ['firstName', 'lastName', 'email', 'userId', 'phone'] as const;
+const TYPEAHEAD_LIMIT = 20;
+
+function mergeUsersById(...lists: UserProfileDTO[][]): UserProfileDTO[] {
+  const byId = new Map<string, UserProfileDTO>();
+  for (const list of lists) {
+    for (const user of list) {
+      const key =
+        user.id != null
+          ? `id:${user.id}`
+          : user.userId
+            ? `userId:${user.userId}`
+            : user.email
+              ? `email:${user.email}`
+              : null;
+      if (!key || byId.has(key)) continue;
+      byId.set(key, user);
+    }
+  }
+  return Array.from(byId.values());
+}
+
+function normalizeUserList(data: unknown): UserProfileDTO[] {
+  if (Array.isArray(data)) return data as UserProfileDTO[];
+  if (
+    data &&
+    typeof data === 'object' &&
+    'content' in data &&
+    Array.isArray((data as { content: unknown }).content)
+  ) {
+    return (data as { content: UserProfileDTO[] }).content;
+  }
+  return [];
+}
+
+/**
+ * Multi-field typeahead for focus-group member add / Manage Usage.
+ * Uses fetchWithJwtRetry + backend base URL per nextjs_api_routes.mdc.
+ */
+export async function searchUsersForTypeaheadServer(
+  query: string,
+  options?: { status?: string; role?: string; tenantId?: string },
+): Promise<UserProfileDTO[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const tid = effectiveTenantId(options?.tenantId);
+  const results = await Promise.all(
+    TYPEAHEAD_FIELDS.map(async (field) => {
+      const params = new URLSearchParams();
+      params.append(`${field}.contains`, trimmed);
+      if (options?.status) params.append('userStatus.equals', options.status);
+      if (options?.role) params.append('userRole.equals', options.role);
+      appendTenantIfPresent(params, tid);
+      params.append('page', '0');
+      params.append('size', String(TYPEAHEAD_LIMIT));
+      const res = await fetchWithJwtRetry(
+        `${getBackendApiUrl()}/api/user-profiles?${params.toString()}`,
+        {
+          cache: 'no-store',
+          headers: headersForTenantScope(options?.tenantId),
+        },
+      );
+      if (!res.ok) return [] as UserProfileDTO[];
+      return normalizeUserList(await res.json());
+    }),
+  );
+
+  return mergeUsersById(...results).slice(0, TYPEAHEAD_LIMIT);
+}
+
 export async function patchUserProfileServer(userId: number, payload: Partial<UserProfileDTO>, tenantId?: string) {
   const url = `${getBackendApiUrl()}/api/user-profiles/${userId}`;
   const tid = effectiveTenantId(tenantId);

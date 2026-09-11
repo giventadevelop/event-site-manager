@@ -3,6 +3,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { EventForm } from '@/components/EventForm';
 import AgendaFlyerPanel from '@/app/admin/events/[id]/agenda/AgendaFlyerPanel';
+import EventEditFocusGroupsPanel from './EventEditFocusGroupsPanel';
 import type { EventDetailsDTO, EventTypeDetailsDTO } from '@/types';
 import Link from 'next/link';
 import { FaUsers, FaPhotoVideo, FaCalendarAlt, FaTags, FaTicketAlt, FaHome, FaMicrophone, FaAddressBook, FaHandshake, FaEnvelope, FaUserTie, FaClock, FaClipboardCheck, FaChartLine, FaDollarSign } from 'react-icons/fa';
@@ -298,6 +299,10 @@ export default function EditEventPage() {
       </div>
 
       {eventId && <AgendaFlyerPanel eventId={String(eventId)} />}
+
+      {eventId && (
+        <EventEditFocusGroupsPanel eventId={Number(Array.isArray(eventId) ? eventId[0] : eventId)} />
+      )}
 
       <h1 className="text-2xl font-bold mb-2">Edit Event - ID: {eventId}</h1>
       <AdminTenantIdBanner

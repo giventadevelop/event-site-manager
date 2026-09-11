@@ -1,9 +1,12 @@
 "use server";
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getApiBaseUrl, getAppUrl } from '@/lib/env';
+import { getAppUrl, getApiBaseUrl } from '@/lib/env';
 import type { EventDetailsDTO, EventFocusGroupDTO } from '@/types';
 
-const API_BASE_URL = getApiBaseUrl();
+// Lazy getter — evaluated at call time, not module load time (critical for Lambda cold starts)
+function getApiBase() {
+  return getApiBaseUrl();
+}
 
 /**
  * Associate an event with a focus group
@@ -54,6 +57,18 @@ export async function associateEventWithFocusGroup(
   return await res.json();
 }
 
+/** Normalize event-focus-groups API response to array (handles paged / _embedded / snake_case). */
+function normalizeEventFocusGroupsResponse(data: unknown): Array<{ id?: number; eventId?: number; focusGroupId?: number; event_id?: number; focus_group_id?: number }> {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object') {
+    const o = data as Record<string, unknown>;
+    if (Array.isArray(o.content)) return o.content as Array<{ id?: number; eventId?: number; focusGroupId?: number; event_id?: number; focus_group_id?: number }>;
+    const emb = o._embedded as Record<string, unknown> | undefined;
+    if (emb && Array.isArray(emb.eventFocusGroups)) return emb.eventFocusGroups as Array<{ id?: number; eventId?: number; focusGroupId?: number; event_id?: number; focus_group_id?: number }>;
+  }
+  return [];
+}
+
 /**
  * Find association ID for an event and focus group
  */
@@ -76,12 +91,14 @@ export async function findAssociationId(
   }
 
   const data = await res.json();
-  const associations = Array.isArray(data) ? data : [data];
+  const associations = normalizeEventFocusGroupsResponse(data);
   const association = associations.find(
-    (a: EventFocusGroupDTO) => a.eventId === eventId && a.focusGroupId === focusGroupId
+    (a) =>
+      (a.eventId === eventId || a.event_id === eventId) &&
+      (a.focusGroupId === focusGroupId || a.focus_group_id === focusGroupId)
   );
 
-  return association?.id || null;
+  return association?.id ?? null;
 }
 
 /**
@@ -115,7 +132,28 @@ export async function unlinkEventFromFocusGroup(
 }
 
 /**
- * Fetch associated events for a focus group with pagination
+ * Fetch event IDs linked to a focus group from event_focus_groups table only.
+ */
+async function fetchLinkedEventIds(baseUrl: string, focusGroupId: number): Promise<number[]> {
+  const params = new URLSearchParams({
+    'focusGroupId.equals': focusGroupId.toString(),
+    size: '500',
+  });
+  const res = await fetchWithJwtRetry(
+    `${baseUrl}/api/proxy/event-focus-groups?${params.toString()}`,
+    { cache: 'no-store' }
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  const arr = normalizeEventFocusGroupsResponse(data);
+  return arr
+    .map((a) => a.eventId ?? a.event_id)
+    .filter((id): id is number => typeof id === 'number');
+}
+
+/**
+ * Fetch associated events for a focus group with pagination.
+ * Uses event_focus_groups table as source of truth: only events that have a row there are shown.
  */
 export async function fetchAssociatedEvents(
   focusGroupId: number,
@@ -125,14 +163,19 @@ export async function fetchAssociatedEvents(
   showPastEvents?: boolean
 ): Promise<{ events: EventDetailsDTO[]; totalCount: number }> {
   const baseUrl = getAppUrl();
+
+  const eventIds = await fetchLinkedEventIds(baseUrl, focusGroupId);
+  if (eventIds.length === 0) {
+    return { events: [], totalCount: 0 };
+  }
+
   const params = new URLSearchParams({
-    'focusGroupId.equals': focusGroupId.toString(),
+    'id.in': eventIds.join(','),
     page: page.toString(),
     size: pageSize.toString(),
     sort,
   });
 
-  // Add date filtering if requested
   if (showPastEvents !== undefined) {
     const today = new Date().toISOString().split('T')[0];
     if (showPastEvents) {
@@ -151,10 +194,15 @@ export async function fetchAssociatedEvents(
     throw new Error(`Failed to fetch events: ${res.statusText}`);
   }
 
-  const totalCount = Number(res.headers.get('X-Total-Count')) || 0;
-  const events = await res.json();
+  const data = await res.json();
+  const content = Array.isArray(data) ? data : (data && Array.isArray((data as { content?: unknown }).content) ? (data as { content: EventDetailsDTO[] }).content : []);
+  let totalCount = Number(res.headers.get('X-Total-Count') || res.headers.get('x-total-count')) || 0;
+  if (totalCount === 0 && data && typeof data === 'object' && typeof (data as { totalElements?: number }).totalElements === 'number') {
+    totalCount = (data as { totalElements: number }).totalElements;
+  }
+  if (totalCount === 0) totalCount = content.length;
 
-  return { events: Array.isArray(events) ? events : [], totalCount };
+  return { events: content, totalCount };
 }
 
 /**
