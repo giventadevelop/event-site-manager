@@ -1,6 +1,7 @@
 import { getAppUrl, appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
 import AdminNavigation from '@/components/AdminNavigation';
 import AdminTenantFilterBar from '@/components/admin/AdminTenantFilterBar';
+import DeleteFocusGroupButton from './DeleteFocusGroupButton';
 // Icons removed - using inline SVGs instead
 
 function toInt(v: string | undefined, d: number) {
@@ -148,6 +149,12 @@ export default async function AdminFocusGroupsPage({ searchParams }: { searchPar
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
                     </a>
+                    <DeleteFocusGroupButton
+                      id={g.id}
+                      name={g.name}
+                      slug={g.slug}
+                      tenantId={tenantId}
+                    />
                   </div>
                 </td>
               </tr>

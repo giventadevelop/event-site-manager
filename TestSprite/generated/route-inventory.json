@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-08-16T17:44:32.369Z",
+  "generatedAt": "2026-09-14T14:47:49.245Z",
   "root": "src/app",
-  "totalPages": 383,
-  "totalUniqueRoutes": 383,
+  "totalPages": 398,
+  "totalUniqueRoutes": 398,
   "byKind": {
-    "public": 96,
-    "admin": 95,
+    "public": 103,
+    "admin": 103,
     "mosc": 192
   },
   "routes": [
@@ -227,6 +227,79 @@
         "id"
       ],
       "sourceFile": "src/app/admin/events/[id]/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/agenda",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/agenda/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/competitions/[compId]/edit",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id",
+        "compId"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/competitions/[compId]/edit/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/competitions/days",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/competitions/days/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/competitions/list",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/competitions/list/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/competitions/list/new",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/competitions/list/new/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/competitions/registrations",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/competitions/registrations/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/competitions/results",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/competitions/results/page.tsx"
+    },
+    {
+      "path": "/admin/events/[id]/competitions/settings",
+      "kind": "admin",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/admin/events/[id]/competitions/settings/page.tsx"
     },
     {
       "path": "/admin/events/[id]/contacts",
@@ -890,6 +963,70 @@
         "id"
       ],
       "sourceFile": "src/app/events/[id]/checkout/page.tsx"
+    },
+    {
+      "path": "/events/[id]/competitions",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/competitions/page.tsx"
+    },
+    {
+      "path": "/events/[id]/competitions/[compId]",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id",
+        "compId"
+      ],
+      "sourceFile": "src/app/events/[id]/competitions/[compId]/page.tsx"
+    },
+    {
+      "path": "/events/[id]/competitions/catalog",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/competitions/catalog/page.tsx"
+    },
+    {
+      "path": "/events/[id]/competitions/my-registrations",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/competitions/my-registrations/page.tsx"
+    },
+    {
+      "path": "/events/[id]/competitions/register",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/competitions/register/page.tsx"
+    },
+    {
+      "path": "/events/[id]/competitions/rules",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/competitions/rules/page.tsx"
+    },
+    {
+      "path": "/events/[id]/competitions/winners",
+      "kind": "public",
+      "dynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "sourceFile": "src/app/events/[id]/competitions/winners/page.tsx"
     },
     {
       "path": "/events/[id]/donation",
