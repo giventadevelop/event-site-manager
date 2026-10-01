@@ -1984,3 +1984,34 @@ export interface EventCompetitionContentBlockDTO {
   event?: EventDetailsDTO;
 }
 
+/**
+ * One admin YouTube URL per tenant for the MOSC redesign homepage player.
+ */
+export interface HomepageYoutubeOverrideDTO {
+  id?: number | null;
+  tenantId?: string;
+  youtubeUrl?: string | null;
+  title?: string | null;
+  description?: string | null;
+  isActive?: boolean | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+/**
+ * One admin-entered YouTube video shown in the MOSC redesign gallery.
+ */
+export interface GalleryYoutubeVideoDTO {
+  id?: number | null;
+  tenantId?: string;
+  youtubeUrl?: string | null;
+  title?: string | null;
+  description?: string | null;
+  displayOrder?: number | null;
+  isActive?: boolean | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+

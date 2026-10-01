@@ -266,6 +266,20 @@ export default function AdminPage() {
       label: 'Batch Job Dashboard',
       color: 'indigo',
       key: 'batch-jobs-dashboard'
+    },
+    {
+      href: '/admin/homepage-youtube-live',
+      icon: 'youtube',
+      label: 'Homepage YouTube',
+      color: 'youtubeLive',
+      key: 'homepage-youtube-live'
+    },
+    {
+      href: '/admin/gallery-youtube-videos',
+      icon: 'youtube',
+      label: 'Gallery YouTube',
+      color: 'galleryVideos',
+      key: 'gallery-youtube-videos'
     }
   ];
 
@@ -301,7 +315,9 @@ export default function AdminPage() {
       docCategories: 'bg-[#fdf2f8] hover:bg-[#fce7f3] text-[#9d174d]',
       squadGroups: 'bg-[#f3e8ff] hover:bg-[#e9d5ff] text-[#6b21a8]',
       squadRoster: 'bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#9f1239]',
-      cacheRecords: 'bg-[#ecfeff] hover:bg-[#cffafe] text-[#0e7490]'
+      cacheRecords: 'bg-[#ecfeff] hover:bg-[#cffafe] text-[#0e7490]',
+      youtubeLive: 'bg-[#f4f7e8] hover:bg-[#e7efc8] text-[#3f6212]',
+      galleryVideos: 'bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#9f1239]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -338,7 +354,9 @@ export default function AdminPage() {
       docCategories: 'bg-[#fbcfe8]',
       squadGroups: 'bg-[#e9d5ff]',
       squadRoster: 'bg-[#fecdd3]',
-      cacheRecords: 'bg-[#a5f3fc]'
+      cacheRecords: 'bg-[#a5f3fc]',
+      youtubeLive: 'bg-[#d9e8a8]',
+      galleryVideos: 'bg-[#fecdd3]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -375,7 +393,9 @@ export default function AdminPage() {
       docCategories: 'text-pink-600',
       squadGroups: 'text-[#7c3aed]',
       squadRoster: 'text-[#e11d48]',
-      cacheRecords: 'text-[#0891b2]'
+      cacheRecords: 'text-[#0891b2]',
+      youtubeLive: 'text-[#4d7c0f]',
+      galleryVideos: 'text-[#be123c]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -438,6 +458,8 @@ export default function AdminPage() {
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7m0 0l3-3m-3 3l3 3" /></svg>;
       case 'globe':
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9 0 01-9-9m9 9c0 01.53.053 0 019 9m-9-9a9 9 0 019-9m-9 9a9 9 0 019 9m0 0a9 9 0 01-9 9m9-9a9 9 0 009 9" /></svg>;
+      case 'youtube':
+        return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
       default:
         return null;
     }
