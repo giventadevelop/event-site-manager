@@ -9,6 +9,7 @@ import type { EventDetailsDTO, EventMediaDTO, EventAttendeeDTO, EventAttendeeGue
 import { FaPlus, FaTrashAlt, FaCheck } from "react-icons/fa";
 import { formatInTimeZone } from 'date-fns-tz';
 import LocationDisplay from '@/components/LocationDisplay';
+import { resolveRegisterTarget } from '@/lib/eventcube/utils';
 
 export default function EventRegisterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -57,6 +58,14 @@ export default function EventRegisterPage({ params }: { params: Promise<{ id: st
     }
     fetchEvent();
   }, [eventId]);
+
+  useEffect(() => {
+    if (!event) return;
+    const target = resolveRegisterTarget(event);
+    if (target?.kind === 'external') {
+      window.location.replace(target.href);
+    }
+  }, [event]);
 
   // Prepopulate attendee fields from user profile if logged in
   useEffect(() => {
