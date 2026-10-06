@@ -9,7 +9,6 @@ import LiveEventsSection from '@/components/LiveEventsSection';
 import FeaturedEventsSection from '@/components/FeaturedEventsSection';
 import ServicesSection from '@/components/ServicesSection';
 import AboutSection from '@/components/AboutSection';
-import UpcomingEventsSection from '@/components/UpcomingEventsSection';
 import CausesSection from '@/components/CausesSection';
 import TeamSection from '@/components/TeamSection';
 import OurSponsorsSection from '@/components/OurSponsorsSection';
@@ -76,7 +75,7 @@ const TeamFallback = () => (
 
 // Main content component that uses tenant settings
 function HomePageContent() {
-  const { showEventsSection, showTeamSection, showSponsorsSection, loading } = useTenantSettings();
+  const { showTeamSection, showSponsorsSection, loading } = useTenantSettings();
 
   // Handle hash navigation on page load and hash changes
   useEffect(() => {
@@ -299,11 +298,6 @@ function HomePageContent() {
         </div>
       ) : (
         <>
-          {showEventsSection && (
-            <ErrorBoundary fallback={<EventsFallback />}>
-              <UpcomingEventsSection />
-            </ErrorBoundary>
-          )}
           {showTeamSection && (
             <ErrorBoundary fallback={<TeamFallback />}>
               <TeamSection />
