@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { GalleryAlbumDTO, EventMediaDTO } from '@/types';
-import { createAlbumYoutubeMediaServer } from '../../ApiServerActions';
+import { createAlbumYoutubeMediaServer, removeMediaFromAlbumServer } from '../../ApiServerActions';
 import { Modal } from '@/components/Modal';
 import ErrorDialog from '@/components/ErrorDialog';
 import {
@@ -578,23 +578,7 @@ export default function AlbumMediaClientPage({
       throw new Error('The media file could not be removed from this album.');
     }
     try {
-      const payload = {
-        id: media.id,
-        albumId: null,
-        updatedAt: new Date().toISOString(),
-        ...requiredMediaPatchFields(media),
-      } as Partial<EventMediaDTO>;
-
-      const res = await fetch(`/api/proxy/event-medias/${media.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/merge-patch+json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText);
-      }
+      await removeMediaFromAlbumServer(media.id);
 
       // Reload media and reset to page 0 if current page is empty
       await loadMedia();

@@ -301,15 +301,33 @@ export async function addMediaToAlbumServer(albumId: number, mediaIds: number[])
 export async function removeMediaFromAlbumServer(mediaId: number): Promise<void> {
   try {
     const url = `${API_BASE_URL}/api/event-medias/${mediaId}`;
+
+    // Backend PATCH ignores null fields, so albumId:null never clears the album.
+    // PUT replaces the full record, which requires the complete current DTO.
+    const currentRes = await fetchWithJwtRetry(url, { cache: 'no-store' });
+    if (!currentRes.ok) {
+      const errorText = await currentRes.text();
+      throw new Error(`Failed to load media ${mediaId}: ${errorText}`);
+    }
+    const current: EventMediaDTO = await currentRes.json();
+
     const payload = {
+      ...current,
       id: mediaId,
       albumId: null,
+      title: current.title || current.fileUrl?.split('/').pop() || `Media ${mediaId}`,
+      eventMediaType: current.eventMediaType || current.contentType || 'image/jpeg',
+      storageType: current.storageType || 'S3',
+      createdAt: current.createdAt || new Date().toISOString(),
+      isHomePageHeroImage: Boolean(current.isHomePageHeroImage ?? false),
+      isFeaturedEventImage: Boolean(current.isFeaturedEventImage ?? false),
+      isLiveEventImage: Boolean(current.isLiveEventImage ?? false),
       updatedAt: new Date().toISOString(),
     };
 
     const res = await fetchWithJwtRetry(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/merge-patch+json' },
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
       cache: 'no-store',
     });
