@@ -134,6 +134,44 @@ const COLLECTIONS: CollectionConfig[] = [
     ],
   },
   {
+    key: 'services',
+    title: 'Professional Services',
+    path: '/api/profile-services',
+    columns: [
+      { name: 'title', label: 'Title' },
+      { name: 'category', label: 'Category' },
+      { name: 'priceFrom', label: 'From' },
+      { name: 'isActive', label: 'Active' },
+      { name: 'displayOrder', label: 'Order' },
+    ],
+    fields: [
+      { name: 'title', label: 'Title', type: 'text', required: true },
+      { name: 'slug', label: 'URL slug', type: 'text' },
+      {
+        name: 'category',
+        label: 'Category',
+        type: 'select',
+        options: ['TAX', 'FINANCIAL', 'LEGAL', 'CONSULTING', 'COACHING', 'TECHNOLOGY', 'HEALTHCARE', 'EDUCATION', 'OTHER'],
+      },
+      { name: 'summary', label: 'Summary', type: 'textarea' },
+      { name: 'description', label: 'Description', type: 'textarea' },
+      { name: 'coverImageUrl', label: 'Cover image URL', type: 'text' },
+      { name: 'priceFrom', label: 'Starting price', type: 'number' },
+      {
+        name: 'priceUnit',
+        label: 'Price unit',
+        type: 'select',
+        options: ['HOUR', 'SESSION', 'PROJECT', 'MONTH', 'YEAR', 'CUSTOM'],
+      },
+      { name: 'currency', label: 'Currency', type: 'text' },
+      { name: 'ctaLabel', label: 'CTA label', type: 'text' },
+      { name: 'ctaUrl', label: 'CTA URL', type: 'text' },
+      { name: 'displayOrder', label: 'Display order', type: 'number' },
+      { name: 'isFeatured', label: 'Featured', type: 'checkbox' },
+      { name: 'isActive', label: 'Active', type: 'checkbox' },
+    ],
+  },
+  {
     key: 'media',
     title: 'Media / Talks / Downloads',
     path: '/api/profile-media-assets',
@@ -191,7 +229,7 @@ function CollectionSection({ config, tenantId }: { config: CollectionConfig; ten
   const startCreate = () => {
     const initial: ItemRecord = {};
     for (const f of config.fields) {
-      if (f.type === 'checkbox') initial[f.name] = false;
+      if (f.type === 'checkbox') initial[f.name] = f.name === 'isActive';
       else if (f.type === 'select' && f.options?.length) initial[f.name] = f.options[0];
       else initial[f.name] = '';
     }

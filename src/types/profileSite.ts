@@ -14,6 +14,17 @@ export type ProfileWritingType = 'ORIGINAL' | 'REPUBLISHED' | 'EXTERNAL_LINK';
 export type ProfileWritingStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type ProfileAchievementCategory = 'AWARD' | 'HONOR' | 'SPEAKING' | 'EDUCATION' | 'OTHER';
 export type ProfileMediaKind = 'DOCUMENT' | 'VIDEO' | 'PODCAST' | 'PRESS' | 'OTHER';
+export type ProfileServiceCategory =
+  | 'TAX'
+  | 'FINANCIAL'
+  | 'LEGAL'
+  | 'CONSULTING'
+  | 'COACHING'
+  | 'TECHNOLOGY'
+  | 'HEALTHCARE'
+  | 'EDUCATION'
+  | 'OTHER';
+export type ProfileServicePriceUnit = 'HOUR' | 'SESSION' | 'PROJECT' | 'MONTH' | 'YEAR' | 'CUSTOM';
 
 export interface PublicProfileDTO {
   id?: number | null;
@@ -136,6 +147,28 @@ export interface ProfileProjectDTO {
 export interface ProfileOutcomeMetric {
   label: string;
   value: string;
+}
+
+/** Professional service offered by a PERSONAL_PROFILE / HYBRID individual */
+export interface ProfileServiceDTO {
+  id?: number | null;
+  tenantId: string;
+  title: string;
+  slug?: string;
+  summary?: string;
+  description?: string;
+  category?: ProfileServiceCategory;
+  coverImageUrl?: string;
+  priceFrom?: number | null;
+  priceUnit?: ProfileServicePriceUnit | null;
+  currency?: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  displayOrder?: number;
+  isFeatured?: boolean;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type ProfileAudienceContactSource =

@@ -20,6 +20,10 @@ interface TenantSettingsContextType {
   showHeaderNews: boolean;
   showHeaderDownloads: boolean;
   showHeaderLinks: boolean;
+  showHeaderServices: boolean;
+  showHeaderAchievements: boolean;
+  showHeaderAffiliations: boolean;
+  showHeaderProjects: boolean;
 }
 
 function normalizeTenantSettings(settings: TenantSettingsDTO): TenantSettingsDTO {
@@ -49,6 +53,10 @@ const TenantSettingsContext = React.createContext<TenantSettingsContextType>({
   showHeaderNews: false,
   showHeaderDownloads: false,
   showHeaderLinks: false,
+  showHeaderServices: false,
+  showHeaderAchievements: false,
+  showHeaderAffiliations: false,
+  showHeaderProjects: false,
 });
 
 export const useTenantSettings = () => React.useContext(TenantSettingsContext);
@@ -190,6 +198,10 @@ export const TenantSettingsProvider: React.FC<TenantSettingsProviderProps> = ({ 
   const showHeaderNews = settings?.showHeaderNews ?? false;
   const showHeaderDownloads = settings?.showHeaderDownloads ?? false;
   const showHeaderLinks = settings?.showHeaderLinks ?? false;
+  const showHeaderServices = settings?.showHeaderServices ?? false;
+  const showHeaderAchievements = settings?.showHeaderAchievements ?? false;
+  const showHeaderAffiliations = settings?.showHeaderAffiliations ?? false;
+  const showHeaderProjects = settings?.showHeaderProjects ?? false;
 
   const contextValue: TenantSettingsContextType = {
     settings,
@@ -207,6 +219,10 @@ export const TenantSettingsProvider: React.FC<TenantSettingsProviderProps> = ({ 
     showHeaderNews,
     showHeaderDownloads,
     showHeaderLinks,
+    showHeaderServices,
+    showHeaderAchievements,
+    showHeaderAffiliations,
+    showHeaderProjects,
   };
 
   return (

@@ -20,7 +20,8 @@ export type ProfileCollectionPath =
   | '/api/profile-achievements'
   | '/api/profile-affiliations'
   | '/api/profile-media-assets'
-  | '/api/profile-projects';
+  | '/api/profile-projects'
+  | '/api/profile-services';
 
 function normalizeList<T>(data: unknown): T[] {
   if (Array.isArray(data)) return data as T[];
