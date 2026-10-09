@@ -441,7 +441,64 @@ AMPLIFY_NEXT_PUBLIC_TENANT_ID=mosc_customer_prefix_00002
 
 NEXT_PUBLIC_CLERK_IS_SATELLITE=true
 NEXT_PUBLIC_CLERK_DOMAIN=mosc-temp.com
-NEXT_PUBLIC_APP_URL=https://www.mosc-temp.com</pre>
+NEXT_PUBLIC_APP_URL=https://www.mosc-temp.com
+
+# Public satellite: do not serve /admin (redirects to the hub). Set false only for local debugging.
+DISABLE_ADMIN_ON_SATELLITE=true
+AMPLIFY_DISABLE_ADMIN_ON_SATELLITE=true</pre>
+    </div>
+
+    <h2 id="central-hub-allowlist">6b. Central admin hub — per-user tenant allowlist</h2>
+
+    <div class="section-container usage">
+        <div class="section-header usage">Authorization model</div>
+        <p>
+            Admin CRUD lives on the primary hub (<code>event-site-manager.com</code>). Satellite deploys stay public
+            (branding, checkout, webhooks). A MOSC operator with <code>user_role = ADMIN</code> on
+            <code>mosc_malankara_orthodox_2</code> is granted <code>/admin</code> on the hub from <strong>any</strong>
+            admin profile for their Clerk user ID — not only the platform env tenant.
+        </p>
+        <table>
+            <thead>
+                <tr><th>Role</th><th>Hub access</th><th>Tenant filter</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Tenant <code>ADMIN</code></td>
+                    <td>Any admin <code>user_profile</code> for this Clerk user</td>
+                    <td>Only those tenant IDs. Empty <code>?tenant=</code> is forced to the allowlist (never all tenants).</td>
+                </tr>
+                <tr>
+                    <td>Platform <code>SUPER_ADMIN</code></td>
+                    <td>Profile with <code>SUPER_ADMIN</code> on the all-tenants hub</td>
+                    <td>All tenants; empty filter = all</td>
+                </tr>
+                <tr>
+                    <td>Satellite visitor</td>
+                    <td>No <code>/admin</code> on satellite hosts</td>
+                    <td>Redirect to <code>https://www.event-site-manager.com/admin?tenant=&lt;envTenant&gt;</code></td>
+                </tr>
+            </tbody>
+        </table>
+        <p>
+            Enforcement is server-side (<code class="script-name">src/app/admin/adminAccessServer.ts</code>,
+            <code>appendAdminTenantFilter</code>, <code>resolveAdminMutationTenantId</code>). The query string is not trusted.
+            Platform-only modules (Tenant Management, Satellite Domains, Gas Stations, Test CRUD) are hidden and redirected
+            for tenant ADMIN.
+        </p>
+    </div>
+
+    <h2 id="kcnj-prod-fork">6c. kcnj-prod fork policy</h2>
+
+    <div class="info-box">
+        <p><strong>Decision: keep the kcnj-prod admin fork until operators use this hub.</strong></p>
+        <p>
+            Same-codebase satellites (mosc-temp, md-strikers, mcefee-temp) share this central admin immediately.
+            <strong>kcnj-prod is a separate repository</strong> with its own <code>/admin</code> and no
+            <code>AdminTenantContext</code>. Concentrating admin here does <strong>not</strong> delete that fork.
+            It only stops feature-replicating <em>if</em> KCNJ operators sign in on event-site-manager.com and
+            kcnj-prod is treated as a public satellite (or later merged). Until then, KCNJ still duplicates admin work.
+        </p>
     </div>
 
     <h2 id="caveats">7. Caveats and pitfalls</h2>
@@ -515,9 +572,12 @@ NEXT_PUBLIC_APP_URL=https://www.mosc-temp.com</pre>
         <div class="section-header">Key code references</div>
         <ul>
             <li><code class="code-highlight">src/lib/env.ts</code> — <code>getTenantId()</code>, <code>isAllTenantsAdmin()</code>, <code>appendTenantIfPresent()</code></li>
+            <li><code class="code-highlight">src/lib/adminTenantAccess.ts</code> — allowlist from Clerk user profiles (<code>ADMIN</code> vs <code>SUPER_ADMIN</code>)</li>
+            <li><code class="code-highlight">src/app/admin/adminAccessServer.ts</code> — server enforcement of <code>?tenant=</code> and mutations</li>
             <li><code class="code-highlight">src/lib/proxyHandler.ts</code> — <code>X-Tenant-ID</code> on <code>fetchWithJwtRetry</code></li>
             <li><code class="code-highlight">src/app/layout.tsx</code> — Clerk primary vs satellite, admin profile lookup</li>
-            <li><code class="code-highlight">src/app/admin/tenant-management/</code> — cross-tenant organization and settings management</li>
+            <li><code class="code-highlight">src/app/admin/tenant-management/</code> — cross-tenant organization and settings management (platform SUPER_ADMIN)</li>
+            <li><code class="code-highlight">src/middleware.ts</code> — satellite <code>/admin</code> redirect to the hub</li>
         </ul>
     </div>
 

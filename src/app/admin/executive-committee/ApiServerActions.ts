@@ -1,4 +1,5 @@
 'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import { appendTenantIfPresent, effectiveTenantId, getTenantId } from '@/lib/env';
@@ -46,7 +47,7 @@ export async function fetchExecutiveCommitteeMembersPage(
       size: String(Math.max(1, pageSize)),
     });
 
-    appendTenantIfPresent(params, effectiveTenantId(filters?.tenantId));
+    await appendAdminTenantFilter(params, filters?.tenantId);
 
     const idTrim = filters?.id?.trim();
     if (idTrim && /^\d+$/.test(idTrim)) {
@@ -226,7 +227,7 @@ export async function uploadTeamMemberProfileImage(
     params.append('title', `Team Member Profile Image - ${memberId}`); // Required parameter
     params.append('description', 'Profile image uploaded for executive committee team member');
     // Streaming upload proxy forwards query to backend; tenant is not duplicated as criteria here.
-    params.append('tenantId', getTenantId()); // Required by upload pipeline / backend contract
+    params.append('tenantId', await resolveAdminMutationTenantId()); // Required by upload pipeline / backend contract
 
     const baseUrl = await getAdminProxyBaseUrl();
     const url = `${baseUrl}/api/proxy/event-medias/upload?${params.toString()}`;

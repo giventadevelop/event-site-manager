@@ -1,9 +1,10 @@
 'use server';
+import { assertAdminCanAccessTenant, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { cache } from 'react';
 import { fetchEventDetailsServer } from '@/app/admin/ApiServerActions';
 import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
-import { getApiBaseUrl, getAppUrl, getTenantId, isAllTenantsAdmin } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl, isAllTenantsAdmin } from '@/lib/env';
 import { parseApiListResponse } from '@/lib/parseApiListResponse';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { hydrateCompetitionResults, matchCompetitionByName } from '@/lib/competitions/resultsPodium';
@@ -35,7 +36,9 @@ const resolveTenantIdForEvent = cache(async (eventId: string): Promise<string> =
   if (!Number.isNaN(numericId)) {
     const event = await fetchEventDetailsServer(numericId);
     if (event?.tenantId && String(event.tenantId).trim() !== '') {
-      return String(event.tenantId).trim();
+      const eventTenant = String(event.tenantId).trim();
+      await assertAdminCanAccessTenant(eventTenant);
+      return eventTenant;
     }
   }
   if (isAllTenantsAdmin()) {
@@ -43,7 +46,7 @@ const resolveTenantIdForEvent = cache(async (eventId: string): Promise<string> =
       `Could not resolve tenant for event ${eventId}. Event may be missing or inaccessible.`
     );
   }
-  return getTenantId();
+  return await resolveAdminMutationTenantId();
 });
 
 function tenantHeaders(tenantId: string): Record<string, string> {

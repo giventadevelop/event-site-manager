@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter } from '@/app/admin/adminAccessServer';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getDefaultPageSize } from '@/lib/env';
 import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import type { MembershipPlanDTO } from '@/types';
@@ -22,7 +23,7 @@ export async function fetchAllMembershipPlansServer(
   }
 
   const params = new URLSearchParams();
-  appendTenantIfPresent(params, effectiveTenantId(options.tenantId));
+  await appendAdminTenantFilter(params, options.tenantId);
   params.append('sort', options.sort || 'createdAt,desc');
   params.append('page', String(options.page ?? 0));
   params.append('size', String(options.size ?? getDefaultPageSize()));

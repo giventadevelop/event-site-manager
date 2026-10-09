@@ -1,3 +1,5 @@
+'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
@@ -11,7 +13,7 @@ export async function fetchEventEmailsServer(eventId?: number, tenantId?: string
   if (eventId) {
     params.append('eventId.equals', eventId.toString());
   }
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-emails${params.toString() ? `?${params.toString()}` : ''}`, {
     cache: 'no-store',
@@ -58,7 +60,7 @@ export async function createEventEmailServer(email: Omit<EventEmailsDTO, 'id' | 
 }
 
 export async function updateEventEmailServer(id: number, email: Partial<EventEmailsDTO>, tenantId?: string) {
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload: Record<string, unknown> = { ...email, id };
   if (tid != null) payload.tenantId = tid;
 

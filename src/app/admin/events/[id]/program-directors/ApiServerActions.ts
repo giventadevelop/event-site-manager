@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getApiBaseUrl, getTenantId } from '@/lib/env';
@@ -235,7 +236,7 @@ export async function uploadEventDirectorPosterServer(
   const params = new URLSearchParams();
   params.append('eventId', String(eventId));
   params.append('directorId', String(directorId));
-  params.append('tenantId', tenantId || getTenantId());
+  params.append('tenantId', await resolveAdminMutationTenantId(tenantId));
   params.append('isPublic', 'true');
 
   // Set eventMediaType to indicate this is a custom poster

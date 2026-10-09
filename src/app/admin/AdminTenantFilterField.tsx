@@ -15,6 +15,9 @@ import {
   fetchRecentTenantOrganizationsForSelectServer,
   searchTenantOrganizationsForSelectServer,
 } from '@/app/admin/tenant-management/organizations/organizationSelectServerActions';
+import { useAdminAccess } from './AdminTenantContext';
+import { selectAdminSessionTenant } from '@/app/admin/adminSessionActions';
+import { ADMIN_SESSION_ALL_TENANTS } from '@/lib/adminSessionTenant';
 
 const SEARCH_DEBOUNCE_MS = 280;
 const MAX_SUGGESTIONS = 20;
@@ -96,7 +99,18 @@ export default function AdminTenantFilterField({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const tenantFromUrl = searchParams.get('tenant') ?? '';
+  const { canQueryAllTenants, allowedTenantIds, defaultTenantId } = useAdminAccess();
+  const tenantFromUrl = searchParams?.get('tenant') ?? '';
+
+  const filterToAllowlist = useCallback(
+    (orgs: TenantOrganizationDTO[]) => {
+      if (canQueryAllTenants) return orgs;
+      if (allowedTenantIds.length === 0) return [];
+      const allowed = new Set(allowedTenantIds);
+      return orgs.filter((org) => org.tenantId && allowed.has(org.tenantId));
+    },
+    [canQueryAllTenants, allowedTenantIds],
+  );
   const listboxId = useId();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -123,11 +137,11 @@ export default function AdminTenantFilterField({
   const commitToUrl = useCallback(
     (raw: string) => {
       const v = raw.trim();
-      if (v === (searchParams.get('tenant') ?? '').trim()) {
+      if (v === (searchParams?.get('tenant') ?? '').trim()) {
         lastCommittedRef.current = v;
         return;
       }
-      const next = new URLSearchParams(searchParams.toString());
+      const next = new URLSearchParams(searchParams?.toString() ?? '');
       if (v) {
         next.set('tenant', v);
       } else {
@@ -150,7 +164,7 @@ export default function AdminTenantFilterField({
     async function loadRecent() {
       setLoading(true);
       try {
-        const recent = await fetchRecentTenantOrganizationsForSelectServer();
+        const recent = filterToAllowlist(await fetchRecentTenantOrganizationsForSelectServer());
         if (cancelled) return;
         setCachedOrgs(recent);
         setDisplayOrgs(recent.slice(0, MAX_SUGGESTIONS));
@@ -168,7 +182,7 @@ export default function AdminTenantFilterField({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [filterToAllowlist]);
 
   // URL → input label (skip while user is actively typing)
   useEffect(() => {
@@ -206,7 +220,7 @@ export default function AdminTenantFilterField({
 
     async function resolveSelected() {
       try {
-        const results = await searchTenantOrganizationsForSelectServer(tid);
+        const results = filterToAllowlist(await searchTenantOrganizationsForSelectServer(tid));
         if (cancelled) return;
         // Only accept an exact tenantId match — never results[0] (that caused infinite loops for partial queries like "fa")
         const match = results.find((org) => org.tenantId === tid);
@@ -224,7 +238,7 @@ export default function AdminTenantFilterField({
     return () => {
       cancelled = true;
     };
-  }, [tenantFromUrl]);
+  }, [tenantFromUrl, filterToAllowlist]);
 
   const runSearch = useCallback((term: string) => {
     const trimmed = term.trim();
@@ -242,9 +256,9 @@ export default function AdminTenantFilterField({
     searchTimerRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const results = await searchTenantOrganizationsForSelectServer(trimmed);
+        const results = filterToAllowlist(await searchTenantOrganizationsForSelectServer(trimmed));
         // Prefer server hits; keep local matches so a slow/empty name-only API never blanks ID matches
-        const merged = mergeOrgs(results, localMatches).slice(0, MAX_SUGGESTIONS);
+        const merged = mergeOrgs(results, filterToAllowlist(localMatches)).slice(0, MAX_SUGGESTIONS);
         setDisplayOrgs(merged);
         if (results.length > 0) {
           setCachedOrgs((prev) => mergeOrgs(prev, results));
@@ -255,7 +269,7 @@ export default function AdminTenantFilterField({
         setLoading(false);
       }
     }, SEARCH_DEBOUNCE_MS);
-  }, []);
+  }, [filterToAllowlist]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -275,15 +289,24 @@ export default function AdminTenantFilterField({
   }, []);
 
   const applyTenant = (tenantId: string | null, org?: TenantOrganizationDTO | null) => {
-    const next = (tenantId ?? '').trim();
+    let next = (tenantId ?? '').trim();
+    if (!canQueryAllTenants) {
+      if (!next || !allowedTenantIds.includes(next)) {
+        next = defaultTenantId || allowedTenantIds[0] || '';
+      }
+    }
     isTypingRef.current = false;
     setOpen(false);
     if (!next) {
       setInputValue('');
       resolveAttemptedRef.current = null;
+      if (canQueryAllTenants) {
+        void selectAdminSessionTenant(ADMIN_SESSION_ALL_TENANTS);
+      }
       commitToUrl('');
       return;
     }
+    void selectAdminSessionTenant(next);
     if (org) {
       setCachedOrgs((prev) => mergeOrgs(prev, [org]));
       setInputValue(formatOrgLabel(org));
@@ -390,7 +413,7 @@ export default function AdminTenantFilterField({
           autoComplete="off"
           spellCheck={false}
         />
-        {inputValue ? (
+        {inputValue && canQueryAllTenants ? (
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}

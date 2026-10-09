@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getDefaultPageSize } from '@/lib/env';
 import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
@@ -10,7 +11,7 @@ const API_BASE_URL = getApiBaseUrl();
 export async function fetchUserProfileServer(userId: string, tenantId?: string) {
   if (!userId) return null;
   const params = new URLSearchParams();
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const qs = params.toString();
   const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/user-profiles/by-user/${userId}${qs ? `?${qs}` : ''}`, {
     cache: 'no-store',
@@ -24,7 +25,7 @@ export async function fetchMediaServer(eventId: string, tenantId?: string) {
   params.set('eventId.equals', eventId);
   params.set('isEventManagementOfficialDocument.equals', 'false');
   params.set('sort', 'updatedAt,desc');
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${API_BASE_URL}/api/event-medias?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return [];
@@ -56,7 +57,7 @@ export async function fetchMediaFilteredServer(
     page: page.toString(),
     size: String(size ?? getDefaultPageSize()),
   });
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   if (searchTerm) {
     params.append('title.contains', searchTerm);
@@ -115,7 +116,7 @@ export async function fetchOfficialDocsServer(eventId: string, tenantId?: string
   params.set('eventId.equals', eventId);
   params.set('isEventManagementOfficialDocument.equals', 'true');
   params.set('sort', 'updatedAt,desc');
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${API_BASE_URL}/api/event-medias?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return [];
@@ -128,7 +129,7 @@ export async function fetchAgendaFlyerServer(eventId: string | number, tenantId?
   params.set('eventId.equals', String(eventId));
   params.set('isAgendaFlyer.equals', 'true');
   params.set('size', '1');
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-medias?${params.toString()}`, {
     cache: 'no-store',
   });
@@ -208,7 +209,7 @@ export async function uploadMedia(eventId: number, {
   formData.append('isActiveHeroImage', String(isActiveHeroImage));
   formData.append('isPublic', String(isPublic));
   formData.append('isTeamMemberProfileImage', String(isTeamMemberProfileImage));
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   if (tid != null) formData.append('tenantId', tid);
 
   // Append title and description for each file (backend expects arrays)
@@ -251,7 +252,7 @@ export async function uploadMedia(eventId: number, {
 
 export async function deleteMediaServer(mediaId: number | string, tenantId?: string) {
   const params = new URLSearchParams();
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const qs = params.toString();
   const url = `${API_BASE_URL}/api/event-medias/${mediaId}${qs ? `?${qs}` : ''}`;
   const res = await fetchWithJwtRetry(url, { method: 'DELETE' });
@@ -355,7 +356,7 @@ function inferEventMediaType(file: File): string {
 export async function fetchEventDetailsByIdServer(eventId: number, tenantId?: string) {
   if (!eventId) return null;
   const params = new URLSearchParams();
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const qs = params.toString();
   const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-details/${eventId}${qs ? `?${qs}` : ''}`, {
     cache: 'no-store',

@@ -1,3 +1,6 @@
+'use server';
+
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl, getTenantId } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
@@ -18,7 +21,7 @@ export async function fetchEventFeaturedPerformersServer(
   }
   params.append('page', page.toString());
   params.append('size', size.toString());
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-featured-performers?${params.toString()}`, {
     cache: 'no-store',
@@ -76,7 +79,7 @@ export async function createEventFeaturedPerformerServer(performer: Omit<EventFe
 }
 
 export async function updateEventFeaturedPerformerServer(id: number, performer: Partial<EventFeaturedPerformersDTO>, tenantId?: string) {
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload = { ...performer, id, ...(tid != null ? { tenantId: tid } : {}) };
 
   const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-featured-performers/${id}`, {
@@ -118,7 +121,7 @@ export async function fetchPerformerMediaServer(
   const params = new URLSearchParams();
   params.append('performerId.equals', performerId.toString());
 
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   // Sort by priority ranking (ascending)
   params.append('sort', 'priorityRanking,asc');
@@ -177,7 +180,7 @@ export async function uploadPerformerImageServer(
     params.append('title', title || `${imageType} - ${performerId}`);
     params.append('description', description || `Performer ${imageType} image`);
     params.append('isPublic', 'true');
-    const tid = effectiveTenantId(tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId);
     if (tid != null) params.append('tenantId', tid);
 
     // Set startDisplayingFromDate to today's date (YYYY-MM-DD format) to satisfy NOT NULL constraint
@@ -231,7 +234,7 @@ export async function updateEventMediaServer(
   const payload = {
     ...updates,
     id: mediaId,
-    tenantId: tenantId || getTenantId(),
+    tenantId: await resolveAdminMutationTenantId(tenantId),
   };
 
   const baseUrl = getAppUrl();

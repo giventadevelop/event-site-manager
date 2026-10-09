@@ -1,5 +1,7 @@
+'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
+import { getApiBaseUrl } from '@/lib/env';
 import type { EventContactsDTO } from '@/types';
 
 const API_BASE_URL = getApiBaseUrl();
@@ -9,7 +11,7 @@ export async function fetchEventContactsServer(eventId?: number, tenantId?: stri
   if (eventId) {
     params.append('eventId.equals', eventId.toString());
   }
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   const qs = params.toString();
   const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-contacts${qs ? `?${qs}` : ''}`, {
@@ -39,7 +41,7 @@ export async function createEventContactServer(
   contact: Omit<EventContactsDTO, 'id' | 'createdAt' | 'updatedAt'>,
   tenantId?: string
 ) {
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const nowIso = new Date().toISOString();
   const payload = {
     ...contact,
@@ -63,7 +65,7 @@ export async function createEventContactServer(
 }
 
 export async function updateEventContactServer(id: number, contact: Partial<EventContactsDTO>, tenantId?: string) {
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload = { ...contact, id, ...(tid != null ? { tenantId: tid } : {}) };
 
   const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-contacts/${id}`, {

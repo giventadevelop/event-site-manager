@@ -1,3 +1,4 @@
+'use server';
 import { getAppUrl } from '@/lib/env';
 import type { EventProgramDirectorsDTO } from '@/types';
 

@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl, getTenantId } from '@/lib/env';
@@ -13,7 +14,7 @@ export async function fetchEventSponsorsServer(page: number = 0, pageSize: numbe
   params.append('page', String(page));
   params.append('size', String(pageSize));
   params.append('sort', 'priorityRanking,asc');
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   const response = await fetchWithJwtRetry(`${getApiBaseUrl()}/api/event-sponsors?${params.toString()}`, {
     cache: 'no-store',
@@ -59,7 +60,7 @@ export async function fetchEventSponsorServer(id: number) {
 }
 
 export async function createEventSponsorServer(sponsor: Omit<EventSponsorsDTO, 'id' | 'createdAt' | 'updatedAt'>, tenantId?: string) {
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload: Record<string, unknown> = { ...sponsor };
   if (tid != null) (payload as Record<string, unknown>).tenantId = tid;
 
@@ -78,7 +79,7 @@ export async function createEventSponsorServer(sponsor: Omit<EventSponsorsDTO, '
 }
 
 export async function updateEventSponsorServer(id: number, sponsor: Partial<EventSponsorsDTO>, tenantId?: string) {
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload: Record<string, unknown> = { ...sponsor, id };
   if (tid != null) (payload as Record<string, unknown>).tenantId = tid;
 
@@ -115,7 +116,7 @@ export async function fetchEventSponsorsJoinServer(eventId?: number, tenantId?: 
   if (eventId) {
     params.append('eventId.equals', eventId.toString());
   }
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-sponsors-join${params.toString() ? `?${params.toString()}` : ''}`, {
     cache: 'no-store',
@@ -129,7 +130,7 @@ export async function fetchEventSponsorsJoinServer(eventId?: number, tenantId?: 
 }
 
 export async function createEventSponsorJoinServer(sponsorJoin: Omit<EventSponsorsJoinDTO, 'id' | 'createdAt' | 'updatedAt'>, tenantId?: string) {
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload: Record<string, unknown> = { ...sponsorJoin };
   if (tid != null) (payload as Record<string, unknown>).tenantId = tid;
 
@@ -148,7 +149,7 @@ export async function createEventSponsorJoinServer(sponsorJoin: Omit<EventSponso
 }
 
 export async function updateEventSponsorJoinServer(id: number, sponsorJoin: Partial<EventSponsorsJoinDTO>, tenantId?: string) {
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload: Record<string, unknown> = { ...sponsorJoin, id };
   if (tid != null) (payload as Record<string, unknown>).tenantId = tid;
 
@@ -242,7 +243,7 @@ export async function uploadSponsorImageServer(
     const description = `Sponsor ${imageType} image`;
     params.append('description', description);
 
-    params.append('tenantId', tenantId || getTenantId());
+    params.append('tenantId', await resolveAdminMutationTenantId(tenantId));
 
     // Set startDisplayingFromDate to today's date (YYYY-MM-DD format) to satisfy NOT NULL constraint
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
@@ -301,7 +302,7 @@ export async function uploadEventSponsorPosterServer(
   params.append('eventId', String(eventId));
   params.append('sponsorId', String(sponsorId));
   params.append('eventSponsorsJoinId', String(eventSponsorsJoinId));
-  params.append('tenantId', tenantId || getTenantId());
+  params.append('tenantId', await resolveAdminMutationTenantId(tenantId));
   params.append('isPublic', 'true');
 
   // Set eventMediaType to indicate this is a custom poster
@@ -377,7 +378,7 @@ export async function uploadSponsorMediaServer(
 
   const params = new URLSearchParams();
   params.append('sponsorId', String(sponsorId));
-  params.append('tenantId', tenantId || getTenantId());
+  params.append('tenantId', await resolveAdminMutationTenantId(tenantId));
   params.append('isPublic', 'true');
   if (title) params.append('title', title);
   if (description) params.append('description', description);
@@ -421,7 +422,7 @@ export async function uploadEventSponsorMediaServer(
   const params = new URLSearchParams();
   params.append('eventId', String(eventId));
   params.append('sponsorId', String(sponsorId));
-  params.append('tenantId', tenantId || getTenantId());
+  params.append('tenantId', await resolveAdminMutationTenantId(tenantId));
   params.append('isPublic', 'true');
   if (title) params.append('title', title);
   if (description) params.append('description', description);
@@ -544,7 +545,7 @@ export async function updateEventMediaServer(
   const payload = {
     ...updates,
     id: mediaId,
-    tenantId: tenantId || getTenantId(),
+    tenantId: await resolveAdminMutationTenantId(tenantId),
   };
 
   const baseUrl = getAppUrl();
@@ -587,7 +588,7 @@ export async function updateMediaPriorityRankingServer(
 
   // Include ALL required fields from existing media + updated priority ranking
   // This ensures backend validation passes for all NotNull fields
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload: Record<string, unknown> = {
     id: mediaId,
     priorityRanking,

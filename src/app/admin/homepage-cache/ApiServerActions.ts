@@ -1,4 +1,5 @@
 'use server';
+import { appendAdminTenantFilter } from '@/app/admin/adminAccessServer';
 
 import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import { appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
@@ -48,7 +49,7 @@ export async function fetchHomepageCacheSettingsPage(
       size: String(Math.max(1, pageSize)),
     });
 
-    appendTenantIfPresent(params, effectiveTenantId(filters?.tenantId));
+    await appendAdminTenantFilter(params, filters?.tenantId);
 
     const idTrim = filters?.id?.trim();
     if (idTrim && /^\d+$/.test(idTrim)) {

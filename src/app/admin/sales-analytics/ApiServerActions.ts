@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getApiBaseUrl, getTenantId } from '@/lib/env';
@@ -132,7 +133,7 @@ async function fetchManualPaymentSummaryForAnalytics(
   startDate?: string,
   endDate?: string
 ): Promise<{ summary: ManualPaymentSummaryReportDTO[]; fromFallback: boolean }> {
-  const tenantId = getTenantId();
+  const tenantId = await resolveAdminMutationTenantId();
   
   try {
     // Try to fetch from summary table first
@@ -258,7 +259,7 @@ export async function calculateSalesMetricsServer(
   endDate?: string
 ): Promise<SalesMetrics> {
   try {
-    const tenantId = getTenantId();
+    const tenantId = await resolveAdminMutationTenantId();
     
     // Step 1 & 2: Fetch transactions and manual payment summary in parallel for better performance
     const stripeParams = new URLSearchParams({
@@ -790,7 +791,7 @@ export async function calculateSalesMetricsServer(
  */
 export async function fetchEventDetailsForPaymentFlow(eventId: number): Promise<EventDetailsDTO | null> {
   try {
-    const tenantId = getTenantId();
+    const tenantId = await resolveAdminMutationTenantId();
     const url = `${requireApiBaseUrl()}/api/event-details/${eventId}?tenantId.equals=${tenantId}`;
     const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
     if (!res.ok) {

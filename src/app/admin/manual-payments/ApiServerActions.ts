@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter } from '@/app/admin/adminAccessServer';
 
 import { unstable_noStore } from 'next/cache';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
@@ -49,7 +50,7 @@ export async function fetchManualPaymentsServer(
   const pageSize = options.pageSize ?? getDefaultPageSize();
   params.append('page', page.toString());
   params.append('size', pageSize.toString());
-  appendTenantIfPresent(params, effectiveTenantId(options.tenantId));
+  await appendAdminTenantFilter(params, options.tenantId);
 
   if (options.sort) {
     params.append('sort', options.sort);
@@ -436,7 +437,7 @@ export async function fetchManualPaymentSummaryServer(
   tenantId?: string
 ): Promise<ManualPaymentSummaryReportDTO[]> {
   const params = new URLSearchParams();
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   if (eventId) {
     params.append('eventId.equals', eventId);

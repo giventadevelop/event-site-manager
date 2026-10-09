@@ -1,3 +1,5 @@
+'use server';
+import { appendAdminTenantFilter } from '@/app/admin/adminAccessServer';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { withTenantId } from '@/lib/withTenantId';
@@ -91,7 +93,7 @@ export async function fetchTenantOrganizations(
     if (filters.tenantIdContains?.trim()) {
       params.append('tenantId.contains', filters.tenantIdContains.trim());
     }
-    appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
+    await appendAdminTenantFilter(params, filters.tenantId);
     if (filters.subscriptionStatus) {
       params.append('subscriptionStatus.equals', filters.subscriptionStatus);
     }

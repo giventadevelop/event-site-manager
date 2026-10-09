@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { createLogger } from "@/lib/logger";
+import { hubAdminUrl, shouldRedirectAdminToHub } from "@/lib/clerkSatellite";
 
 const logger = createLogger('MIDDLEWARE');
 
@@ -110,6 +111,16 @@ export default clerkMiddleware(async (auth, req) => {
       userAgent: userAgent.substring(0, 150),
       timestamp: new Date().toISOString(),
     });
+  }
+
+  // Satellite public sites do not serve /admin — send operators to the primary hub.
+  if (pathname.startsWith('/admin')) {
+    const host = req.headers.get('host') || req.nextUrl.hostname || '';
+    if (shouldRedirectAdminToHub(host)) {
+      const satelliteTenant =
+        process.env.AMPLIFY_NEXT_PUBLIC_TENANT_ID || process.env.NEXT_PUBLIC_TENANT_ID || '';
+      return NextResponse.redirect(hubAdminUrl(satelliteTenant));
+    }
   }
 
   // For protected routes, require authentication

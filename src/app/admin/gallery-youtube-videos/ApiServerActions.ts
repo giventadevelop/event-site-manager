@@ -1,4 +1,5 @@
 'use server';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getApiBaseUrl, getTenantId } from '@/lib/env';
@@ -25,7 +26,7 @@ function parseList(data: unknown): GalleryYoutubeVideoDTO[] {
 export async function fetchGalleryYoutubeVideosAdmin(): Promise<GalleryYoutubeVideoListResult> {
   try {
     const params = new URLSearchParams();
-    params.set('tenantId.equals', getTenantId());
+    params.set('tenantId.equals', await resolveAdminMutationTenantId());
     params.set('sort', 'displayOrder,asc');
     params.set('size', '100');
     const res = await fetchWithJwtRetry(
@@ -49,7 +50,7 @@ export async function saveGalleryYoutubeVideo(
   try {
     const body: GalleryYoutubeVideoDTO = {
       ...payload,
-      tenantId: getTenantId(),
+      tenantId: await resolveAdminMutationTenantId(),
       youtubeUrl: payload.youtubeUrl?.trim() || '',
       title: payload.title?.trim() || null,
       description: payload.description?.trim() || null,

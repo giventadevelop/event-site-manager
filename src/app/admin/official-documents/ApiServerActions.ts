@@ -1,4 +1,5 @@
 'use server';
+import { appendAdminTenantFilter, headersForAdminTenantScope, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import {
@@ -18,12 +19,11 @@ import { OFFICIAL_DOCUMENT_CATEGORIES_FALLBACK } from '@/data/officialDocumentCa
  * When admin UI selects `?tenant=`, override X-Tenant-ID so the backend scopes to that tenant
  * (same pattern as gallery albums / manage-usage).
  */
-function headersForTenantScope(
+async function headersForTenantScope(
   tenantId: string | undefined,
   extra: Record<string, string> = {},
-): Record<string, string> {
-  const tid = effectiveTenantId(tenantId);
-  return tid ? { ...extra, 'X-Tenant-ID': tid } : { ...extra };
+): Promise<Record<string, string>> {
+  return headersForAdminTenantScope(tenantId, extra);
 }
 
 /** Spring Data REST page or raw array */
@@ -141,14 +141,14 @@ export async function fetchOfficialDocumentCategoriesServer(
 
   try {
     const params = new URLSearchParams();
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    await appendAdminTenantFilter(params, tenantId);
     params.append('isActive.equals', 'true');
     params.append('sort', 'sortOrder,asc');
     params.append('size', '200');
     const url = `${getApiBaseUrl()}/api/official-document-categories?${params.toString()}`;
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
-      headers: headersForTenantScope(tenantId),
+      headers: await headersForTenantScope(tenantId),
     });
 
     if (res.status === 404) {
@@ -201,7 +201,7 @@ export async function fetchTenantOfficialDocumentsServer(filters?: {
 
   try {
     const params = new URLSearchParams();
-    appendTenantIfPresent(params, effectiveTenantId(filters?.tenantId));
+    await appendAdminTenantFilter(params, filters?.tenantId);
     params.append('isEventManagementOfficialDocument.equals', 'true');
     params.append('sort', 'createdAt,desc');
     params.append('page', '0');
@@ -213,7 +213,7 @@ export async function fetchTenantOfficialDocumentsServer(filters?: {
     const url = `${getApiBaseUrl()}/api/event-medias?${params.toString()}`;
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
-      headers: headersForTenantScope(filters?.tenantId),
+      headers: await headersForTenantScope(filters?.tenantId),
     });
     if (!res.ok) return [];
 
@@ -280,7 +280,7 @@ export async function fetchTenantOfficialDocumentsPagedServer(filters: {
   const size = filters.size ?? 20;
   try {
     const params = new URLSearchParams();
-    appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
+    await appendAdminTenantFilter(params, filters.tenantId);
     params.append('isEventManagementOfficialDocument.equals', 'true');
     params.append('sort', 'createdAt,desc');
     params.append('page', String(page));
@@ -295,7 +295,7 @@ export async function fetchTenantOfficialDocumentsPagedServer(filters: {
     const url = `${getApiBaseUrl()}/api/event-medias?${params.toString()}`;
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
-      headers: headersForTenantScope(filters.tenantId),
+      headers: await headersForTenantScope(filters.tenantId),
     });
     if (!res.ok) {
       return { content: [], totalElements: 0, totalPages: 0, page, size };
@@ -355,7 +355,7 @@ export async function patchOfficialDocumentMediaServer(
     });
     const res = await fetchWithJwtRetry(url, {
       method: 'PATCH',
-      headers: headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
+      headers: await headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
       body: JSON.stringify(finalPayload),
     });
     if (!res.ok) {
@@ -375,13 +375,13 @@ export async function deleteOfficialDocumentMediaServer(
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   try {
     const params = new URLSearchParams();
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    await appendAdminTenantFilter(params, tenantId);
     const qs = params.toString();
     const url = `${getApiBaseUrl()}/api/event-medias/${mediaId}${qs ? `?${qs}` : ''}`;
     const res = await fetchWithJwtRetry(url, {
       method: 'DELETE',
       cache: 'no-store',
-      headers: headersForTenantScope(tenantId),
+      headers: await headersForTenantScope(tenantId),
     });
     if (!res.ok) {
       const t = await res.text().catch(() => '');
@@ -430,13 +430,13 @@ export async function fetchOfficialDocumentYearBundlesServer(
 ): Promise<OfficialDocumentYearBundleDTO[]> {
   try {
     const params = new URLSearchParams();
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    await appendAdminTenantFilter(params, tenantId);
     params.append('sort', 'documentYear,desc');
     params.append('size', '500');
     const url = `${getApiBaseUrl()}/api/official-document-year-bundles?${params.toString()}`;
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
-      headers: headersForTenantScope(tenantId),
+      headers: await headersForTenantScope(tenantId),
     });
     if (res.status === 404) return [];
     if (!res.ok) return [];
@@ -457,11 +457,11 @@ export async function createOfficialDocumentYearBundleServer(
   tenantId?: string,
 ): Promise<{ ok: true; bundle: OfficialDocumentYearBundleDTO } | { ok: false; message: string }> {
   try {
-    const tid = effectiveTenantId(tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId);
     const url = `${getApiBaseUrl()}/api/official-document-year-bundles`;
     const res = await fetchWithJwtRetry(url, {
       method: 'POST',
-      headers: headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
+      headers: await headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
       body: JSON.stringify(
         withTenantId({
           officialDocumentCategoryId,
@@ -489,12 +489,12 @@ export async function patchOfficialDocumentYearBundleServer(
   tenantId?: string,
 ): Promise<{ ok: true; bundle: OfficialDocumentYearBundleDTO } | { ok: false; message: string }> {
   try {
-    const tid = effectiveTenantId(tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId);
     const url = `${getApiBaseUrl()}/api/official-document-year-bundles/${bundleId}`;
     const finalPayload = { ...patch, id: bundleId, ...(tid ? { tenantId: tid } : {}) };
     const res = await fetchWithJwtRetry(url, {
       method: 'PATCH',
-      headers: headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
+      headers: await headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
       body: JSON.stringify(finalPayload),
     });
     if (!res.ok) {
@@ -536,7 +536,7 @@ export async function fetchOfficialDocumentCategoriesPagedServer(filters: {
   const size = filters.size ?? 20;
   try {
     const params = new URLSearchParams();
-    appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
+    await appendAdminTenantFilter(params, filters.tenantId);
     params.append('sort', 'sortOrder,asc');
     params.append('page', String(page));
     params.append('size', String(size));
@@ -546,7 +546,7 @@ export async function fetchOfficialDocumentCategoriesPagedServer(filters: {
     const url = `${getApiBaseUrl()}/api/official-document-categories?${params.toString()}`;
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
-      headers: headersForTenantScope(filters.tenantId),
+      headers: await headersForTenantScope(filters.tenantId),
     });
 
     if (res.status === 404) {
@@ -594,7 +594,7 @@ export async function createOfficialDocumentCategoryServer(
   tenantId?: string,
 ): Promise<{ ok: true; category: OfficialDocumentCategoryDTO } | { ok: false; message: string }> {
   try {
-    const tid = effectiveTenantId(tenantId) ?? effectiveTenantId(payload.tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId ?? payload.tenantId);
     const now = new Date().toISOString();
     const body = withTenantId({
       slug: payload.slug.trim().toLowerCase().replace(/\s+/g, '-'),
@@ -609,7 +609,7 @@ export async function createOfficialDocumentCategoryServer(
     const url = `${getApiBaseUrl()}/api/official-document-categories`;
     const res = await fetchWithJwtRetry(url, {
       method: 'POST',
-      headers: headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
+      headers: await headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
       body: JSON.stringify(body),
     });
     if (!res.ok) {
@@ -636,7 +636,7 @@ export async function patchOfficialDocumentCategoryServer(
   tenantId?: string,
 ): Promise<{ ok: true; category: OfficialDocumentCategoryDTO } | { ok: false; message: string }> {
   try {
-    const tid = effectiveTenantId(tenantId) ?? effectiveTenantId(updates.tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId ?? updates.tenantId);
     const url = `${getApiBaseUrl()}/api/official-document-categories/${categoryId}`;
     const finalPayload = withTenantId({
       id: categoryId,
@@ -650,7 +650,7 @@ export async function patchOfficialDocumentCategoryServer(
     });
     const res = await fetchWithJwtRetry(url, {
       method: 'PATCH',
-      headers: headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
+      headers: await headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
       body: JSON.stringify(finalPayload),
     });
     if (!res.ok) {
@@ -670,13 +670,13 @@ export async function deleteOfficialDocumentCategoryServer(
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   try {
     const params = new URLSearchParams();
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    await appendAdminTenantFilter(params, tenantId);
     const qs = params.toString();
     const url = `${getApiBaseUrl()}/api/official-document-categories/${categoryId}${qs ? `?${qs}` : ''}`;
     const res = await fetchWithJwtRetry(url, {
       method: 'DELETE',
       cache: 'no-store',
-      headers: headersForTenantScope(tenantId),
+      headers: await headersForTenantScope(tenantId),
     });
     if (!res.ok) {
       const t = await res.text().catch(() => '');

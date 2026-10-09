@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { stripe } from '@/lib/stripe';
 import { getTenantId, getApiBaseUrl } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
@@ -27,7 +28,7 @@ export async function refundTicketTransactionServer(ticket: EventTicketTransacti
   const now = new Date().toISOString();
   const patchPayload: Partial<EventTicketTransactionDTO> = {
     id: ticket.id,
-    tenantId: ticket.tenantId || getTenantId(),
+    tenantId: ticket.tenantId || (await resolveAdminMutationTenantId()),
     transactionReference: ticket.transactionReference,
     email: ticket.email,
     firstName: ticket.firstName,

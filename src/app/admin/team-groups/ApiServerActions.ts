@@ -1,4 +1,5 @@
 'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import { appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
@@ -44,7 +45,7 @@ export async function fetchTeamGroupsPage(
       size: String(Math.max(1, pageSize)),
     });
 
-    appendTenantIfPresent(params, effectiveTenantId(filters?.tenantId));
+    await appendAdminTenantFilter(params, filters?.tenantId);
 
     const idTrim = filters?.id?.trim();
     if (idTrim && /^\d+$/.test(idTrim)) {
@@ -110,7 +111,7 @@ export async function createTeamGroup(
   try {
     const baseUrl = await getAdminProxyBaseUrl();
     const body: Record<string, unknown> = { ...payload };
-    const tid = effectiveTenantId(tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId);
     if (tid != null) body.tenantId = tid;
     // Required timestamps for backend create validation
     const now = new Date().toISOString();
@@ -142,7 +143,7 @@ export async function updateTeamGroup(
       id,
       updatedAt: new Date().toISOString(),
     };
-    const tid = effectiveTenantId(tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId);
     if (tid != null) body.tenantId = tid;
 
     const response = await fetch(`${baseUrl}/api/proxy/team-groups/${id}`, {

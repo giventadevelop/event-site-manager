@@ -72,6 +72,39 @@ export function isSatelliteHostname(hostname: string): boolean {
   return h === satHost || h === satBare || h.endsWith(`.${satBare}`) || h === satBare;
 }
 
+function isLoopbackHostname(hostname: string): boolean {
+  const h = normalizeHostname(hostname);
+  return h === 'localhost' || h === '127.0.0.1' || h === '::1';
+}
+
+/**
+ * Satellite Amplify apps should not serve /admin. Default on when this deploy is a Clerk satellite.
+ * Set DISABLE_ADMIN_ON_SATELLITE=false (or AMPLIFY_DISABLE_ADMIN_ON_SATELLITE=false) to keep local /admin.
+ */
+export function isAdminDisabledOnSatellite(): boolean {
+  const explicit =
+    process.env.AMPLIFY_DISABLE_ADMIN_ON_SATELLITE || process.env.DISABLE_ADMIN_ON_SATELLITE;
+  if (explicit === 'false') return false;
+  if (explicit === 'true') return true;
+  return isClerkSatelliteEnv();
+}
+
+/** Non-primary, non-loopback hosts redirect /admin to the hub when satellite admin is disabled. */
+export function shouldRedirectAdminToHub(hostname: string): boolean {
+  if (!isAdminDisabledOnSatellite()) return false;
+  if (!hostname || isLoopbackHostname(hostname)) return false;
+  if (isPrimaryHostname(hostname)) return false;
+  return true;
+}
+
+export function hubAdminUrl(tenantId?: string | null): string {
+  const primary = getPrimaryHost();
+  const dest = new URL(`https://${primary}/admin`);
+  const tid = tenantId?.trim();
+  if (tid) dest.searchParams.set('tenant', tid);
+  return dest.toString();
+}
+
 export function usesPrimaryClerkSignInUrl(): boolean {
   const isLocalhost =
     process.env.NEXT_PUBLIC_APP_URL?.includes('localhost') ||

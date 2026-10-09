@@ -1,4 +1,5 @@
 'use server';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getApiBaseUrl, getTenantId } from '@/lib/env';
@@ -35,7 +36,7 @@ export async function fetchFocusGroupMembersServer(
   pageSize: number
 ): Promise<FocusGroupMembersResult> {
   const API_BASE_URL = getApiBaseUrl();
-  const tenantId = getTenantId();
+  const tenantId = await resolveAdminMutationTenantId();
   if (!API_BASE_URL) return { members: [], totalCount: 0 };
   const params = new URLSearchParams({
     'focusGroupId.equals': focusGroupId,
@@ -114,7 +115,7 @@ export async function addFocusGroupMemberServer(input: {
   const payload = {
     focusGroupId,
     userProfileId,
-    tenantId: getTenantId(),
+    tenantId: await resolveAdminMutationTenantId(),
     role,
     status,
     createdAt: now,

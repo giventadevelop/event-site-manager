@@ -75,6 +75,11 @@ export function useHeaderAuth({ isTenantAdmin, logPrefix = '[HeaderAuth]' }: Use
 
     let cancelled = false;
 
+    if (isTenantAdmin === true) {
+      setIsAdmin(true);
+      return;
+    }
+
     const applyAdminFallback = () => {
       if (typeof isTenantAdmin === 'boolean') {
         setIsAdmin(isTenantAdmin);

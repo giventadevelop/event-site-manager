@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getApiBaseUrl, getTenantId } from '@/lib/env';
 import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
@@ -141,7 +142,7 @@ export async function uploadMedia(eventId: number, {
   formData.append('isActiveHeroImage', String(isActiveHeroImage));
   formData.append('isPublic', String(isPublic));
   formData.append('isTeamMemberProfileImage', String(isTeamMemberProfileImage));
-  formData.append('tenantId', getTenantId());
+  formData.append('tenantId', await resolveAdminMutationTenantId());
 
   // Append title and description for each file (backend expects arrays)
   files.forEach(() => {

@@ -1,3 +1,4 @@
+'use server';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 import type { EventAttendeeDTO, EventAttendeeGuestDTO, EventDetailsDTO } from '@/types';

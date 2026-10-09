@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
 import { withTenantId } from "@/lib/withTenantId";
@@ -9,7 +10,7 @@ const API_BASE_URL = getApiBaseUrl();
 export async function fetchDiscountCodesForEvent(eventId: string, tenantId?: string): Promise<DiscountCodeDTO[]> {
   const params = new URLSearchParams();
   params.set('eventId.equals', eventId);
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${API_BASE_URL}/api/discount-codes?${params.toString()}`;
 
   const response = await fetchWithJwtRetry(url, {
@@ -106,7 +107,7 @@ export async function patchDiscountCodeServer(
   const baseUrl = getAppUrl();
   const url = `${baseUrl}/api/proxy/discount-codes/${id}`;
   const now = new Date().toISOString();
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload: Partial<DiscountCodeDTO> = {
     ...code,
     id,

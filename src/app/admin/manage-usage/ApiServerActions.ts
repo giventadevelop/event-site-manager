@@ -1,32 +1,20 @@
+'use server';
 // This file was renamed from actions.ts to ApiServerActions.ts as a standard for server-side API calls in this module.
-"use server";
+import { appendAdminTenantFilter, headersForAdminTenantScope, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { effectiveTenantId, appendTenantIfPresent, getDefaultPageSize, getBackendApiUrl, getTenantIdOptional } from '@/lib/env';
 import { pickFirstUserProfile } from '@/lib/pickFirstUserProfile';
 import { UserProfileDTO } from '@/types';
 
-/**
- * When the admin UI selects a tenant (`?tenant=`), override X-Tenant-ID so the backend
- * TenantContextFilter scopes to that tenant. Without this, fetchWithJwtRetry keeps the
- * platform env tenant (e.g. event_site_manager_admin_1) and tenantId.equals=other returns [].
- */
-function headersForTenantScope(
-  tenantId: string | undefined,
-  extra: Record<string, string> = {},
-): Record<string, string> {
-  const tid = effectiveTenantId(tenantId);
-  return tid ? { ...extra, 'X-Tenant-ID': tid } : { ...extra };
-}
-
 export async function fetchAllUsersServer(tenantId?: string): Promise<UserProfileDTO[]> {
   const params = new URLSearchParams();
   params.set('page', '0');
   params.set('size', String(getDefaultPageSize()));
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${getBackendApiUrl()}/api/user-profiles?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, {
     cache: 'no-store',
-    headers: headersForTenantScope(tenantId),
+    headers: await headersForAdminTenantScope(tenantId),
   });
   if (!res.ok) return [];
   return res.json();
@@ -45,7 +33,7 @@ export async function fetchAdminProfileServer(userId: string, tenantId?: string)
 
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
-      headers: headersForTenantScope(scopedTenantId),
+      headers: await headersForAdminTenantScope(scopedTenantId),
     });
 
     if (!res.ok) return null;
@@ -75,12 +63,12 @@ export async function fetchUsersServer({ search, searchField, status, role, page
   if (role) params.append('userRole.equals', role);
   params.append('page', String((page ?? 1) - 1));
   params.append('size', String(pageSize ?? getDefaultPageSize()));
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${getBackendApiUrl()}/api/user-profiles?${params.toString()}`;
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const res = await fetchWithJwtRetry(url, {
     cache: 'no-store',
-    headers: headersForTenantScope(tenantId),
+    headers: await headersForAdminTenantScope(tenantId),
   });
   const totalCount = res.headers.get('X-Total-Count');
   const data = await res.json();
@@ -141,21 +129,20 @@ export async function searchUsersForTypeaheadServer(
   const trimmed = query.trim();
   if (!trimmed) return [];
 
-  const tid = effectiveTenantId(options?.tenantId);
   const results = await Promise.all(
     TYPEAHEAD_FIELDS.map(async (field) => {
       const params = new URLSearchParams();
       params.append(`${field}.contains`, trimmed);
       if (options?.status) params.append('userStatus.equals', options.status);
       if (options?.role) params.append('userRole.equals', options.role);
-      appendTenantIfPresent(params, tid);
+      await appendAdminTenantFilter(params, options?.tenantId);
       params.append('page', '0');
       params.append('size', String(TYPEAHEAD_LIMIT));
       const res = await fetchWithJwtRetry(
         `${getBackendApiUrl()}/api/user-profiles?${params.toString()}`,
         {
           cache: 'no-store',
-          headers: headersForTenantScope(options?.tenantId),
+          headers: await headersForAdminTenantScope(options?.tenantId),
         },
       );
       if (!res.ok) return [] as UserProfileDTO[];
@@ -168,7 +155,7 @@ export async function searchUsersForTypeaheadServer(
 
 export async function patchUserProfileServer(userId: number, payload: Partial<UserProfileDTO>, tenantId?: string) {
   const url = `${getBackendApiUrl()}/api/user-profiles/${userId}`;
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const finalPayload = {
     ...payload,
     id: userId,
@@ -177,7 +164,7 @@ export async function patchUserProfileServer(userId: number, payload: Partial<Us
 
   const res = await fetchWithJwtRetry(url, {
     method: 'PATCH',
-    headers: headersForTenantScope(tenantId, {
+    headers: await headersForAdminTenantScope(tenantId, {
       'Content-Type': 'application/merge-patch+json',
     }),
     body: JSON.stringify(finalPayload),
@@ -193,10 +180,10 @@ export async function patchUserProfileServer(userId: number, payload: Partial<Us
 }
 
 export async function bulkUploadUsersServer(users: any[], tenantId?: string) {
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const res = await fetchWithJwtRetry(`${getBackendApiUrl()}/api/user-profiles/bulk`, {
     method: 'POST',
-    headers: headersForTenantScope(tenantId, {
+    headers: await headersForAdminTenantScope(tenantId, {
       'Content-Type': 'application/json',
     }),
     body: JSON.stringify(users.map(u => ({ ...u, ...(tid != null ? { tenantId: tid } : {}) }))),

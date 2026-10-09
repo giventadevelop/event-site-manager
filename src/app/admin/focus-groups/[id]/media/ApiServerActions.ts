@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getAppUrl, getApiBaseUrl } from '@/lib/env';
@@ -35,7 +36,7 @@ export async function fetchMediaByEventAndAssociationServer(
     'eventFocusGroupId.equals': String(eventFocusGroupId),
     'isEventManagementOfficialDocument.equals': 'false',
     sort: 'updatedAt,desc',
-    'tenantId.equals': getTenantId(),
+    'tenantId.equals': await resolveAdminMutationTenantId(),
     page: '0',
     size: '500',
   });

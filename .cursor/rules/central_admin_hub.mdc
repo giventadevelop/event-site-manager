@@ -1,0 +1,27 @@
+---
+description: Central admin hub allowlist — tenant ADMIN vs SUPER_ADMIN on event-site-manager.com
+globs: src/app/admin/**/*.{ts,tsx}, src/lib/adminTenantAccess.ts, src/app/admin/adminAccessServer.ts, src/middleware.ts
+alwaysApply: false
+---
+
+# Central admin hub (per-user tenant allowlist)
+
+- **Hub:** `event-site-manager.com` with `NEXT_PUBLIC_ALL_TENANTS_ADMIN=true`. Public satellites keep their own domains; they must not serve `/admin`.
+- **Grant `/admin` from any tenant profile** for the Clerk `userId` with `ADMIN` or `SUPER_ADMIN` — not env-tenant-only lookup. See [adminAccessServer.ts](mdc:src/app/admin/adminAccessServer.ts) and [adminTenantAccess.ts](mdc:src/lib/adminTenantAccess.ts).
+- **Tenant `ADMIN`:** allowlisted `tenantId`s only. Empty `?tenant=` must become those IDs (`tenantId.equals` or `tenantId.in`), never all-tenants wildcard.
+- **`SUPER_ADMIN` on the hub:** all tenants; empty filter = all.
+- **Server enforcement:** use `appendAdminTenantFilter` / `resolveAdminMutationTenantId` / `headersForAdminTenantScope`. Do not trust `?tenant=` or `getTenantId()` for hub mutations.
+- **Platform-only:** Tenant Management, Satellite Domains, Gas Stations, Test CRUD — `SUPER_ADMIN` only (`isPlatformOnlyAdminPath`).
+- **Satellites:** `DISABLE_ADMIN_ON_SATELLITE` defaults on when `NEXT_PUBLIC_CLERK_IS_SATELLITE=true`; middleware redirects `/admin` to the primary hub with `?tenant=` = env tenant. Loopback and the primary host are not redirected.
+- **kcnj-prod:** keep that repo’s admin fork until KCNJ operators use this hub (or merge). Same-codebase satellites share the hub now.
+- **Workspace session:** After sign-in, send admins to `/admin`. List every tenant ID mapped to that Clerk user (`user_profile` ADMIN/SUPER_ADMIN rows). Persist the pick in the httpOnly `admin_session_tenant` cookie (`__all__` only for hub SUPER_ADMIN). Filter resolution: explicit `?tenant=` → cookie → single-tenant default.
+- **Multi-tenant ADMIN:** Do not default the first of many tenants. Gate `/admin/*` subpages until they pick; `/admin` stays the picker. SUPER_ADMIN also gets an **All tenants** card.
+- **Change workspace:** Top tenant bar (and dashboard cards) can switch the session cookie. Do not use `appendAdminTenantFilter` when listing orgs for the picker.
+
+```typescript
+// ✅ DO: scope list queries to the signed-in admin allowlist
+await appendAdminTenantFilter(params, tenantId);
+
+// ❌ DON'T: empty filter = all tenants for a tenant ADMIN
+appendTenantIfPresent(params, effectiveTenantId(tenantId));
+```

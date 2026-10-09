@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { getApiBaseUrl, getTenantId } from '@/lib/env';
 import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import { fetchWithJwtRetry } from "@/lib/proxyHandler";
@@ -108,7 +109,7 @@ export async function patchDiscountCodeServer(
     id,
     eventId: code.eventId,
     updatedAt: now,
-    tenantId: getTenantId(),
+    tenantId: await resolveAdminMutationTenantId(),
     // createdAt should be preserved from the original, not overwritten
   };
   console.log('[DEBUG] Payload before PATCH:', payload);

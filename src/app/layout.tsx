@@ -20,6 +20,7 @@ import { getMergedSatelliteConfigs } from "@/lib/satelliteConfigRuntime";
 import { fetchFooterContactPropsServer } from "@/app/ApiServerActions";
 import { isAdminRole } from "@/lib/utils";
 import { pickFirstUserProfile } from "@/lib/pickFirstUserProfile";
+import { fetchAdminAccessForClerkUser } from "@/app/admin/adminAccessServer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -357,7 +358,21 @@ export default async function RootLayout({
             roleValue: JSON.stringify(p?.userRole)
           });
         }
-      }
+        }
+
+        // Hub: env-tenant profile may be MEMBER while another tenant row is ADMIN.
+        if (!isTenantAdmin) {
+          const access = await fetchAdminAccessForClerkUser(
+            userId,
+            currentUserData?.emailAddresses?.[0]?.emailAddress,
+          );
+          isTenantAdmin = access.isAdmin;
+          console.log('[Layout] Cross-tenant admin allowlist:', {
+            isTenantAdmin,
+            isPlatformSuperAdmin: access.isPlatformSuperAdmin,
+            allowedTenantIds: access.allowedTenantIds,
+          });
+        }
       }
     } catch (e) {
       // Fail closed (no admin) on error

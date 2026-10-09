@@ -1,4 +1,5 @@
 'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getTenantId } from '@/lib/env';
@@ -69,16 +70,18 @@ function buildPollOptionWritePayload(
 export async function fetchEventPollsServer(filters?: Record<string, any>) {
   try {
     const params = new URLSearchParams();
+    let tenantRequested: string | undefined;
     if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value === undefined || value === null) return;
+      for (const [key, value] of Object.entries(filters)) {
+        if (value === undefined || value === null) continue;
         if (key === 'tenantId') {
-          appendTenantIfPresent(params, effectiveTenantId(String(value)));
-          return;
+          tenantRequested = String(value);
+          continue;
         }
         params.append(key, String(value));
-      });
+      }
     }
+    await appendAdminTenantFilter(params, tenantRequested);
 
     const qs = params.toString();
     const url = `${apiBase()}/api/event-polls${qs ? `?${qs}` : ''}`;
@@ -189,7 +192,7 @@ export async function updateEventPollServer(pollId: number, pollData: Partial<Ev
     const finalPayload = {
       ...pollData,
       id: pollId,
-      tenantId: tenantId || getTenantId(),
+      tenantId: await resolveAdminMutationTenantId(tenantId),
       createdAt,
       updatedAt: new Date().toISOString(),
     };
@@ -345,7 +348,7 @@ export async function updateEventPollOptionServer(
       },
       {
         id: optionId,
-        tenantId: tenantId || getTenantId(),
+        tenantId: await resolveAdminMutationTenantId(tenantId),
         createdAt,
         updatedAt: new Date().toISOString(),
       }

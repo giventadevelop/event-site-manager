@@ -55,7 +55,7 @@ export function SignInWithReconciliation() {
 
         // Redirect to home page after successful reconciliation
         setTimeout(() => {
-          window.location.href = '/home';
+          window.location.href = '/admin';
         }, 1000);
 
       } else {
@@ -70,7 +70,7 @@ export function SignInWithReconciliation() {
   // Show regular sign-in component
   return (
     <div>
-      <SignIn redirectUrl="/home" />
+      <SignIn forceRedirectUrl="/admin" />
       
       {/* Optional: Show reconciliation status */}
       {isSignedIn && hasTriggeredReconciliation && (

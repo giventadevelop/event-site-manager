@@ -1,3 +1,4 @@
+import { appendAdminTenantFilter } from '@/app/admin/adminAccessServer';
 import { getAppUrl, appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
 import AdminNavigation from '@/components/AdminNavigation';
 import AdminTenantFilterBar from '@/components/admin/AdminTenantFilterBar';
@@ -28,7 +29,7 @@ export default async function AdminFocusGroupsPage({ searchParams }: { searchPar
     params.set('page', String(page));
     params.set('size', String(size));
     params.set('sort', sort);
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    await appendAdminTenantFilter(params, tenantId);
     const url = `${baseUrl}/api/proxy/focus-groups?${params.toString()}`;
     console.log('[FocusGroups] Fetching from:', url);
 

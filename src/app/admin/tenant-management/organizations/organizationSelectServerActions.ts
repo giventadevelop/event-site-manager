@@ -1,9 +1,19 @@
 'use server';
 
 import { fetchTenantOrganizations } from '@/app/admin/tenant-management/organizations/ApiServerActions';
+import { getCurrentAdminAccess } from '@/app/admin/adminAccessServer';
 import type { TenantOrganizationDTO } from '@/app/admin/tenant-management/types';
 
 const TENANT_ORG_SELECT_LIMIT = 20;
+
+async function filterOrgsForCurrentAdmin(
+  orgs: TenantOrganizationDTO[],
+): Promise<TenantOrganizationDTO[]> {
+  const access = await getCurrentAdminAccess();
+  if (access.canQueryAllTenants) return orgs;
+  const allowed = new Set(access.allowedTenantIds);
+  return orgs.filter((org) => org.tenantId && allowed.has(org.tenantId));
+}
 
 function mergeOrganizationsByKey(
   ...lists: TenantOrganizationDTO[][]
@@ -26,7 +36,7 @@ export async function fetchRecentTenantOrganizationsForSelectServer(): Promise<T
       { page: 0, pageSize: TENANT_ORG_SELECT_LIMIT },
       { sortBy: 'createdAt', sortOrder: 'desc' },
     );
-    return result.data;
+    return filterOrgsForCurrentAdmin(result.data);
   } catch (error) {
     console.error('[fetchRecentTenantOrganizationsForSelectServer] Failed:', error);
     return [];
@@ -54,7 +64,9 @@ export async function searchTenantOrganizationsForSelectServer(
       fetchTenantOrganizations(page, { tenantIdContains: trimmed, ...sort }),
     ]);
 
-    return mergeOrganizationsByKey(byTenantId.data, byName.data).slice(0, TENANT_ORG_SELECT_LIMIT);
+    return filterOrgsForCurrentAdmin(
+      mergeOrganizationsByKey(byTenantId.data, byName.data).slice(0, TENANT_ORG_SELECT_LIMIT),
+    );
   } catch (error) {
     console.error('[searchTenantOrganizationsForSelectServer] Failed:', error);
     return [];

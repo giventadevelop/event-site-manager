@@ -1,3 +1,5 @@
+'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
@@ -18,7 +20,7 @@ export async function fetchEventProgramDirectorsServer(
   }
   params.append('page', page.toString());
   params.append('size', size.toString());
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-program-directors?${params.toString()}`, {
     cache: 'no-store',
@@ -67,7 +69,7 @@ export async function createEventProgramDirectorServer(
   };
 
   const currentTime = new Date().toISOString();
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload = {
     ...director,
     createdAt: currentTime,
@@ -90,8 +92,13 @@ export async function createEventProgramDirectorServer(
   return await response.json();
 }
 
-export async function updateEventProgramDirectorServer(id: number, director: Partial<EventProgramDirectorsDTO>) {
-  const payload = withTenantId({ ...director, id });
+export async function updateEventProgramDirectorServer(
+  id: number,
+  director: Partial<EventProgramDirectorsDTO>,
+  tenantId?: string,
+) {
+  const tid = await resolveAdminMutationTenantId(tenantId);
+  const payload = withTenantId({ ...director, id, ...(tid ? { tenantId: tid } : {}) });
 
   const response = await fetchWithJwtRetry(`${API_BASE_URL}/api/event-program-directors/${id}`, {
     method: 'PATCH',
@@ -132,7 +139,7 @@ export async function fetchDirectorMediaServer(
   const params = new URLSearchParams();
   params.append('directorId.equals', directorId.toString());
 
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   // Sort by priority ranking (ascending)
   params.append('sort', 'priorityRanking,asc');
@@ -184,7 +191,7 @@ export async function uploadDirectorImageServer(
     params.append('title', title || `photo - ${directorId}`);
     params.append('description', description || `Director photo image`);
     params.append('isPublic', 'true');
-    const tid = effectiveTenantId(tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId);
     if (tid != null) params.append('tenantId', tid);
 
     // Set startDisplayingFromDate to today's date (YYYY-MM-DD format) to satisfy NOT NULL constraint
@@ -235,7 +242,7 @@ export async function updateEventMediaServer(
     throw new Error('API base URL not configured');
   }
 
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload = {
     ...updates,
     id: mediaId,

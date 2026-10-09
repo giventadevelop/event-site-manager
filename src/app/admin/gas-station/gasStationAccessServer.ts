@@ -1,7 +1,8 @@
 'use server';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
+import { appendTenantIfPresent, getApiBaseUrl } from '@/lib/env';
+import { assertPlatformSuperAdmin, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { fetchUsersServer } from '@/app/admin/manage-usage/ApiServerActions';
 import type { UserProfileDTO } from '@/types';
 import type { GasStationUserStationAssignmentDTO } from '@/lib/gasStationAccess';
@@ -22,12 +23,9 @@ function normalizeList<T>(data: unknown): T[] {
   return [];
 }
 
-function requireTenantId(tenantId?: string): string {
-  const tid = effectiveTenantId(tenantId);
-  if (!tid) {
-    throw new Error('Select a tenant (?tenant=) to manage gas station location access.');
-  }
-  return tid;
+async function requireTenantId(tenantId?: string): Promise<string> {
+  await assertPlatformSuperAdmin();
+  return resolveAdminMutationTenantId(tenantId);
 }
 
 export async function fetchGasStationAssignmentsForUserServer(
@@ -35,7 +33,7 @@ export async function fetchGasStationAssignmentsForUserServer(
   tenantId?: string
 ): Promise<GasStationUserStationAssignmentDTO[]> {
   try {
-    const tid = requireTenantId(tenantId);
+    const tid = await requireTenantId(tenantId);
     const params = new URLSearchParams({
       'userProfileId.equals': String(userProfileId),
       // One user's station assignments — bounded by the tenant's station count.
@@ -58,7 +56,7 @@ export async function fetchAllGasStationAssignmentsServer(
   tenantId?: string
 ): Promise<GasStationUserStationAssignmentDTO[]> {
   try {
-    const tid = requireTenantId(tenantId);
+    const tid = await requireTenantId(tenantId);
     // Access matrix needs the tenant's full assignment set (managers x stations, both small);
     // a partial page would render a misleading matrix.
     const params = new URLSearchParams({ size: '1000' });
@@ -82,7 +80,7 @@ export async function createGasStationAssignmentServer(
   assignedByUserProfileId?: number | null
 ): Promise<GasStationUserStationAssignmentDTO | null> {
   try {
-    const tid = requireTenantId(tenantId);
+    const tid = await requireTenantId(tenantId);
     const body = {
       tenantId: tid,
       userProfileId,
@@ -158,11 +156,11 @@ export async function replaceGasStationAssignmentsForUserServer(
 export async function assertGasStationTenantAdminAccess(
   tenantId?: string
 ): Promise<{ tenantId: string }> {
-  return { tenantId: requireTenantId(tenantId) };
+  return { tenantId: await requireTenantId(tenantId) };
 }
 
 export async function fetchGasStationManagersServer(tenantId?: string): Promise<UserProfileDTO[]> {
-  const tid = requireTenantId(tenantId);
+  const tid = await requireTenantId(tenantId);
   const result = await fetchUsersServer({
     search: '',
     searchField: 'email',

@@ -1,7 +1,7 @@
 'use server';
 
 import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
-import { getTenantId } from '@/lib/env';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 /**
  * Upload portrait for squad roster member (same media proxy as executive committee).
@@ -28,7 +28,7 @@ export async function uploadSquadMemberProfileImage(
     params.append('isTeamMemberProfileImage', 'true');
     params.append('title', `Squad member profile - ${memberId}`);
     params.append('description', 'Profile image for team_members roster');
-    params.append('tenantId', getTenantId());
+    params.append('tenantId', await resolveAdminMutationTenantId());
 
     const baseUrl = await getAdminProxyBaseUrl();
     const url = `${baseUrl}/api/proxy/event-medias/upload?${params.toString()}`;

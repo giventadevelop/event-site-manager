@@ -131,9 +131,9 @@ export default function RootAuthLanding() {
     );
   }
 
-  // Stay on `/` after sign-in unless satellite/primary sent an explicit http(s) redirect_url.
+  // Hub admins land on /admin to pick a tenant workspace. Satellite return URLs stay as-is.
   const afterSignInRedirect =
-    redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http') ? redirectUrlFromQuery : '/';
+    redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http') ? redirectUrlFromQuery : '/admin';
 
   return (
     <main className="min-h-screen flex w-full flex-col bg-gray-50">

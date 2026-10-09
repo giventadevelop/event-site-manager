@@ -1,4 +1,5 @@
 'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { withTenantId } from '@/lib/withTenantId';
@@ -35,7 +36,7 @@ async function resolveTenantOrganizationByTenantId(
   tenantId: string | undefined,
   logLabel: string,
 ): Promise<TenantOrganizationDTO | null> {
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   if (!tid) return null;
 
   try {
@@ -73,7 +74,7 @@ export async function fetchTenantSettings(
     params.append('page', pagination.page.toString());
     params.append('size', pagination.pageSize.toString());
 
-    appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
+    await appendAdminTenantFilter(params, filters.tenantId);
 
     const tenantIdContains = filters.tenantIdContains?.trim() || filters.search?.trim();
     if (tenantIdContains) {
@@ -372,7 +373,7 @@ export async function updateTenantSetting(
 
     if ('defaultHeroImageUrlsJson' in payload) {
       payload.defaultHeroImageUrlsJson = normalizeDefaultHeroImageUrlsJsonForApi(
-        payload.defaultHeroImageUrlsJson
+        payload.defaultHeroImageUrlsJson as string | null | undefined,
       );
     }
 
@@ -440,7 +441,7 @@ export async function patchTenantSetting(
 
     if ('defaultHeroImageUrlsJson' in payload) {
       payload.defaultHeroImageUrlsJson = normalizeDefaultHeroImageUrlsJsonForApi(
-        payload.defaultHeroImageUrlsJson
+        payload.defaultHeroImageUrlsJson as string | null | undefined,
       );
     }
 

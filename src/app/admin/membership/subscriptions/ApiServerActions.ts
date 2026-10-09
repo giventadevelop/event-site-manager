@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter } from '@/app/admin/adminAccessServer';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getDefaultPageSize } from '@/lib/env';
 import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
@@ -28,7 +29,7 @@ export async function fetchAllSubscriptionsServer(
   }
 
   const params = new URLSearchParams();
-  appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
+  await appendAdminTenantFilter(params, filters.tenantId);
 
   if (filters.userProfileId) {
     params.append('userProfileId.equals', String(filters.userProfileId));

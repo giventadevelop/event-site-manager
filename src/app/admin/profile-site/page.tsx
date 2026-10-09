@@ -172,6 +172,31 @@ const COLLECTIONS: CollectionConfig[] = [
     ],
   },
   {
+    key: 'family',
+    title: 'Family',
+    path: '/api/profile-family-members',
+    columns: [
+      { name: 'displayName', label: 'Name' },
+      { name: 'relationship', label: 'Relationship' },
+      { name: 'roleTitle', label: 'Role' },
+      { name: 'displayOrder', label: 'Order' },
+    ],
+    fields: [
+      { name: 'displayName', label: 'Display name', type: 'text', required: true },
+      {
+        name: 'relationship',
+        label: 'Relationship',
+        type: 'select',
+        options: ['SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'OTHER'],
+      },
+      { name: 'roleTitle', label: 'Role / title', type: 'text' },
+      { name: 'description', label: 'Description', type: 'textarea' },
+      { name: 'photoUrl', label: 'Photo URL', type: 'text' },
+      { name: 'url', label: 'URL', type: 'text' },
+      { name: 'displayOrder', label: 'Display order', type: 'number' },
+    ],
+  },
+  {
     key: 'media',
     title: 'Media / Talks / Downloads',
     path: '/api/profile-media-assets',

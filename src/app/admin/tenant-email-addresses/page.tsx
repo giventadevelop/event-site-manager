@@ -151,7 +151,7 @@ export default function TenantEmailAddressesPage() {
         description: formData.description?.trim() || undefined,
       };
 
-      const created = await createTenantEmailAddressServer(payload as any);
+      const created = await createTenantEmailAddressServer(payload as any, tenantId);
       setIsCreateModalOpen(false);
       resetForm();
       setToastMessage({ type: 'success', message: 'Email address created successfully' });

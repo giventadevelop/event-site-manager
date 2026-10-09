@@ -148,6 +148,7 @@ export default function TenantSettingsForm({
       showProfileContactSection: initialData?.showProfileContactSection ?? false,
       showProfileProjectsSection: initialData?.showProfileProjectsSection ?? false,
       showProfileServicesSection: initialData?.showProfileServicesSection ?? false,
+      showProfileFamilySection: initialData?.showProfileFamilySection ?? false,
       // Header menu (null/undefined → form defaults match app null-safe defaults)
       showHeaderHome: initialData?.showHeaderHome ?? true,
       showHeaderAbout: initialData?.showHeaderAbout ?? true,
@@ -163,6 +164,7 @@ export default function TenantSettingsForm({
       showHeaderAchievements: initialData?.showHeaderAchievements ?? false,
       showHeaderAffiliations: initialData?.showHeaderAffiliations ?? false,
       showHeaderProjects: initialData?.showHeaderProjects ?? false,
+      showHeaderFamily: initialData?.showHeaderFamily ?? false,
       // Gas station COO module (GAS_STATION site type)
       enableGasStationModule: initialData?.enableGasStationModule ?? false,
       gasAiEngineBaseUrl: initialData?.gasAiEngineBaseUrl || '',
@@ -1017,7 +1019,7 @@ export default function TenantSettingsForm({
             <div className="space-y-4">
               <h4 className="text-md font-medium text-gray-900">Header Menu</h4>
               <p className="text-sm text-gray-600">
-                Choose which items appear in the top site header. News, Downloads, Services, Achievements, Affiliations, Projects, and Links reuse content managed under{' '}
+                Choose which items appear in the top site header. News, Downloads, Services, Achievements, Affiliations, Projects, Family, and Links reuse content managed under{' '}
                 <a href="/admin/profile-site" className="text-blue-600 hover:underline font-medium">
                   Admin → Profile Site
                 </a>
@@ -1025,7 +1027,7 @@ export default function TenantSettingsForm({
               </p>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-                Manage News (writings), Downloads (media assets), Services, Achievements, Affiliations, Projects, and
+                Manage News (writings), Downloads (media assets), Services, Achievements, Affiliations, Projects, Family, and
                 external-link writings under Profile Site. Social URLs on the public profile also appear on the Links page.
               </div>
 
@@ -1044,6 +1046,7 @@ export default function TenantSettingsForm({
                   ['showHeaderAchievements', 'Achievements', 'Show Achievements (awards, honors, speaking)'],
                   ['showHeaderAffiliations', 'Affiliations', 'Show Affiliations (boards, communities, orgs)'],
                   ['showHeaderProjects', 'Projects', 'Show Projects (case studies)'],
+                  ['showHeaderFamily', 'Family', 'Show Family (spouse, children, parents, siblings)'],
                   ['showHeaderLinks', 'Links', 'Show Links (social URLs + external-link writings)'],
                 ] as const
               ).map(([name, label, description]) => (
@@ -1143,6 +1146,16 @@ export default function TenantSettingsForm({
                   description="Display the professional services catalog (tax, financial consulting, etc.)"
                   checked={watchedValues.showProfileServicesSection || false}
                   onChange={(checked) => setValue('showProfileServicesSection', checked)}
+                />
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="showProfileFamilySection"
+                  label="Show Family Section"
+                  description="Display family members (spouse, children, parents, siblings) on the homepage"
+                  checked={watchedValues.showProfileFamilySection || false}
+                  onChange={(checked) => setValue('showProfileFamilySection', checked)}
                 />
               </div>
             </div>

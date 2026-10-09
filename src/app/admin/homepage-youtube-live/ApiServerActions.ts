@@ -1,12 +1,8 @@
 'use server';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import {
-  effectiveTenantId,
-  getApiBaseUrl,
-  getTenantId,
-  isAllTenantsAdmin,
-} from '@/lib/env';
+import { getApiBaseUrl } from '@/lib/env';
 import type { HomepageYoutubeOverrideDTO } from '@/types';
 
 export type HomepageYoutubeOverrideResult = {
@@ -14,13 +10,8 @@ export type HomepageYoutubeOverrideResult = {
   error: string | null;
 };
 
-function resolveTenant(requested?: string): string {
-  const explicit = effectiveTenantId(requested);
-  if (explicit) return explicit;
-  if (isAllTenantsAdmin()) {
-    throw new Error('Select a tenant in the admin bar before editing the homepage YouTube URL.');
-  }
-  return getTenantId();
+async function resolveTenant(requested?: string): Promise<string> {
+  return resolveAdminMutationTenantId(requested);
 }
 
 function parseList(data: unknown): HomepageYoutubeOverrideDTO[] {
@@ -35,7 +26,7 @@ export async function fetchHomepageYoutubeOverride(
   tenantId?: string
 ): Promise<HomepageYoutubeOverrideResult> {
   try {
-    const tenant = resolveTenant(tenantId);
+    const tenant = await resolveTenant(tenantId);
     const params = new URLSearchParams();
     params.set('tenantId.equals', tenant);
     params.set('size', '1');
@@ -64,7 +55,7 @@ export async function saveHomepageYoutubeOverride(
   payload: HomepageYoutubeOverrideDTO
 ): Promise<HomepageYoutubeOverrideResult> {
   try {
-    const tenant = resolveTenant(tenantId ?? payload.tenantId);
+    const tenant = await resolveTenant(tenantId ?? payload.tenantId);
     const body: HomepageYoutubeOverrideDTO = {
       ...payload,
       tenantId: tenant,

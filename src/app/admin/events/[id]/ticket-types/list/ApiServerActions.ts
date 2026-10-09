@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter } from '@/app/admin/adminAccessServer';
 
 import { revalidatePath } from 'next/cache';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
@@ -14,7 +15,7 @@ export async function fetchTicketTypesServer(eventId: number, tenantId?: string)
   const params = new URLSearchParams();
   params.set('eventId.equals', String(eventId));
   params.set('sort', 'createdAt,desc');
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const base = await getAdminProxyBaseUrl();
   const res = await fetch(
     `${base}/api/proxy/event-ticket-types?${params.toString()}`,

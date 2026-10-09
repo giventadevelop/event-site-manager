@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getAppUrl } from '@/lib/env';
 import type {
   PromotionEmailTemplateDTO,
@@ -24,7 +25,7 @@ export async function fetchPromotionEmailTemplatesServer(params?: {
   const queryParams = new URLSearchParams();
 
   queryParams.append('templateType.equals', 'EVENT_PROMOTION');
-  appendTenantIfPresent(queryParams, effectiveTenantId(params?.tenantId));
+  await appendAdminTenantFilter(queryParams, params?.tenantId);
 
   if (params?.eventId) {
     queryParams.append('eventId.equals', params.eventId.toString());
@@ -106,7 +107,7 @@ export async function createPromotionEmailTemplateServer(
     throw new Error('fromEmail is required and cannot be empty');
   }
 
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload: Record<string, unknown> = {
     eventId: formData.eventId,
     templateName: formData.templateName,
@@ -125,7 +126,7 @@ export async function createPromotionEmailTemplateServer(
   console.log('[DEBUG] Creating promotion email template with payload:', payload);
   console.log('[DEBUG] fromEmail value:', payload.fromEmail);
   console.log('[DEBUG] fromEmail type:', typeof payload.fromEmail);
-  console.log('[DEBUG] fromEmail length:', payload.fromEmail?.length);
+  console.log('[DEBUG] fromEmail length:', String(payload.fromEmail ?? '').length);
   console.log('[DEBUG] Payload keys:', Object.keys(payload));
   console.log('[DEBUG] Payload has fromEmail:', 'fromEmail' in payload);
   console.log('[DEBUG] JSON stringified payload:', JSON.stringify(payload));
@@ -163,7 +164,7 @@ export async function updatePromotionEmailTemplateServer(
   const url = `${baseUrl}/api/proxy/promotion-email-templates/${id}`;
 
   const now = new Date().toISOString();
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload: Record<string, unknown> = {
     ...formData,
     id,

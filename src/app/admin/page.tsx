@@ -1,11 +1,15 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from "@clerk/nextjs";
+import { useAdminAccess } from './AdminTenantContext';
+import AdminTenantWorkspacePicker from './AdminTenantWorkspacePicker';
 // Icons removed - using inline SVGs instead
 
 export default function AdminPage() {
   const { userId } = useAuth();
+  const { isPlatformSuperAdmin } = useAdminAccess();
+  const [workspaceReady, setWorkspaceReady] = useState(false);
 
   // CRITICAL: Each button must have a UNIQUE color - no duplicates allowed
   // All gray colors (gray, slate, stone, zinc, neutral) are avoided
@@ -152,21 +156,24 @@ export default function AdminPage() {
       icon: 'building',
       label: 'Organizations',
       color: 'sky',
-      key: 'tenant-organizations'
+      key: 'tenant-organizations',
+      platformOnly: true,
     },
     {
       href: '/admin/satellite-domains',
       icon: 'globe',
       label: 'Satellite Domains',
       color: 'sky',
-      key: 'satellite-domains'
+      key: 'satellite-domains',
+      platformOnly: true,
     },
     {
       href: '/admin/tenant-management/settings',
       icon: 'cog',
       label: 'Tenant Settings',
       color: 'red',
-      key: 'tenant-settings'
+      key: 'tenant-settings',
+      platformOnly: true,
     },
     {
       href: '/admin/profile-site',
@@ -180,14 +187,16 @@ export default function AdminPage() {
       icon: 'chart',
       label: 'Gas Stations',
       color: 'orange',
-      key: 'gas-station'
+      key: 'gas-station',
+      platformOnly: true,
     },
     {
       href: '/admin/tenant-management/test',
       icon: 'chart',
       label: 'Test CRUD',
       color: 'warmOrange',
-      key: 'tenant-test'
+      key: 'tenant-test',
+      platformOnly: true,
     },
     {
       href: '/admin/event-featured-performers',
@@ -502,10 +511,18 @@ export default function AdminPage() {
         ] Event Management
       </h1>
 
+      <AdminTenantWorkspacePicker onSelectionChange={setWorkspaceReady} />
+
+      {!workspaceReady && (
+        <p className="text-center text-sm text-gray-600 mb-6">
+          Select a tenant ID above to open admin tools for that organization.
+        </p>
+      )}
+
       {/* Responsive Button Group */}
-      <div className="w-full mb-8">
+      <div className={`w-full mb-8 ${workspaceReady ? '' : 'pointer-events-none opacity-40'}`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {adminButtons.map((button) => {
+          {adminButtons.filter((button) => !('platformOnly' in button && button.platformOnly) || isPlatformSuperAdmin).map((button) => {
             const colorClasses = getColorClasses(button.color);
             const iconBgColor = getIconBgColor(button.color);
             const iconTextColor = getIconTextColor(button.color);

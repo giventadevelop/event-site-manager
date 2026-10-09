@@ -1,4 +1,5 @@
 'use server';
+import { appendAdminTenantFilter } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
@@ -35,7 +36,7 @@ async function fetchGasList<T>(
     // Bounded per-tenant reference sets (station selectors, per-date metrics/recommendations) —
     // not paginated list views. The stations admin table uses the paged fetcher below instead.
     const params = new URLSearchParams({ size: '200' });
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    await appendAdminTenantFilter(params, tenantId);
     for (const [key, value] of Object.entries(extraParams ?? {})) {
       params.append(key, value);
     }
@@ -131,7 +132,7 @@ export async function fetchGasStationLocationsPageServer(
       size: String(Math.min(Math.max(1, size), 100)),
       sort: 'tenantId,asc',
     });
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    await appendAdminTenantFilter(params, tenantId);
     const res = await fetchWithJwtRetry(`${API_BASE_URL}/api/gas-station-locations?${params}`, {
       cache: 'no-store',
     });

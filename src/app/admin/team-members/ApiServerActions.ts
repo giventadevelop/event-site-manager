@@ -1,4 +1,5 @@
 'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { getAdminProxyBaseUrl } from '@/lib/adminProxyBaseUrl';
 import { appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
@@ -47,7 +48,7 @@ export async function fetchTeamMembersPage(
       size: String(Math.max(1, pageSize)),
     });
 
-    appendTenantIfPresent(params, effectiveTenantId(filters?.tenantId));
+    await appendAdminTenantFilter(params, filters?.tenantId);
 
     if (filters?.teamGroupId != null && Number.isFinite(filters.teamGroupId)) {
       params.append('teamGroupId.equals', String(filters.teamGroupId));
@@ -119,7 +120,7 @@ export async function createTeamMember(
   try {
     const baseUrl = await getAdminProxyBaseUrl();
     const body: Record<string, unknown> = { ...payload };
-    const tid = effectiveTenantId(tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId);
     if (tid != null) body.tenantId = tid;
     const now = new Date().toISOString();
     if (!body.createdAt) body.createdAt = now;
@@ -150,7 +151,7 @@ export async function updateTeamMember(
       id,
       updatedAt: new Date().toISOString(),
     };
-    const tid = effectiveTenantId(tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId);
     if (tid != null) body.tenantId = tid;
 
     const response = await fetch(`${baseUrl}/api/proxy/team-members/${id}`, {

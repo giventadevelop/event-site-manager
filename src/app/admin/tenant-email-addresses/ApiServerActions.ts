@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl, getDefaultPageSize } from '@/lib/env';
@@ -15,7 +16,7 @@ const API_BASE_URL = getApiBaseUrl();
  */
 export async function fetchTenantEmailAddressesServer(page: number = 0, size: number = getDefaultPageSize(), tenantId?: string): Promise<TenantEmailAddressDTO[]> {
   const params = new URLSearchParams();
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   params.append('sort', 'emailType,asc');
   params.append('page', page.toString());
   params.append('size', size.toString());
@@ -59,7 +60,7 @@ export async function fetchTenantEmailAddressServer(id: number): Promise<TenantE
  */
 export async function fetchTenantEmailAddressesCountServer(tenantId?: string): Promise<number> {
   const params = new URLSearchParams();
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   const url = `${API_BASE_URL}/api/tenant-email-addresses/count?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
@@ -78,9 +79,11 @@ export async function fetchTenantEmailAddressesCountServer(tenantId?: string): P
  * Required fields: emailAddress, emailType. isActive defaults true, isDefault defaults false.
  */
 export async function createTenantEmailAddressServer(
-  email: Omit<TenantEmailAddressDTO, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>
+  email: Omit<TenantEmailAddressDTO, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>,
+  tenantId?: string,
 ): Promise<TenantEmailAddressDTO> {
   const now = new Date().toISOString();
+  const tid = await resolveAdminMutationTenantId(tenantId);
 
   const copyToTrimmed = email.copyToEmailAddress?.trim();
   const replyToTrimmed = email.replyToEmailAddress?.trim();
@@ -98,7 +101,7 @@ export async function createTenantEmailAddressServer(
     updatedAt: now,
   };
 
-  const payload = withTenantId(basePayload);
+  const payload = { ...basePayload, tenantId: tid };
 
   const url = `${API_BASE_URL}/api/tenant-email-addresses`;
   const res = await fetchWithJwtRetry(url, {
@@ -124,7 +127,7 @@ export async function updateTenantEmailAddressServer(
   tenantId?: string
 ): Promise<TenantEmailAddressDTO> {
   const now = new Date().toISOString();
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
 
   const basePatch: Record<string, unknown> = {
     ...email,

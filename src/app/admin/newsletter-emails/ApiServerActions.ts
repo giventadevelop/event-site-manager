@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { appendTenantIfPresent, effectiveTenantId } from '@/lib/env';
 import type {
@@ -24,7 +25,7 @@ export async function fetchNewsletterEmailTemplatesServer(params?: {
 
   // Always scope newsletter templates to NEWS_LETTER template type
   queryParams.append('templateType.equals', 'NEWS_LETTER');
-  appendTenantIfPresent(queryParams, effectiveTenantId(params?.tenantId));
+  await appendAdminTenantFilter(queryParams, params?.tenantId);
 
   if (params?.eventId) {
     queryParams.append('eventId.equals', params.eventId.toString());
@@ -106,7 +107,7 @@ export async function createNewsletterEmailTemplateServer(
   const baseUrl = getAppUrl();
   const url = `${baseUrl}/api/proxy/promotion-email-templates`;
 
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   if (!formData.fromEmail || !formData.fromEmail.trim()) {
     throw new Error('fromEmail is required and cannot be empty');
   }
@@ -156,7 +157,7 @@ export async function updateNewsletterEmailTemplateServer(
   const url = `${baseUrl}/api/proxy/promotion-email-templates/${id}`;
 
   const now = new Date().toISOString();
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload: Record<string, unknown> = {
     ...formData,
     id,

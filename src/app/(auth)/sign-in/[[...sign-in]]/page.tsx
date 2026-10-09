@@ -87,6 +87,11 @@ export default function SignInPage() {
           <SignIn
             routing="path"
             path="/sign-in"
+            forceRedirectUrl={
+              redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http')
+                ? redirectUrlFromQuery
+                : '/admin'
+            }
           />
         </div>
       </main>
@@ -116,7 +121,7 @@ export default function SignInPage() {
   }
 
   const afterSignInRedirect =
-    redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http') ? redirectUrlFromQuery : '/home';
+    redirectUrlFromQuery && redirectUrlFromQuery.startsWith('http') ? redirectUrlFromQuery : '/admin';
 
   return (
     <main className="flex min-h-screen w-full flex-1 flex-col">

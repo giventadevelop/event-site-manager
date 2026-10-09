@@ -1,4 +1,5 @@
 'use server';
+import { headersForAdminTenantScope, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { effectiveTenantId, getApiBaseUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
@@ -19,12 +20,11 @@ export type CreateFocusGroupResult =
   | { ok: true; group: FocusGroupDTO }
   | { ok: false; error: string };
 
-function headersForTenantScope(
+async function headersForTenantScope(
   tenantId: string | undefined,
-  extra: Record<string, string> = {}
-): Record<string, string> {
-  const tid = effectiveTenantId(tenantId);
-  return tid ? { ...extra, 'X-Tenant-ID': tid } : { ...extra };
+  extra: Record<string, string> = {},
+): Promise<Record<string, string>> {
+  return headersForAdminTenantScope(tenantId, extra);
 }
 
 function isSlugUniqueViolation(bodyText: string): boolean {
@@ -57,7 +57,7 @@ async function syncBackendSequences(tenantId?: string): Promise<void> {
   try {
     const res = await fetchWithJwtRetry(`${getApiBaseUrl()}/api/admin/sync-sequence`, {
       method: 'POST',
-      headers: headersForTenantScope(tenantId, { 'Content-Type': 'application/json' }),
+      headers: await headersForTenantScope(tenantId, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({}),
     });
     if (!res.ok) {
@@ -72,7 +72,7 @@ export async function createFocusGroupServer(
   input: CreateFocusGroupInput
 ): Promise<CreateFocusGroupResult> {
   const now = new Date().toISOString();
-  const tid = effectiveTenantId(input.tenantId);
+  const tid = await resolveAdminMutationTenantId(input.tenantId);
   const payload = withTenantId({
     name: input.name.trim(),
     slug: input.slug.trim(),
@@ -91,7 +91,7 @@ export async function createFocusGroupServer(
     try {
       const response = await fetchWithJwtRetry(`${getApiBaseUrl()}/api/focus-groups`, {
         method: 'POST',
-        headers: headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
+        headers: await headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
 
@@ -144,10 +144,10 @@ export async function deleteFocusGroupServer(
   tenantId?: string
 ): Promise<DeleteFocusGroupResult> {
   try {
-    const tid = effectiveTenantId(tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId);
     const response = await fetchWithJwtRetry(`${getApiBaseUrl()}/api/focus-groups/${id}`, {
       method: 'DELETE',
-      headers: headersForTenantScope(tid),
+      headers: await headersForTenantScope(tid),
     });
 
     if (response.ok || response.status === 204) {

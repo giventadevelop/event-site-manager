@@ -2,10 +2,10 @@ import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
-import { fetchAdminProfileServer } from './manage-usage/ApiServerActions';
 import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
 import { AdminTenantLayoutClient } from './AdminTenantContext';
-import { isAdminRole } from '@/lib/utils';
+import { fetchAdminAccessForClerkUser, resolveSessionTenantForAccess } from './adminAccessServer';
+import { isPlatformOnlyAdminPath } from '@/lib/adminTenantAccess';
 
 /**
  * Admin Layout - Protects all /admin/* routes
@@ -23,8 +23,8 @@ export default async function AdminLayout({
 }) {
   try {
     // CRITICAL: Next.js 15+ requires headers() to be awaited before calling auth()
-    // This ensures proper async context for dynamic APIs
-    await headers();
+    const headersList = await headers();
+    const pathname = headersList.get('x-pathname') || '';
 
     // Check authentication
     // When user is logged out, auth() returns { userId: null } without throwing
@@ -45,17 +45,15 @@ export default async function AdminLayout({
       redirect('/');
     }
 
-    // Ensure tenant-scoped profile exists for the current user
-    // This is non-blocking - if it fails, we'll still check the profile
+    let clerkEmail: string | undefined;
     try {
       const u = await currentUser();
+      clerkEmail = u?.emailAddresses?.[0]?.emailAddress;
       if (u) {
-        // Map Clerk user object to userData format expected by bootstrapUserProfile
-        // CRITICAL: Only pass data that exists - don't pass empty strings
         await bootstrapUserProfile({
           userId,
           userData: {
-            email: u.emailAddresses?.[0]?.emailAddress || undefined,
+            email: clerkEmail,
             firstName: u.firstName || undefined,
             lastName: u.lastName || undefined,
             imageUrl: u.imageUrl || undefined,
@@ -64,35 +62,47 @@ export default async function AdminLayout({
       }
     } catch (error) {
       console.error('[AdminLayout] Error bootstrapping user profile (non-fatal):', error);
-      // Continue - fetchAdminProfileServer will check if profile exists
     }
 
-    // Fetch user profile to check admin role
-    let userProfile = null;
+    // Admin on any tenant profile (hub looks across tenants; satellite is env-scoped)
+    let access;
     try {
-      userProfile = await fetchAdminProfileServer(userId);
+      access = await fetchAdminAccessForClerkUser(userId, clerkEmail);
     } catch (error) {
-      console.error('[AdminLayout] Error fetching user profile:', error);
-      // If we can't fetch the profile, assume user is not admin for security
-      console.warn('[AdminLayout] Cannot verify admin status, redirecting to homepage');
+      console.error('[AdminLayout] Error resolving admin tenant access:', error);
       redirect('/');
     }
 
-    // Align with Header / root layout — ADMIN and SUPER_ADMIN both grant access
-    const isAdmin = isAdminRole(userProfile?.userRole);
-
-    // If not admin or profile doesn't exist, redirect to homepage immediately
-    if (!isAdmin) {
+    if (!access.isAdmin) {
       console.warn(
-        `[AdminLayout] User ${userId} attempted to access admin route but does not have ADMIN role. ` +
-        `Role: ${userProfile?.userRole || 'NONE'}, Status: ${userProfile?.userStatus || 'NONE'}`
+        `[AdminLayout] User ${userId} attempted to access admin route but has no ADMIN/SUPER_ADMIN profile.`
       );
       redirect('/');
     }
 
-    // User is authenticated and has admin role - always show tenant bar for filter-by-tenant
+    if (isPlatformOnlyAdminPath(pathname) && !access.isPlatformSuperAdmin) {
+      redirect('/admin');
+    }
+
+    const session = await resolveSessionTenantForAccess(access);
+    const pathOnly = pathname.split('?')[0] || '';
+    const isAdminSubpath = pathOnly.startsWith('/admin/') && pathOnly !== '/admin/';
+    const needsWorkspacePick =
+      !access.canQueryAllTenants &&
+      access.allowedTenantIds.length > 1 &&
+      !session.tenantId;
+    if (needsWorkspacePick && isAdminSubpath) {
+      redirect('/admin');
+    }
+
     return (
-      <AdminTenantLayoutClient showTenantSelector={true}>
+      <AdminTenantLayoutClient
+        showTenantSelector={true}
+        isPlatformSuperAdmin={access.isPlatformSuperAdmin}
+        canQueryAllTenants={access.canQueryAllTenants}
+        allowedTenantIds={access.allowedTenantIds}
+        defaultTenantId={session.tenantId ?? access.defaultTenantId}
+      >
         {children}
       </AdminTenantLayoutClient>
     );

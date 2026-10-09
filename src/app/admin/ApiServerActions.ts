@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { getAppUrl, effectiveTenantId, appendTenantIfPresent, getDefaultPageSize, getBackendApiUrl } from '@/lib/env';
 import type { EventDetailsDTO, EventTypeDetailsDTO, UserProfileDTO, EventCalendarEntryDTO } from '@/types';
@@ -8,7 +9,7 @@ export async function fetchEventsServer(pageNum = 0, pageSize = 5, tenantId?: st
   params.set('page', String(pageNum ?? 0));
   params.set('size', String(pageSize ?? getDefaultPageSize()));
   params.set('sort', 'startDate,asc');
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${getBackendApiUrl()}/api/event-details?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch events');
@@ -17,7 +18,7 @@ export async function fetchEventsServer(pageNum = 0, pageSize = 5, tenantId?: st
 
 export async function fetchEventTypesServer(tenantId?: string): Promise<EventTypeDetailsDTO[]> {
   const params = new URLSearchParams();
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${getBackendApiUrl()}/api/event-type-details?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch event types');
@@ -34,7 +35,7 @@ export async function fetchCalendarEventsServer(tenantId?: string, eventIds?: nu
   } else {
     params.set('size', '1000');
   }
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${getBackendApiUrl()}/api/event-calendar-entries?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch calendar events');
@@ -44,7 +45,7 @@ export async function fetchCalendarEventsServer(tenantId?: string, eventIds?: nu
 
 export async function createEventServer(event: any, tenantId?: string): Promise<any> {
   const url = `${getBackendApiUrl()}/api/event-details`;
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload = tid != null ? { ...event, tenantId: tid } : event;
   const res = await fetchWithJwtRetry(url, {
     method: 'POST',
@@ -58,7 +59,7 @@ export async function createEventServer(event: any, tenantId?: string): Promise<
 export async function updateEventServer(event: any, tenantId?: string): Promise<any> {
   if (!event.id) throw new Error('Event ID required for update');
   const url = `${getBackendApiUrl()}/api/event-details/${event.id}`;
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload = tid != null ? { ...event, tenantId: tid, id: event.id } : { ...event, id: event.id };
   const res = await fetchWithJwtRetry(url, {
     method: 'PUT',
@@ -75,7 +76,7 @@ export async function updateEventServer(event: any, tenantId?: string): Promise<
 export async function cancelEventServer(event: EventDetailsDTO, tenantId?: string): Promise<EventDetailsDTO> {
   if (!event.id) throw new Error('Event ID required for cancel');
   const url = `${getBackendApiUrl()}/api/event-details/${event.id}`;
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload = tid != null ? { ...event, isActive: false, tenantId: tid } : { ...event, isActive: false };
   const res = await fetchWithJwtRetry(url, {
     method: 'PUT',
@@ -133,7 +134,7 @@ export async function findCalendarEventByEventIdServer(eventId: number, tenantId
   const params = new URLSearchParams();
   params.set('eventId.equals', String(eventId));
   params.set('size', '1');
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${getBackendApiUrl()}/api/event-calendar-entries?${params.toString()}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
   if (!res.ok) return null;
@@ -202,7 +203,7 @@ export async function fetchEventsFilteredServer(params: {
     size: String(params.pageSize ?? getDefaultPageSize()),
     sort: params.sort || 'startDate,asc'
   });
-  appendTenantIfPresent(queryParams, effectiveTenantId(params.tenantId));
+  await appendAdminTenantFilter(queryParams, params.tenantId);
 
   if (params.title) queryParams.append('title.contains', params.title);
   if (params.id) queryParams.append('id.equals', params.id);
@@ -229,7 +230,7 @@ export async function fetchEventsFilteredServer(params: {
 
 export async function fetchEventDetailsServer(eventId: number, tenantId?: string): Promise<EventDetailsDTO | null> {
   const params = new URLSearchParams();
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const qs = params.toString();
   const url = `${getBackendApiUrl()}/api/event-details/${eventId}${qs ? `?${qs}` : ''}`;
   const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
@@ -245,7 +246,7 @@ export async function fetchUserProfileServer(userId: string, tenantId?: string):
         return null;
     }
     const params = new URLSearchParams();
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    await appendAdminTenantFilter(params, tenantId);
     const qs = params.toString();
     const url = `${getBackendApiUrl()}/api/user-profiles/by-user/${userId}${qs ? `?${qs}` : ''}`;
     try {
@@ -267,7 +268,7 @@ export async function fetchUserProfileByEmailServer(email: string, tenantId?: st
     }
     const params = new URLSearchParams();
     params.set('email.equals', email);
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    await appendAdminTenantFilter(params, tenantId);
     const url = `${getBackendApiUrl()}/api/user-profiles?${params.toString()}`;
     try {
         const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
@@ -299,7 +300,7 @@ export async function fetchChildEventsBySeriesIdServer(recurrenceSeriesId: numbe
   const params = new URLSearchParams();
   params.set('recurrenceSeriesId.equals', String(seriesIdNum));
   params.set('size', '1000');
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${getBackendApiUrl()}/api/event-details?${params.toString()}`;
   try {
     const res = await fetchWithJwtRetry(url, { cache: 'no-store' });
@@ -334,7 +335,7 @@ export async function fetchChildEventsByParentIdServer(parentEventId: number, te
   const params = new URLSearchParams();
   params.set('parentEventId.equals', String(parentIdNum));
   params.set('size', '1000');
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
   const url = `${getBackendApiUrl()}/api/event-details?${params.toString()}`;
   try {
     const res = await fetchWithJwtRetry(url, { cache: 'no-store' });

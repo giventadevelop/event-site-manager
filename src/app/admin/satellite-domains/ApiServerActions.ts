@@ -1,4 +1,5 @@
 'use server';
+import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { revalidateSatelliteConfigCache } from '@/lib/satelliteConfigRuntime';
@@ -43,7 +44,7 @@ export async function fetchSatelliteDomainsServer(
   params.append('page', page.toString());
   params.append('size', size.toString());
   params.append('sort', 'displayName,asc');
-  appendTenantIfPresent(params, effectiveTenantId(tenantId));
+  await appendAdminTenantFilter(params, tenantId);
 
   // Apply optional filters
   if (filters?.satelliteKey) {
@@ -105,7 +106,7 @@ export async function createSatelliteDomainServer(
   tenantId?: string
 ): Promise<SatelliteDomainDTO> {
   const currentTime = new Date().toISOString();
-  const tid = effectiveTenantId(tenantId);
+  const tid = await resolveAdminMutationTenantId(tenantId);
   const payload = {
     ...domain,
     createdAt: currentTime,

@@ -1,4 +1,5 @@
 'use server';
+import { appendAdminTenantFilter, headersForAdminTenantScope, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
@@ -13,12 +14,11 @@ const API_BASE_URL = getApiBaseUrl();
  * When admin UI selects `?tenant=`, override X-Tenant-ID so the backend scopes to that tenant
  * (same pattern as manage-usage). Without this, fetchWithJwtRetry keeps the platform env tenant.
  */
-function headersForTenantScope(
+async function headersForTenantScope(
   tenantId: string | undefined,
   extra: Record<string, string> = {},
-): Record<string, string> {
-  const tid = effectiveTenantId(tenantId);
-  return tid ? { ...extra, 'X-Tenant-ID': tid } : { ...extra };
+): Promise<Record<string, string>> {
+  return headersForAdminTenantScope(tenantId, extra);
 }
 
 /** Optional filters for admin album list; tenant only when ?tenant= is passed. */
@@ -42,12 +42,12 @@ export async function fetchGalleryCategoriesServer(
     params.append('sort', 'sortOrder,asc');
     params.append('sort', 'displayName,asc');
     params.append('isActive.equals', 'true');
-    appendTenantIfPresent(params, effectiveTenantId(tenantId));
+    await appendAdminTenantFilter(params, tenantId);
 
     const url = `${API_BASE_URL}/api/gallery-categories?${params.toString()}`;
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
-      headers: headersForTenantScope(tenantId),
+      headers: await headersForTenantScope(tenantId),
     });
     if (!res.ok) {
       console.error('[fetchGalleryCategoriesServer] Failed:', res.status, res.statusText);
@@ -69,7 +69,7 @@ export async function createAlbumServer(
   tenantId?: string,
 ): Promise<GalleryAlbumDTO> {
   try {
-    const tid = effectiveTenantId(tenantId) ?? effectiveTenantId(album.tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId ?? album.tenantId);
     const payload = withTenantId({
       ...album,
       ...(tid ? { tenantId: tid } : {}),
@@ -80,7 +80,7 @@ export async function createAlbumServer(
     const url = `${API_BASE_URL}/api/gallery-albums`;
     const res = await fetchWithJwtRetry(url, {
       method: 'POST',
-      headers: headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
+      headers: await headersForTenantScope(tid, { 'Content-Type': 'application/json' }),
       body: JSON.stringify(payload),
       cache: 'no-store',
     });
@@ -121,7 +121,7 @@ export async function fetchAlbumsServer(
     params.append('page', page.toString());
     params.append('size', size.toString());
 
-    appendTenantIfPresent(params, effectiveTenantId(filters.tenantId));
+    await appendAdminTenantFilter(params, filters.tenantId);
 
     const titleQ = filters.title?.trim();
     if (titleQ) params.append('title.contains', titleQ);
@@ -147,7 +147,7 @@ export async function fetchAlbumsServer(
     const url = `${API_BASE_URL}/api/gallery-albums?${params.toString()}`;
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
-      headers: headersForTenantScope(filters.tenantId),
+      headers: await headersForTenantScope(filters.tenantId),
     });
 
     if (!res.ok) {
@@ -178,11 +178,11 @@ export async function fetchAlbumServer(
   tenantId?: string,
 ): Promise<GalleryAlbumDTO | null> {
   try {
-    const tid = effectiveTenantId(tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId);
     const url = `${API_BASE_URL}/api/gallery-albums/${albumId}`;
     const res = await fetchWithJwtRetry(url, {
       cache: 'no-store',
-      headers: headersForTenantScope(tid),
+      headers: await headersForTenantScope(tid),
     });
 
     if (!res.ok) {
@@ -209,7 +209,7 @@ export async function updateAlbumServer(
   tenantId?: string,
 ): Promise<GalleryAlbumDTO> {
   try {
-    const tid = effectiveTenantId(tenantId) ?? effectiveTenantId(updates.tenantId);
+    const tid = await resolveAdminMutationTenantId(tenantId ?? updates.tenantId);
     const payload = withTenantId({
       ...updates,
       id: albumId,
@@ -220,7 +220,7 @@ export async function updateAlbumServer(
     const url = `${API_BASE_URL}/api/gallery-albums/${albumId}`;
     const res = await fetchWithJwtRetry(url, {
       method: 'PATCH',
-      headers: headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
+      headers: await headersForTenantScope(tid, { 'Content-Type': 'application/merge-patch+json' }),
       body: JSON.stringify(payload),
       cache: 'no-store',
     });
@@ -247,7 +247,7 @@ export async function deleteAlbumServer(albumId: number, tenantId?: string): Pro
     const res = await fetchWithJwtRetry(url, {
       method: 'DELETE',
       cache: 'no-store',
-      headers: headersForTenantScope(tenantId),
+      headers: await headersForTenantScope(tenantId),
     });
 
     if (!res.ok) {

@@ -1,6 +1,7 @@
-"use server";
+'use server';
+import { resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 import { stripe } from '@/lib/stripe';
-import { getApiBaseUrl, getAppUrl, getTenantId } from '@/lib/env';
+import { getApiBaseUrl, getAppUrl } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import type { EventTicketTransactionDTO } from '@/types';
 
@@ -31,7 +32,7 @@ export async function refundTicketTransactionServer(ticket: EventTicketTransacti
   const now = new Date().toISOString();
   const patchPayload: Partial<EventTicketTransactionDTO> = {
     id: ticket.id,
-    tenantId: ticket.tenantId || getTenantId(),
+    tenantId: ticket.tenantId || (await resolveAdminMutationTenantId()),
     transactionReference: ticket.transactionReference,
     email: ticket.email,
     firstName: ticket.firstName,
@@ -135,7 +136,7 @@ export async function triggerStripeTicketBatchRefundServer(
       payload.tenantId = request.tenantId;
     } else {
       // Use current tenant from environment
-      payload.tenantId = getTenantId();
+      payload.tenantId = await resolveAdminMutationTenantId();
     }
     
     if (request.startDate) {
