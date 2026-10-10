@@ -1230,6 +1230,109 @@ export interface SatelliteDomainDTO {
   updatedAt?: string;
 }
 
+export type OnboardingRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'FAILED' | 'CANCELLED';
+export type OnboardingRequestSource = 'PUBLIC_FORM' | 'ADMIN_MANUAL';
+export type DomainOwnership = 'PLATFORM_REGISTERS' | 'CUSTOMER_REGISTRAR' | 'ALREADY_IN_PLATFORM';
+
+/**
+ * New customer onboarding request, matches backend TenantOnboardingRequestDTO
+ * (`/api/tenant-onboarding-requests`). Workflow fields are server-assigned.
+ */
+export interface TenantOnboardingRequestDTO {
+  id?: number;
+  requestCode?: string;
+  status?: OnboardingRequestStatus;
+  source?: OnboardingRequestSource;
+  organizationName: string;
+  siteType?: TenantSiteType;
+  description?: string | null;
+  contactFirstName?: string | null;
+  contactLastName?: string | null;
+  contactEmail: string;
+  contactPhone?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  stateProvince?: string | null;
+  zipCode?: string | null;
+  country?: string | null;
+  requestedHostname: string;
+  domainOwnership?: DomainOwnership;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  logoUrl?: string | null;
+  wantsPayments?: boolean | null;
+  customerNotes?: string | null;
+  assignedTenantId?: string | null;
+  satelliteKey?: string | null;
+  noreplyEmail?: string | null;
+  adminComments?: string | null;
+  reviewedByClerkUserId?: string | null;
+  reviewedByEmail?: string | null;
+  reviewedAt?: string | null;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  /** JSON written by the backend on approve (created ids) or failure (error). */
+  provisioningResult?: string | null;
+  submitterIp?: string | null;
+  userAgent?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** Payload for POST `/api/tenant-onboarding-requests/submit` (backend TenantOnboardingSubmitDTO). */
+export interface TenantOnboardingSubmitDTO {
+  organizationName: string;
+  contactEmail: string;
+  requestedHostname: string;
+  siteType?: TenantSiteType;
+  description?: string;
+  contactFirstName?: string;
+  contactLastName?: string;
+  contactPhone?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  stateProvince?: string;
+  zipCode?: string;
+  country?: string;
+  domainOwnership?: DomainOwnership;
+  primaryColor?: string;
+  secondaryColor?: string;
+  logoUrl?: string;
+  wantsPayments?: boolean;
+  customerNotes?: string;
+  source?: OnboardingRequestSource;
+  submitterIp?: string;
+  userAgent?: string;
+}
+
+/** Payload for POST `/api/tenant-onboarding-requests/{id}/approve` (backend TenantOnboardingApproveDTO). */
+export interface TenantOnboardingApproveDTO {
+  tenantId: string;
+  satelliteKey: string;
+  hostname?: string;
+  organizationDomain?: string;
+  displayName?: string;
+  contactEmail?: string;
+  infoEmail?: string;
+  noreplyEmail?: string;
+  adminSourceTenantId?: string;
+  cloneAdmins?: boolean;
+  adminComments?: string;
+  reviewedByClerkUserId?: string;
+  reviewedByEmail?: string;
+  notifySubmitter?: boolean;
+}
+
+/** Payload for POST `/api/tenant-onboarding-requests/{id}/reject` (backend TenantOnboardingRejectDTO). */
+export interface TenantOnboardingRejectDTO {
+  adminComments: string;
+  reviewedByClerkUserId?: string;
+  reviewedByEmail?: string;
+  notifySubmitter?: boolean;
+}
+
 
 /**
  * Timed event-day program item (Onam-style agenda). Overlapping times are allowed.

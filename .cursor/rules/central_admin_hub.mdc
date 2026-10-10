@@ -14,9 +14,13 @@ alwaysApply: false
 - **Platform-only:** Tenant Management, Satellite Domains, Gas Stations, Test CRUD — `SUPER_ADMIN` only (`isPlatformOnlyAdminPath`).
 - **Satellites:** `DISABLE_ADMIN_ON_SATELLITE` defaults on when `NEXT_PUBLIC_CLERK_IS_SATELLITE=true`; middleware redirects `/admin` to the primary hub with `?tenant=` = env tenant. Loopback and the primary host are not redirected.
 - **kcnj-prod:** keep that repo’s admin fork until KCNJ operators use this hub (or merge). Same-codebase satellites share the hub now.
-- **Workspace session:** After sign-in, send admins to `/admin`. List every tenant ID mapped to that Clerk user (`user_profile` ADMIN/SUPER_ADMIN rows). Persist the pick in the httpOnly `admin_session_tenant` cookie (`__all__` only for hub SUPER_ADMIN). Filter resolution: explicit `?tenant=` → cookie → single-tenant default.
+- **Workspace session:** After sign-in, send admins to `/admin`. List every tenant ID mapped to that Clerk user (`user_profile` ADMIN/SUPER_ADMIN rows), looking up by **userId and email** with **no env tenant pin** (`omitEnvTenantId`). Persist the pick in the httpOnly `admin_session_tenant` cookie (`__all__` only for hub SUPER_ADMIN). Filter resolution: explicit `?tenant=` → cookie → single-tenant default. Hub SUPER_ADMIN with no cookie defaults to **all tenants** (every organization is in scope); they can still pin one org from the picker.
+- **Amplify hub:** `AMPLIFY_NEXT_PUBLIC_ALL_TENANTS_ADMIN=true` (and `NEXT_PUBLIC_ALL_TENANTS_ADMIN=true`) on event-site-manager.com. If this flag is missing, list APIs were previously scoped to `event_site_manager_admin_1` and the picker showed only that one card.
+- **Hub SUPER_ADMIN profile:** At least one `user_profile` on `event_site_manager_admin_1` must have `user_role = SUPER_ADMIN` (ADMIN-only rows never unlock the All tenants card). Reserved emails that must stay SUPER_ADMIN across local/dev/prod export-import: `giventauser@gmail.com` and `mosc.admin.user@keleno.com`. The database repo restores them after every import (`post_import_retain_platform_super_admins.sql`, batch step 6b) so schema rebuild cannot demote or drop them.
 - **Multi-tenant ADMIN:** Do not default the first of many tenants. Gate `/admin/*` subpages until they pick; `/admin` stays the picker. SUPER_ADMIN also gets an **All tenants** card.
+- **Picker search + pagination:** When two or more tenant IDs are mapped (or the user is hub SUPER_ADMIN), `/admin` uses the same Tenant ID / organization-name lookup as Tenant Settings (`searchTenantOrganizationsForSelectServer`) plus the standard admin pagination footer. Pagination starts when more than 8 matching cards.
 - **Change workspace:** Top tenant bar (and dashboard cards) can switch the session cookie. Do not use `appendAdminTenantFilter` when listing orgs for the picker.
+- **New org admin registration:** The person registers or signs in on **that organization’s satellite** (email or Google). Hub SUPER_ADMIN then promotes the satellite `user_profile` to `ADMIN` in Manage Usage. After sign-out/in they use `event-site-manager.com/admin` and pick that org. Do not register only on the hub. Operator steps: [PROMOTE_USER_TO_ADMIN_GUIDELINES.html](mdc:public/documentation/manage_usage/PROMOTE_USER_TO_ADMIN_GUIDELINES.html).
 
 ```typescript
 // ✅ DO: scope list queries to the signed-in admin allowlist
@@ -24,4 +28,26 @@ await appendAdminTenantFilter(params, tenantId);
 
 // ❌ DON'T: empty filter = all tenants for a tenant ADMIN
 appendTenantIfPresent(params, effectiveTenantId(tenantId));
+```
+
+## New Customer Onboarding (public request + SUPER_ADMIN approve)
+
+- **Public intake:** `/get-started` ([GetStartedForm.tsx](mdc:src/app/get-started/GetStartedForm.tsx)) posts to `/api/public/onboarding-requests` ([route.ts](mdc:src/app/api/public/onboarding-requests/route.ts)). The route checks the honeypot field `website` (a filled honeypot gets a fake 201), applies `consumeRateLimit` (5 requests per IP per hour, per instance), runs `validateOnboardingSubmit`, then forwards to backend `/api/tenant-onboarding-requests/submit` with `source: 'PUBLIC_FORM'`. `/get-started(.*)` is in middleware `isPublicRoute`. `/api/public(.*)` was already public.
+- **Shared validation:** [onboardingShared.ts](mdc:src/lib/onboarding/onboardingShared.ts) is client-safe and holds the site-type options, hostname/email/hex checks, the `TENANT_ID_PATTERN` and `SATELLITE_KEY_PATTERN` patterns (they match the backend `@Pattern`), and `describeOnboardingBackendError`, which maps `error.*` keys to friendly text. Reuse it instead of re-declaring rules.
+- **Admin UI (platform-only):** `/admin/onboarding-requests` is in `isPlatformOnlyAdminPath`, and every page and server action calls `assertPlatformSuperAdmin()`. The pages are: list (status filter, default PENDING), `new` (manual request, `source: 'ADMIN_MANUAL'`) and `[id]` (edit, availability check, approve or retry, reject). Nav key `onboarding-requests`, lime color.
+- **Server actions:** [ApiServerActions.ts](mdc:src/app/admin/onboarding-requests/ApiServerActions.ts). Fetch, create, update, approve and reject return `{ ok, data } | { ok: false, error }` instead of throwing (the count and Suggest ID helpers return plain values), so the client can show backend messages. All backend calls use `fetchWithJwtRetry` + `getApiBaseUrl()`. Approve uses a 60s timeout.
+- **Approve contract:** a single backend transaction creates the org, settings, 3 emails, the satellite domain and the cloned admins. On failure the backend marks the request `FAILED` (in `provisioningResult.error`) and nothing persists. The client then fixes the fields and retries.
+- **After approve (hub, best effort):** `applySiteTypePresetsForTenant`, then default hero URLs (`DEFAULT_HERO_TEMPLATE_URLS`, only when unset), then `revalidateSatelliteConfigCache()`. Failures come back as `warnings`; never roll back or re-approve because of them.
+- **Before approve:** save dirty request fields, then run `checkOnboardingAvailabilityServer` (tenantId, organization domain, satellite key, hostname) and block if anything is taken.
+- **Reject:** `adminComments` is required. The submitter email is optional (`notifySubmitter`).
+- **Operator runbook:** the application-deployments rule `onboarding_new_customer_satellite_tenant.mdc` (hub flow primary, Excel pack fallback).
+
+```typescript
+// DO: platform guard + result union in onboarding server actions
+export async function approveOnboardingRequestServer(id: number, approve: TenantOnboardingApproveDTO, siteType?: string) {
+  await assertPlatformSuperAdmin();
+  // fetchWithJwtRetry(`${getApiBaseUrl()}/api/tenant-onboarding-requests/${id}/approve`, { method: 'POST', ... })
+}
+
+// DON'T: create tenant rows one by one from the client for onboarding (no rollback on partial failure)
 ```

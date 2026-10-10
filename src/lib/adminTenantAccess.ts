@@ -126,6 +126,7 @@ export const PLATFORM_ONLY_ADMIN_PATH_PREFIXES = [
   '/admin/tenant-management',
   '/admin/satellite-domains',
   '/admin/gas-station',
+  '/admin/onboarding-requests',
 ] as const;
 
 export function isPlatformOnlyAdminPath(pathname: string | null | undefined): boolean {

@@ -168,6 +168,15 @@ export default function AdminPage() {
       platformOnly: true,
     },
     {
+      href: '/admin/onboarding-requests',
+      icon: 'userPlus',
+      label: 'Onboarding Requests',
+      sublabel: 'New customers',
+      color: 'onboardingRequests',
+      key: 'onboarding-requests',
+      platformOnly: true,
+    },
+    {
       href: '/admin/tenant-management/settings',
       icon: 'cog',
       label: 'Tenant Settings',
@@ -326,7 +335,8 @@ export default function AdminPage() {
       squadRoster: 'bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#9f1239]',
       cacheRecords: 'bg-[#ecfeff] hover:bg-[#cffafe] text-[#0e7490]',
       youtubeLive: 'bg-[#f4f7e8] hover:bg-[#e7efc8] text-[#3f6212]',
-      galleryVideos: 'bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#9f1239]'
+      galleryVideos: 'bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#9f1239]',
+      onboardingRequests: 'bg-[#eaf6fb] hover:bg-[#d3ecf7] text-[#075985]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -365,7 +375,8 @@ export default function AdminPage() {
       squadRoster: 'bg-[#fecdd3]',
       cacheRecords: 'bg-[#a5f3fc]',
       youtubeLive: 'bg-[#d9e8a8]',
-      galleryVideos: 'bg-[#fecdd3]'
+      galleryVideos: 'bg-[#fecdd3]',
+      onboardingRequests: 'bg-[#bfe3f3]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -404,7 +415,8 @@ export default function AdminPage() {
       squadRoster: 'text-[#e11d48]',
       cacheRecords: 'text-[#0891b2]',
       youtubeLive: 'text-[#4d7c0f]',
-      galleryVideos: 'text-[#be123c]'
+      galleryVideos: 'text-[#be123c]',
+      onboardingRequests: 'text-[#0369a1]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -469,6 +481,8 @@ export default function AdminPage() {
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9 0 01-9-9m9 9c0 01.53.053 0 019 9m-9-9a9 9 0 019-9m-9 9a9 9 0 019 9m0 0a9 9 0 01-9 9m9-9a9 9 0 009 9" /></svg>;
       case 'youtube':
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+      case 'userPlus':
+        return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>;
       default:
         return null;
     }

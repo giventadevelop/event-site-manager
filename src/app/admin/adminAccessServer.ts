@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
-import { getBackendApiUrl, getTenantIdOptional, isAllTenantsAdmin } from '@/lib/env';
+import { getBackendApiUrl, isAllTenantsAdmin } from '@/lib/env';
 import { pickAllUserProfiles } from '@/lib/pickFirstUserProfile';
 import {
   ADMIN_SESSION_ALL_TENANTS,
@@ -42,28 +42,19 @@ function mergeProfilesById(...lists: UserProfileDTO[][]): UserProfileDTO[] {
 }
 
 function listHeaders(): Record<string, string> {
-  if (isAllTenantsAdmin()) {
-    return { 'Content-Type': 'application/json' };
-  }
-  const envTenant = getTenantIdOptional();
-  return envTenant
-    ? { 'Content-Type': 'application/json', 'X-Tenant-ID': envTenant }
-    : { 'Content-Type': 'application/json' };
+  return { 'Content-Type': 'application/json' };
 }
 
-async function listUserProfiles(query: URLSearchParams): Promise<UserProfileDTO[]> {
-  if (!isAllTenantsAdmin()) {
-    const envTenant = getTenantIdOptional();
-    if (envTenant && !query.has('tenantId.equals') && !query.has('tenantId.in')) {
-      query.set('tenantId.equals', envTenant);
-    }
-  }
+/** Hub workspace lookup: never pin to NEXT_PUBLIC_TENANT_ID (that is why prod showed one card). */
+const unscopedListOptions = {
+  cache: 'no-store' as const,
+  headers: listHeaders(),
+  omitEnvTenantId: true,
+};
 
+async function listUserProfiles(query: URLSearchParams): Promise<UserProfileDTO[]> {
   const url = `${getBackendApiUrl()}/api/user-profiles?${query.toString()}`;
-  const res = await fetchWithJwtRetry(url, {
-    cache: 'no-store',
-    headers: listHeaders(),
-  });
+  const res = await fetchWithJwtRetry(url, unscopedListOptions);
   if (!res.ok) {
     console.error('[adminAccessServer] user-profiles lookup failed', res.status, url);
     return [];
@@ -73,7 +64,8 @@ async function listUserProfiles(query: URLSearchParams): Promise<UserProfileDTO[
 
 /**
  * Load every tenant profile for this Clerk user, then derive the admin allowlist.
- * On the hub (ALL_TENANTS_ADMIN), omits env-tenant filter so MOSC ADMIN rows are found.
+ * Looks up by Clerk userId and by email so Google login still finds ADMIN rows
+ * whose user_id was never updated on other tenants.
  */
 export const fetchAdminAccessForClerkUser = cache(
   async (userId: string, email?: string | null): Promise<AdminTenantAccess> => {
@@ -84,13 +76,11 @@ export const fetchAdminAccessForClerkUser = cache(
     byUser.set('size', '100');
     let profiles = await listUserProfiles(byUser);
 
-    const hasAdmin = profiles.some((p) => p.userRole === 'ADMIN' || p.userRole === 'SUPER_ADMIN');
-    if (!hasAdmin && email?.trim()) {
+    if (email?.trim()) {
       const byEmail = new URLSearchParams();
       byEmail.set('email.equals', email.trim());
       byEmail.set('size', '100');
-      const emailProfiles = await listUserProfiles(byEmail);
-      profiles = mergeProfilesById(profiles, emailProfiles);
+      profiles = mergeProfilesById(profiles, await listUserProfiles(byEmail));
     }
 
     return resolveAdminAccessFromProfiles(profiles, isAllTenantsAdmin());
@@ -133,6 +123,10 @@ export async function resolveSessionTenantForAccess(
   }
   if (access.defaultTenantId) {
     return { tenantId: access.defaultTenantId, allTenants: false };
+  }
+  // Hub SUPER_ADMIN with no cookie yet: treat as all tenants (every org is in scope).
+  if (access.canQueryAllTenants) {
+    return { allTenants: true };
   }
   return { allTenants: false };
 }
@@ -208,7 +202,7 @@ export const fetchAdminWorkspaceTenants = cache(async (): Promise<{
   try {
     const orgRes = await fetchWithJwtRetry(
       `${getBackendApiUrl()}/api/tenant-organizations?${orgParams.toString()}`,
-      { cache: 'no-store', headers: listHeaders() },
+      unscopedListOptions,
     );
     if (orgRes.ok) {
       orgs = parseTenantOrganizations(await orgRes.json());

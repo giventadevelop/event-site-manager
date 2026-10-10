@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { EventDetailsDTO, EventMediaDTO } from '@/types';
 import { getAppUrl } from '@/lib/env';
+import { useSilentListingRefresh } from '@/hooks/useSilentListingRefresh';
 
 export interface EventWithMedia {
   event: EventDetailsDTO;
@@ -43,17 +44,18 @@ export const useEventsData = () => {
     return eventStartDate >= today && eventStartDate <= oneYearFromNow;
   };
 
-  useEffect(() => {
-    const fetchEventsData = async () => {
-      try {
+  const fetchEventsData = useCallback(async (silent: boolean, signal?: AbortSignal) => {
+    try {
+      if (!silent) {
         setData(prev => ({ ...prev, isLoading: true, error: null }));
+      }
 
         const baseUrl = getAppUrl();
 
         // Fetch events
         let eventsResponse = await fetch(
           `${baseUrl}/api/proxy/event-details?sort=startDate,asc`,
-          { cache: 'no-store' }
+          { cache: 'no-store', signal }
         );
 
         if (!eventsResponse.ok) {
@@ -62,11 +64,11 @@ export const useEventsData = () => {
           try {
             eventsResponse = await fetch(
               `${baseUrl}/api/proxy/event-details?sort=startDate,desc`,
-              { cache: 'no-store' }
+              { cache: 'no-store', signal }
             );
             if (!eventsResponse.ok) {
               console.log('Backend unavailable - events not loaded, status:', eventsResponse.status);
-              // Set empty data instead of throwing
+              if (silent) return;
               setData({
                 events: [],
                 eventsWithMedia: [],
@@ -77,8 +79,9 @@ export const useEventsData = () => {
               return;
             }
           } catch (fallbackErr) {
+            if (signal?.aborted) return;
             console.log('Backend unavailable - events not loaded:', fallbackErr);
-            // Set empty data instead of throwing
+            if (silent) return;
             setData({
               events: [],
               eventsWithMedia: [],
@@ -116,7 +119,7 @@ export const useEventsData = () => {
           try {
             const mediaResponse = await fetch(
               `${baseUrl}/api/proxy/event-medias?eventId.equals=${event.id}`,
-              { cache: 'no-store' }
+              { cache: 'no-store', signal }
             );
 
             if (mediaResponse.ok) {
@@ -145,6 +148,8 @@ export const useEventsData = () => {
 
         console.log('Successfully processed events with media:', eventsWithMedia.length);
 
+        if (signal?.aborted) return;
+
         setData({
           events,
           eventsWithMedia,
@@ -154,7 +159,9 @@ export const useEventsData = () => {
         });
 
       } catch (error) {
+        if (signal?.aborted) return;
         console.log('Backend connection error - events data not loaded:', error);
+        if (silent) return;
         setData({
           events: [],
           eventsWithMedia: [],
@@ -163,10 +170,13 @@ export const useEventsData = () => {
           error: null, // Don't set error state, just log it
         });
       }
-    };
-
-    fetchEventsData();
   }, []);
+
+  useEffect(() => {
+    void fetchEventsData(false);
+  }, [fetchEventsData]);
+
+  useSilentListingRefresh((signal) => fetchEventsData(true, signal));
 
   return data;
 };

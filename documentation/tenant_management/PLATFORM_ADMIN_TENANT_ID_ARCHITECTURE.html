@@ -411,6 +411,14 @@
             layout admin lookup is currently by <code>userId</code> without env tenant filter.
         </li>
         <li>
+            <strong>New organization admins:</strong> they register or sign in on <em>that tenant’s satellite</em>
+            (email or Google). A hub SUPER_ADMIN then sets <code>user_role = ADMIN</code> on that satellite
+            <code>user_profile</code> in Manage Usage. After sign-out/in they use
+            <code>event-site-manager.com/admin</code>. Operator steps:
+            <a href="../../public/documentation/manage_usage/PROMOTE_USER_TO_ADMIN_GUIDELINES.html">Organization admin registration and promotion</a>
+            (also the <strong>?</strong> help on Manage Usage).
+        </li>
+        <li>
             <strong>Optional:</strong> Create <strong>Tenant Settings</strong> for that organization if the primary domain
             homepage needs branding, hero images, or other tenant-scoped defaults.
         </li>

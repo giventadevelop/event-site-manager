@@ -4,7 +4,9 @@ import { logServerFetchFailure } from '@/lib/logServerFetchFailure';
 import type { EventDetailsDTO } from '@/types';
 import {
   computeFeaturedEventsFromMedia,
+  isPastHomepageEvent,
   MAX_FEATURED_EVENTS_HOMEPAGE,
+  selectHomepageFeaturedEvents,
   type EventWithMedia,
   type FeaturedEventWithMedia,
 } from '@/lib/homepage/featuredEvents';
@@ -63,19 +65,21 @@ export async function fetchFeaturedEventsForHomepageServer(): Promise<FeaturedEv
     const upcomingEvents = events.filter(
       (event) => event.startDate && isEventInNextYear(event.startDate, today) && event.isActive !== false
     );
+    const upcomingFeatured = upcomingEvents.filter(eventIsFeatured);
 
-    const featuredCandidates = upcomingEvents.filter(eventIsFeatured);
-    const anyFeaturedActive = events.filter(
-      (event) => event.isActive !== false && eventIsFeatured(event)
-    );
-
-    // Prefer upcoming featured → any featured (incl. past) → all upcoming (legacy media-flag path)
+    // Upcoming featured first. Past featured only when there are no future events.
     const eventsToLoad =
-      featuredCandidates.length > 0
-        ? featuredCandidates
-        : anyFeaturedActive.length > 0
-          ? anyFeaturedActive
-          : upcomingEvents;
+      upcomingFeatured.length > 0
+        ? upcomingFeatured
+        : upcomingEvents.length === 0
+          ? events.filter(
+              (event) => event.isActive !== false && isPastHomepageEvent(event) && eventIsFeatured(event)
+            )
+          : [];
+
+    if (eventsToLoad.length === 0) {
+      return [];
+    }
 
     const eventsWithMedia: EventWithMedia[] = [];
 
@@ -117,8 +121,11 @@ export async function fetchFeaturedEventsForHomepageServer(): Promise<FeaturedEv
       }
     }
 
-    const featured = computeFeaturedEventsFromMedia(eventsWithMedia);
-    return featured.slice(0, MAX_FEATURED_EVENTS_HOMEPAGE);
+    return selectHomepageFeaturedEvents(
+      computeFeaturedEventsFromMedia(eventsWithMedia),
+      upcomingEvents.length > 0,
+      MAX_FEATURED_EVENTS_HOMEPAGE
+    );
   } catch (e) {
     logServerFetchFailure('fetchFeaturedEventsForHomepageServer', e);
     return [];

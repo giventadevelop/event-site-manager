@@ -150,6 +150,8 @@ Help: `database_export_import_refresh.bat --help`
 | `post-prepare` | After step 3 (or `/SKIP-EXPORT` path) | Same for ordered + renumbered + PROD |
 | `pre-import` | **Before** confirm + step 5 schema apply | Re-validate dumps + **schema column sync** (`INSERT` cols ⊆ `CREATE TABLE` for `tenant_settings`, `tenant_organization`, `event_details`, `user_profile`) |
 
+**Reserved platform SUPER_ADMIN emails** (`giventauser@gmail.com`, `mosc.admin.user@keleno.com`): full dumps **FAIL** if those emails are missing from `user_profile` INSERTs (`event-site-manager-database/SQLS/guardrails/platform_super_admin_emails.json`). After import, step **6b** runs `post_import_retain_platform_super_admins.sql` so they stay `SUPER_ADMIN` / `ACTIVE` even when the dump still has `ADMIN`. Step 3 also rewrites those INSERT roles in ordered / renumbered / PROD SQL.
+
 Any **FAIL** stops the batch. Fix SQL/schema, restore from `guardrails/backups/`, or regenerate without `/SKIP-EXPORT`. Use `/SKIP-GUARDRAILS` only as an emergency.
 
 ### **Manual commands**
@@ -230,10 +232,11 @@ Do **not** ship an older `export.sql` / ordered / PROD file after media changes 
 | 1 | `pg_dump --data-only --column-inserts` | `event-site-manager-database/SQLS/export.sql` |
 | 2 | `node reorder_sql_inserts_final.cjs` | `corrected_event_media_inserts.ordered.sql` |
 | 2b | `renumber_sql_insert_ids.cjs` + mojibake fix | `sequence_fix_inserts/corrected_event_media_inserts.renumbered.sql` |
-| 3 | `node scripts/replace-user-profile-ids-in-sql.mjs` | `corrected_event_media_inserts.ordered_PROD.sql` |
+| 3 | `node scripts/replace-user-profile-ids-in-sql.mjs` | `corrected_event_media_inserts.ordered_PROD.sql` (Clerk IDs + reserved SUPER_ADMIN emails) |
 | 4 | Comment `pg_dump` header lines in import file | Patched SQL |
 | 5 | Apply `Event_Site_Manager_Latest_Schema.sql` | Target DB schema |
 | 6 | Import ordered / PROD / custom SQL | Target DB data |
+| 6b | `post_import_retain_platform_super_admins.sql` | Restore SUPER_ADMIN for reserved emails |
 | 7 | `sync_all_table_sequences.sql` + Spring Batch sync | Sequences |
 
 ---
@@ -276,6 +279,7 @@ Database-only refresh **does not require ECS redeploy** — backend reads RDS di
 - ✅ **Re-export after uploading or changing agenda/event media** before copying SQL or using `/SKIP-EXPORT`
 - ✅ Let guardrails run (do not use `/SKIP-GUARDRAILS` unless emergency)
 - ✅ Type **`PRODUCTION`** for any `/REMOTE` run
+- ✅ Keep `giventauser@gmail.com` and `mosc.admin.user@keleno.com` as platform SUPER_ADMIN (step 6b restores after every import; do not remove those emails from dumps)
 - ✅ Restore `.env.local` to **dev** after prod import
 - ✅ After Liquibase column adds: update `Event_Site_Manager_Latest_Schema.sql` in the same change, then export/import
 - ✅ Verify calendar-related counts after local import if needed:

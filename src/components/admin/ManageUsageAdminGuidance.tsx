@@ -33,18 +33,23 @@ function ManageUsageGuidanceBanner() {
           </p>
           <ol className="list-decimal list-inside space-y-1 text-blue-800 dark:text-blue-200 mb-2">
             <li>
-              <strong>Ask the user to register first</strong> on your tenant&apos;s site (sign-up / sign-in).
-              Their profile is created in the database only after they authenticate on the app linked to the
-              correct <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">tenantId</code>.
+              <strong>Ask the user to register first</strong> on that organization&apos;s live site (email or
+              Google — same flow). Their <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">user_profile</code>{' '}
+              is created only after they sign in on the domain tied to the correct{' '}
+              <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">tenantId</code>. Signing up on
+              the hub (<code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">event-site-manager.com</code>)
+              creates a hub profile, not an org-admin profile.
             </li>
             <li>
-              After registration, find them here (search by email). Use the <strong>Tenant ID</strong> filter if
-              you manage multiple tenants.
+              After registration, find them here (search by email). Filter by <strong>Tenant ID</strong> to the
+              organization they should administer.
             </li>
             <li>
               Click <strong>Edit</strong>, set <strong>Role</strong> to{' '}
-              <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">ADMIN</code>, save, then ask
-              them to <strong>sign out and sign back in</strong> to see the Admin menu.
+              <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">ADMIN</code> (optional:{' '}
+              <strong>Status</strong> to <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">ACTIVE</code>
+              / <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">APPROVED</code>), save, then
+              ask them to <strong>sign out and sign back in</strong>.
             </li>
           </ol>
           <p className="text-xs text-blue-700 dark:text-blue-300">
@@ -69,8 +74,8 @@ export default function ManageUsageAdminGuidance({
     <div className={className}>
       {showHelp && (
         <AdminHelpDialog
-          title="Promote User to Admin — Guidelines"
-          ariaLabel="How to promote a user to admin and manage roles"
+          title="Organization admin registration and promotion"
+          ariaLabel="How a user registers on a satellite and is promoted to admin"
           documentationUrl={DOCUMENTATION_URL}
           accent="blue"
         />

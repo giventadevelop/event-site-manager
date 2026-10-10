@@ -1,0 +1,30 @@
+import Link from 'next/link';
+import { assertPlatformSuperAdmin } from '@/app/admin/adminAccessServer';
+import { fetchOnboardingRequestServer } from '../ApiServerActions';
+import OnboardingRequestReviewClient from './OnboardingRequestReviewClient';
+
+export const dynamic = 'force-dynamic';
+
+export default async function OnboardingRequestReviewPage({ params }: { params: Promise<{ id: string }> }) {
+  await assertPlatformSuperAdmin();
+  const { id } = await params;
+  const requestId = Number.parseInt(id, 10);
+  const result = Number.isFinite(requestId) ? await fetchOnboardingRequestServer(requestId) : null;
+
+  if (!result || !result.ok) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8" style={{ paddingTop: '180px' }}>
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="p-4 bg-red-50 border border-red-300 rounded-lg">
+            <p className="text-sm font-medium text-red-700">{result && !result.ok ? result.error : 'Invalid request id'}</p>
+          </div>
+          <Link href="/admin/onboarding-requests" className="inline-block mt-4 text-blue-600 hover:underline">
+            ← Back to onboarding requests
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return <OnboardingRequestReviewClient initialRequest={result.data} />;
+}

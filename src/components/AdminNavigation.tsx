@@ -15,6 +15,7 @@ const PLATFORM_ONLY_NAV_KEYS = new Set([
   'satellite-domains',
   'gas-station',
   'tenant-test',
+  'onboarding-requests',
 ]);
 
 export default function AdminNavigation({ currentPage, showHome = true }: AdminNavigationProps) {
@@ -112,6 +113,14 @@ export default function AdminNavigation({ currentPage, showHome = true }: AdminN
       key: 'tenant-settings'
     },
     {
+      href: '/admin/onboarding-requests',
+      icon: 'userPlus',
+      label: 'Onboarding Requests',
+      color: 'lime',
+      active: currentPage === 'onboarding-requests',
+      key: 'onboarding-requests'
+    },
+    {
       href: '/admin/profile-site',
       icon: 'users',
       label: 'Personal Profile',
@@ -193,7 +202,8 @@ export default function AdminNavigation({ currentPage, showHome = true }: AdminN
       red: 'bg-red-50 hover:bg-red-100 text-red-800 border-red-200',
       pink: 'bg-pink-50 hover:bg-pink-100 text-pink-800 border-pink-200',
       emerald: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200',
-      amber: 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
+      amber: 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200',
+      lime: 'bg-lime-50 hover:bg-lime-100 text-lime-800 border-lime-200'
     };
 
     const activeColors: Record<string, string> = {
@@ -210,7 +220,8 @@ export default function AdminNavigation({ currentPage, showHome = true }: AdminN
       red: 'bg-red-200 text-red-800 border-red-300',
       pink: 'bg-pink-200 text-pink-800 border-pink-300',
       emerald: 'bg-emerald-200 text-emerald-800 border-emerald-300',
-      amber: 'bg-amber-200 text-amber-800 border-amber-300'
+      amber: 'bg-amber-200 text-amber-800 border-amber-300',
+      lime: 'bg-lime-200 text-lime-800 border-lime-300'
     };
 
     return isActive ? activeColors[color] || activeColors.gray : baseColors[color] || baseColors.gray;
@@ -231,7 +242,8 @@ export default function AdminNavigation({ currentPage, showHome = true }: AdminN
       red: 'bg-red-100',
       pink: 'bg-pink-100',
       emerald: 'bg-emerald-100',
-      amber: 'bg-amber-100'
+      amber: 'bg-amber-100',
+      lime: 'bg-lime-100'
     };
     return colorMap[color] || colorMap.gray;
   };
@@ -251,7 +263,8 @@ export default function AdminNavigation({ currentPage, showHome = true }: AdminN
       red: 'text-red-500',
       pink: 'text-pink-500',
       emerald: 'text-emerald-500',
-      amber: 'text-amber-500'
+      amber: 'text-amber-500',
+      lime: 'text-lime-600'
     };
     return colorMap[color] || colorMap.gray;
   };
@@ -286,6 +299,8 @@ export default function AdminNavigation({ currentPage, showHome = true }: AdminN
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
       case 'userCheck':
         return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+      case 'userPlus':
+        return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>;
       default:
         return null;
     }
