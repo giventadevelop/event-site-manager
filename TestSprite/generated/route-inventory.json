@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-09-14T14:47:49.245Z",
+  "generatedAt": "2026-10-09T16:13:03.253Z",
   "root": "src/app",
-  "totalPages": 398,
-  "totalUniqueRoutes": 398,
+  "totalPages": 400,
+  "totalUniqueRoutes": 400,
   "byKind": {
     "public": 103,
-    "admin": 103,
+    "admin": 105,
     "mosc": 192
   },
   "routes": [
@@ -484,6 +484,13 @@
       "sourceFile": "src/app/admin/focus-groups/new/page.tsx"
     },
     {
+      "path": "/admin/gallery-youtube-videos",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/gallery-youtube-videos/page.tsx"
+    },
+    {
       "path": "/admin/gallery/albums",
       "kind": "admin",
       "dynamic": false,
@@ -549,6 +556,13 @@
       "dynamic": false,
       "dynamicParams": [],
       "sourceFile": "src/app/admin/homepage-cache/page.tsx"
+    },
+    {
+      "path": "/admin/homepage-youtube-live",
+      "kind": "admin",
+      "dynamic": false,
+      "dynamicParams": [],
+      "sourceFile": "src/app/admin/homepage-youtube-live/page.tsx"
     },
     {
       "path": "/admin/manage-events",

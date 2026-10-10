@@ -22,6 +22,14 @@ import AdminTenantFilterField from '../AdminTenantFilterField';
 
 type FormState = Partial<TenantEmailAddressDTO>;
 
+function formatTenantEmailSaveError(err: unknown, fallback: string): string {
+  const message = err instanceof Error ? err.message : fallback;
+  if (message.includes('ux_tenant_email_addresses_tenant_type')) {
+    return 'This tenant already has that From address for the selected email type. Edit the existing address, or use a different From address or type.';
+  }
+  return message || fallback;
+}
+
 export default function TenantEmailAddressesPage() {
   const { userId } = useAuth();
   const tenantId = useAdminTenantId();
@@ -158,7 +166,10 @@ export default function TenantEmailAddressesPage() {
       setCurrentPage(0); // Reset to first page after creation
       void loadData();
     } catch (err: any) {
-      setCreateFormMessage({ type: 'error', message: err.message || 'Failed to create email address' });
+      setCreateFormMessage({
+        type: 'error',
+        message: formatTenantEmailSaveError(err, 'Failed to create email address'),
+      });
     } finally {
       setLoading(false);
     }
@@ -218,7 +229,10 @@ export default function TenantEmailAddressesPage() {
       setToastMessage({ type: 'success', message: 'Email address updated successfully' });
       void loadData();
     } catch (err: any) {
-      setEditFormMessage({ type: 'error', message: err.message || 'Failed to update email address' });
+      setEditFormMessage({
+        type: 'error',
+        message: formatTenantEmailSaveError(err, 'Failed to update email address'),
+      });
     } finally {
       setLoading(false);
     }
