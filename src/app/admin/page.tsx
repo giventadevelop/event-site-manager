@@ -200,6 +200,21 @@ export default function AdminPage() {
       platformOnly: true,
     },
     {
+      href: '/admin/billing',
+      icon: 'creditCard',
+      label: 'Platform Bill',
+      color: 'platformBill',
+      key: 'platform-bill',
+    },
+    {
+      href: '/admin/platform-billing/plans',
+      icon: 'fileInvoice',
+      label: 'Billing Plans',
+      color: 'platformPlans',
+      key: 'platform-plans',
+      platformOnly: true,
+    },
+    {
       href: '/admin/tenant-management/test',
       icon: 'chart',
       label: 'Test CRUD',
@@ -336,7 +351,9 @@ export default function AdminPage() {
       cacheRecords: 'bg-[#ecfeff] hover:bg-[#cffafe] text-[#0e7490]',
       youtubeLive: 'bg-[#f4f7e8] hover:bg-[#e7efc8] text-[#3f6212]',
       galleryVideos: 'bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#9f1239]',
-      onboardingRequests: 'bg-[#eaf6fb] hover:bg-[#d3ecf7] text-[#075985]'
+      onboardingRequests: 'bg-[#eaf6fb] hover:bg-[#d3ecf7] text-[#075985]',
+      platformBill: 'bg-[#ffd8a8] hover:bg-[#ffc078] text-[#d9480f]',
+      platformPlans: 'bg-[#d0ebff] hover:bg-[#a5d8ff] text-[#1864ab]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -376,7 +393,9 @@ export default function AdminPage() {
       cacheRecords: 'bg-[#a5f3fc]',
       youtubeLive: 'bg-[#d9e8a8]',
       galleryVideos: 'bg-[#fecdd3]',
-      onboardingRequests: 'bg-[#bfe3f3]'
+      onboardingRequests: 'bg-[#bfe3f3]',
+      platformBill: 'bg-[#ffc078]',
+      platformPlans: 'bg-[#a5d8ff]'
     };
     return colorMap[color] || colorMap.blue;
   };
@@ -416,7 +435,9 @@ export default function AdminPage() {
       cacheRecords: 'text-[#0891b2]',
       youtubeLive: 'text-[#4d7c0f]',
       galleryVideos: 'text-[#be123c]',
-      onboardingRequests: 'text-[#0369a1]'
+      onboardingRequests: 'text-[#0369a1]',
+      platformBill: 'text-[#d9480f]',
+      platformPlans: 'text-[#1864ab]'
     };
     return colorMap[color] || colorMap.blue;
   };

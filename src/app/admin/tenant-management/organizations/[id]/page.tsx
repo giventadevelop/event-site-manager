@@ -187,6 +187,16 @@ export default async function TenantOrganizationViewPage({ params }: PageProps) 
             </p>
           </div>
           <div className="flex gap-3">
+            {organization?.tenantId && (
+              <Link
+                href={`/admin/platform-billing/${encodeURIComponent(organization.tenantId)}`}
+                className="flex-shrink-0 h-14 rounded-xl bg-amber-100 hover:bg-amber-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"
+                title="Platform billing"
+                aria-label="Platform billing"
+              >
+                <span className="font-semibold text-amber-700">Platform billing</span>
+              </Link>
+            )}
             <Link
               href={`/admin/tenant-management/organizations/${id}/edit`}
               className="flex-shrink-0 h-14 rounded-xl bg-blue-100 hover:bg-blue-200 flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 px-6"

@@ -11,6 +11,7 @@ import { getCachedApiJwt, generateApiJwt } from '@/lib/api/jwt';
 import { getTenantId, getPaymentMethodDomainId, getApiBaseUrl } from '@/lib/env';
 import { withTenantId } from '@/lib/withTenantId';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
+import { handlePlatformTenantBillingEvent } from '@/lib/platformBilling/applyPlatformBillingWebhook';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -435,6 +436,10 @@ export async function POST(req: NextRequest) {
     if (stripeClient && webhookSecret && signature) {
       try {
         const stripeEvent = stripeClient.webhooks.constructEvent(rawBody, signature, webhookSecret);
+        const platformResponse = await handlePlatformTenantBillingEvent(stripeEvent);
+        if (platformResponse) {
+          return platformResponse;
+        }
         if (stripeEvent.type === 'payment_intent.succeeded') {
           const competitionResponse = await handleCompetitionPaymentIntentSucceeded(
             stripeEvent.data.object as Stripe.PaymentIntent

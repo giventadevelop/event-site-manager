@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Plain-English guide for charging event-site and gas-station tenants, with a charge switch that stays off until a platform admin turns it on.">
+    <title>Tenant platform billing guide</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.65;
+            color: #1a1a1a;
+            background: #f4f8fb;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 24px 20px 64px;
+        }
+        h1 {
+            color: #0d3b66;
+            font-size: 2rem;
+            margin-bottom: 0.4rem;
+        }
+        h2 { color: #0d3b66; margin-top: 0; }
+        h3 { color: #0d3b66; }
+        a { color: #0052a3; }
+        a:focus-visible, button:focus-visible {
+            outline: 3px solid #0066cc;
+            outline-offset: 2px;
+        }
+        .lede {
+            font-size: 1.05rem;
+            color: #1a1a1a;
+        }
+        .toc {
+            background: #ffffff;
+            border: 1px solid #b8d4e3;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0 28px;
+        }
+        .toc h2 { font-size: 1.15rem; margin-top: 0; }
+        .toc ol { margin: 0; padding-left: 1.2rem; }
+        .toc a { text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .section-container {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+        }
+        .section-container.parameters {
+            background: linear-gradient(135deg, #fff5e6 0%, #ffe6cc 100%);
+            border-left-color: #ff9800;
+        }
+        .section-container.output {
+            background: linear-gradient(135deg, #e6ffe6 0%, #ccffcc 100%);
+            border-left-color: #28a745;
+        }
+        .section-container.usage {
+            background: linear-gradient(135deg, #f0e6ff 0%, #e6ccff 100%);
+            border-left-color: #9c27b0;
+        }
+        .section-header {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: #ffffff;
+            padding: 12px 20px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 8px 8px 0 0;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .section-header.parameters { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
+        .section-header.output { background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); }
+        .section-header.usage { background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); }
+        .section-intro {
+            background: linear-gradient(135deg, #e8f4f8 0%, #d1e7f0 100%);
+            border-left: 4px solid #0066cc;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 16px 0;
+        }
+        .info, .warning, .success, .error {
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin: 16px 0;
+        }
+        .info { background: #d1ecf1; border-left: 4px solid #0c5460; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .success { background: #d4edda; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; border-left: 4px solid #dc3545; }
+        code, .code-highlight, pre, td code,
+        .info code, .warning code, .success code, .error code,
+        .section-intro code {
+            background-color: #e8f4f8;
+            color: #0d3b66;
+            border: 1px solid #b8d4e3;
+            border-radius: 3px;
+            font-family: "Courier New", monospace;
+        }
+        code, .code-highlight { padding: 2px 6px; font-size: 0.92em; }
+        pre {
+            padding: 14px 16px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            margin: 0;
+        }
+        .prompt-block {
+            border: 1px solid #b8d4e3;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: #ffffff;
+            padding: 8px 12px;
+            font-weight: 600;
+        }
+        .copy-button {
+            background: #ffffff;
+            color: #0d3b66;
+            border: 1px solid #b8d4e3;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .copy-button.copied { background: #28a745; color: #ffffff; border-color: #1e7e34; }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            border: 1px solid #b8d4e3;
+            padding: 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: #ffffff;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.4px;
+        }
+        tr:nth-child(even) { background-color: #f7fbff; }
+        tr:hover { background-color: #e3f2fd; }
+        ol.steps { padding-left: 1.3rem; }
+        ol.steps li { margin: 0.45rem 0; }
+        .related { font-size: 0.95rem; }
+        @media (max-width: 640px) {
+            body { padding: 16px 12px 48px; }
+            .prompt-header { flex-direction: column; align-items: flex-start; }
+            table { display: block; overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Tenant platform billing guide</h1>
+    <p class="lede">How event-site tenants and gas-station tenants will pay to use this platform. Nothing on this page charges a card yet. These are the rules the next build must follow.</p>
+    <p class="related">Same folder: <a href="README.md">README</a>, <a href="STRIPE_VS_ZOHO_ANALYSIS.md">Stripe or Zoho</a>, <a href="BUILD_PLAN.md">build plan</a>, <a href="PLATFORM_TENANT_BILLING_GUIDE.md">Markdown copy of this guide</a>.</p>
+
+    <nav class="toc" aria-label="Table of contents">
+        <h2>Contents</h2>
+        <ol>
+            <li><a href="#two-kinds">Two different kinds of money</a></li>
+            <li><a href="#what-they-buy">What the tenant is buying</a></li>
+            <li><a href="#charge-switch">The charge switch</a></li>
+            <li><a href="#plans">Plans the tenant can choose</a></li>
+            <li><a href="#custom-fee">A custom fee for one tenant</a></li>
+            <li><a href="#gas">Gas stations and location count</a></li>
+            <li><a href="#recurring">Recurring or one-time</a></li>
+            <li><a href="#pay">How they pay: card and bank</a></li>
+            <li><a href="#admin-steps">What the platform admin does</a></li>
+            <li><a href="#tenant-steps">What the tenant does</a></li>
+            <li><a href="#do-not-change">What must not change</a></li>
+            <li><a href="#records">Where the facts live</a></li>
+        </ol>
+    </nav>
+
+    <div class="section-intro">
+        <p>A new tenant uses the product for free until a platform super-admin turns a charge switch on. A reminder date does not start a charge. Payment, when it starts, goes through the Stripe account this app already uses. Zoho Billing is not the payment system. The comparison is in <a href="STRIPE_VS_ZOHO_ANALYSIS.md">STRIPE_VS_ZOHO_ANALYSIS.md</a>.</p>
+    </div>
+
+    <div class="section-container usage" id="two-kinds">
+        <div class="section-header usage">1. Two different kinds of money</div>
+        <p>This platform already takes two kinds of payments. This guide adds a third. Keep them separate.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">Kind</th>
+                    <th scope="col">Who pays</th>
+                    <th scope="col">What to do</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Ticket money</td>
+                    <td>A guest buying tickets</td>
+                    <td>Leave the existing Checkout and Apple Pay / Google Pay flows alone.</td>
+                </tr>
+                <tr>
+                    <td>Membership money</td>
+                    <td>A person joining as a member</td>
+                    <td>Leave membership tables, success pages, and the wallet button alone.</td>
+                </tr>
+                <tr>
+                    <td>Platform money</td>
+                    <td>The organization that runs the event site, or the owner of the gas stations</td>
+                    <td>This guide. One Stripe customer per tenant. Event-site fees and gas-station fees are separate products.</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="warning">
+            <strong>Same words, different bills.</strong> The tenant admin form already shows plan names such as Basic and Professional, and membership pages already say “subscription.” Those labels are not a live bill for the software.
+        </div>
+    </div>
+
+    <div class="section-container" id="what-they-buy">
+        <div class="section-header">2. What the tenant is buying</div>
+        <ul>
+            <li><strong>Event site.</strong> A flat fee for the event website and its admin tools.</li>
+            <li><strong>Gas station.</strong> A fee that normally grows with the number of locations on the bill. One subscription for the chain, not one per store.</li>
+        </ul>
+        <p>For each product the tenant can be offered a published catalog plan, or a custom fee typed for that tenant only. The plan can allow a repeating charge, a one-time charge, or both. A long free period is the default: no card on file until a person turns charging on.</p>
+        <p>A hybrid tenant can be free on one product and paying on the other.</p>
+    </div>
+
+    <div class="section-container parameters" id="charge-switch">
+        <div class="section-header parameters">3. The charge switch</div>
+        <p>This is the main rule.</p>
+        <ol class="steps">
+            <li>When a tenant is created, the charge switch for each product is <strong>off</strong>.</li>
+            <li>While it is off, the tenant uses that product freely. Stripe is not called. No invoice is created. No card is stored.</li>
+            <li>Only a <strong>platform super-admin</strong> can turn the switch on. The tenant cannot. A reminder date cannot.</li>
+            <li>The admin may set a review-by date (30, 90, 180 days, or any date). That date is a reminder on the admin screen. It does not charge anyone.</li>
+            <li>When the switch is turned on, the tenant chooses how to pay and gets a grace period (default 14 days) to finish. Access stays open during grace.</li>
+            <li>If grace ends with no successful payment, paid admin tools for that product stop. The public site and the stored data stay. A pay page explains what to do.</li>
+            <li>Turning the switch off again stops future charges. It does not delete the tenant. If Stripe is already billing them, the admin confirms whether the current period finishes or the charge stops now.</li>
+        </ol>
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">Status</th>
+                    <th scope="col">Meaning</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Complimentary</td>
+                    <td>Switch off. Using the product for free.</td>
+                </tr>
+                <tr>
+                    <td>Payment due</td>
+                    <td>Switch on, still inside grace, no successful payment yet.</td>
+                </tr>
+                <tr>
+                    <td>Active</td>
+                    <td>Switch on and paid.</td>
+                </tr>
+                <tr>
+                    <td>Past due</td>
+                    <td>A renewal failed and Stripe is still retrying.</td>
+                </tr>
+                <tr>
+                    <td>Locked</td>
+                    <td>Switch on, grace over, not paid. Paid tools are blocked.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-container" id="plans">
+        <div class="section-header">4. Plans the tenant can choose</div>
+        <p>A platform super-admin keeps a small catalog. Each plan has a readable name, a product (event site or gas station), whether it is recurring, one-time, or both, the interval, the list price in US dollars, a short feature list, and a published flag. Unpublished plans are hidden from tenants.</p>
+        <p>The tenant sees only published plans for products they actually have.</p>
+        <div class="info">
+            <strong>Placeholder prices, not a quote.</strong> Event site Starter $49 per month, Standard $149 per month, and a Custom plan with no list price. Gas stations use the location rates in the next section, or a custom flat amount. Set the real numbers before the first live charge. A yearly price, if offered, is a separate published price on the same plan.
+        </div>
+    </div>
+
+    <div class="section-container parameters" id="custom-fee">
+        <div class="section-header parameters">5. A custom fee for one tenant</div>
+        <p>When a tenant will not pay the catalog price, a platform super-admin types a custom monthly amount or a custom one-time amount, with cents (for example 199.00), plus a short note. The plan name can still show which feature set they bought. The amount charged is the custom amount.</p>
+        <p>Stripe then gets a price that exists only for that tenant. Other tenants keep the shared catalog price.</p>
+        <ul>
+            <li>If the admin changes a recurring custom amount, the next invoice uses the new amount. The current period is not re-billed unless the admin also chooses “apply now,” which prorates.</li>
+            <li>A one-time payment already collected is not charged again. A new amount applies only if the admin sends a new pay link.</li>
+        </ul>
+    </div>
+
+    <div class="section-container" id="gas">
+        <div class="section-header">6. Gas stations and location count</div>
+        <ul>
+            <li>One subscription for the tenant, not one per store.</li>
+            <li>The tenant or the admin marks which locations are included.</li>
+            <li>The billable count is how many locations are active and included. Do not type the count by hand.</li>
+            <li>Default rates are graduated, so adding a location never makes the total go down.</li>
+        </ul>
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">Locations</th>
+                    <th scope="col">Each location per month</th>
+                    <th scope="col">Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1 to 3</td>
+                    <td>$199.00</td>
+                    <td>2 locations = $398.00</td>
+                </tr>
+                <tr>
+                    <td>4 to 10</td>
+                    <td>$149.00 for those extra locations</td>
+                    <td>6 locations = (3 × $199.00) + (3 × $149.00) = $1,044.00</td>
+                </tr>
+                <tr>
+                    <td>11 or more</td>
+                    <td>$99.00 for those extra locations</td>
+                    <td>Placeholder until a real enterprise price is set</td>
+                </tr>
+            </tbody>
+        </table>
+        <p>A custom flat fee replaces this math. Quantity is then ignored. Adding or removing an included location after they are subscribed changes the next invoice and prorates the current period.</p>
+        <div class="info">
+            The older gas-station note in the mosc-temp repo describes the same location idea. This folder is the one to follow, because it also covers event sites, the charge switch, and custom fees.
+        </div>
+    </div>
+
+    <div class="section-container usage" id="recurring">
+        <div class="section-header usage">7. Recurring payment or one-time payment</div>
+        <p>The admin decides what a plan allows. The tenant chooses only among those options.</p>
+        <p><strong>Recurring.</strong> Stripe charges the card or US bank account on the schedule. The tenant uses the billing portal to change the card or bank account, see invoices, or cancel. Cancel keeps access until the end of the period already paid, unless the admin locks the product sooner.</p>
+        <p><strong>One-time.</strong> Stripe charges once. We store a paid-through date the admin sets (for example 12 months). There is no automatic second charge.</p>
+        <div class="error">
+            <strong>Do not create a Stripe subscription for a one-time plan.</strong> A subscription always tries to charge again.
+        </div>
+    </div>
+
+    <div class="section-container output" id="pay">
+        <div class="section-header output">8. How they pay: card and bank</div>
+        <p>The pay page is Stripe’s hosted Checkout. We do not build a card form for this fee, and we do not store card numbers.</p>
+        <ul>
+            <li>Credit or debit card.</li>
+            <li>Apple Pay, Google Pay, or Link, when the device offers them.</li>
+            <li>A US bank account (ACH debit), when the charge is in US dollars and the bank is in the United States.</li>
+        </ul>
+        <p>ACH is cheaper on large bills (about 0.8 percent, capped at $5, on Stripe’s published US pricing). A card is about 2.9 percent plus 30 cents, and an international card costs more. ACH is not instant. Until Stripe reports success, the status stays “payment due,” not “active.”</p>
+        <p>Tenants outside the United States pay by card or wallet on the same page. Do not offer ACH for a non-US bank. A separate Zoho account is not required for international cards.</p>
+        <p>After the first successful payment, “Manage billing” opens the Stripe Customer Portal.</p>
+        <div class="warning">
+            Confirm Stripe’s published fees in the Dashboard before the first live tenant is charged. The catalog prices in this guide are our placeholders, not Stripe’s fees.
+        </div>
+    </div>
+
+    <div class="section-container parameters" id="admin-steps">
+        <div class="section-header parameters">9. What the platform admin does</div>
+        <ol class="steps">
+            <li>Create the tenant the way onboarding already works. Both product switches stay off. Status is Complimentary.</li>
+            <li>If the price was negotiated, type the custom fee and a short note. Leave the switch off.</li>
+            <li>Optionally set a review-by date so the list can show “review soon.”</li>
+            <li>When the business is ready to charge, turn the switch on for the event site, the gas stations, or both. Set the grace days (default 14).</li>
+            <li>Tell the tenant to open the billing page and pay.</li>
+            <li>After they pay, confirm status Active and that the Stripe customer id and subscription id (or one-time payment id) are stored.</li>
+            <li>If a renewal fails, Stripe emails the tenant and retries. The admin list shows Past due. Do not build a second retry system.</li>
+            <li>To stop charging without deleting the tenant, turn the switch off and confirm whether the current period should finish or stop now.</li>
+        </ol>
+        <div class="success">
+            Only a platform super-admin can change the switch, the custom fee, the catalog, or the grace days. A tenant admin can pay, change their card or bank account, and cancel at period end. They cannot set their own price.
+        </div>
+    </div>
+
+    <div class="section-container" id="tenant-steps">
+        <div class="section-header">10. What the tenant does</div>
+        <ol class="steps">
+            <li>Use the product while the switch is off. No pay page is required.</li>
+            <li>When the admin turns the switch on, open the billing page from the admin home.</li>
+            <li>Read the plan, or the custom amount, and choose monthly, yearly, or one-time if more than one option is offered.</li>
+            <li>For gas stations on location pricing, check which locations are included. The page shows the monthly total before they continue.</li>
+            <li>Continue to Stripe Checkout and pay by card or, in the US, by bank account.</li>
+            <li>Return to the billing page. It should say Active.</li>
+            <li>Later, use “Manage billing” to update the card or bank account, download invoices, or cancel.</li>
+        </ol>
+    </div>
+
+    <div class="section-container usage" id="do-not-change">
+        <div class="section-header usage">11. What must not change</div>
+        <ul>
+            <li>Ticket Checkout, the mobile wallet button, ticket success pages, and ticket webhooks.</li>
+            <li>Membership subscribe, membership success, membership QR, and membership renewal jobs.</li>
+            <li>Ticket and membership webhook code must ignore events whose metadata says <code class="code-highlight">billingScope=platform_tenant</code>.</li>
+            <li>Clerk sign-in and the satellite-domain setup.</li>
+            <li>Public event pages. A locked tenant loses paid admin tools. The first build does not take the public website down.</li>
+        </ul>
+    </div>
+
+    <div class="section-container output" id="records">
+        <div class="section-header output">12. Where the facts live</div>
+        <p>Store platform billing on its own records, not on membership subscription rows. Keep the Stripe customer id that already exists on the tenant organization. One customer covers both products.</p>
+        <p>For each product (event site, gas station), store:</p>
+        <ul>
+            <li>Charge switch on or off, and the status.</li>
+            <li>Catalog plan id, if they are on a catalog plan.</li>
+            <li>Custom fee amount. Empty means “use the catalog price.”</li>
+            <li>Billing mode actually chosen: recurring or one-time.</li>
+            <li>Review-by date (reminder only) and grace end date (set when the switch turns on).</li>
+            <li>Stripe subscription id for recurring, or the payment id and paid-through date for one-time.</li>
+            <li>For gas stations: which locations are included. Calculate the count. Do not store a typed count.</li>
+        </ul>
+        <p>Every Checkout session for this fee must include this metadata so ticket and membership code can skip the event:</p>
+        <div class="prompt-block">
+            <div class="prompt-header">
+                <span>Checkout metadata</span>
+                <button type="button" class="copy-button" onclick="copyText(this, 'meta-scope')" title="Copy metadata" aria-label="Copy Checkout metadata to clipboard">Copy</button>
+            </div>
+            <pre id="meta-scope">billingScope=platform_tenant</pre>
+        </div>
+        <p>Also send the tenant id, the product (event site or gas station), and whether the charge is recurring or one-time.</p>
+    </div>
+
+    <div class="section-intro">
+        <p>Next: follow the phases in <a href="BUILD_PLAN.md">BUILD_PLAN.md</a>. Phase 1 is the catalog and the switch, with no Stripe charge. Phase 2 is the first real payment.</p>
+    </div>
+
+    <script>
+        function copyText(button, elementId) {
+            var el = document.getElementById(elementId);
+            if (!el) return;
+            var text = el.innerText || el.textContent || "";
+            var done = function () {
+                var original = button.textContent;
+                button.textContent = "Copied";
+                button.classList.add("copied");
+                button.setAttribute("aria-label", "Copied to clipboard");
+                setTimeout(function () {
+                    button.textContent = original;
+                    button.classList.remove("copied");
+                    button.setAttribute("aria-label", "Copy Checkout metadata to clipboard");
+                }, 2000);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done).catch(function () {
+                    fallbackCopy(text, done);
+                });
+            } else {
+                fallbackCopy(text, done);
+            }
+        }
+        function fallbackCopy(text, done) {
+            var area = document.createElement("textarea");
+            area.value = text;
+            document.body.appendChild(area);
+            area.select();
+            try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+            document.body.removeChild(area);
+            done();
+        }
+    </script>
+</body>
+</html>

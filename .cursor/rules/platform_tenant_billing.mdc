@@ -1,0 +1,37 @@
+---
+description: Tenant platform fees for event sites and gas stations stay separate from ticket and membership Stripe payments.
+globs: documentation/tenant_management/platform_billing/**,src/app/admin/tenant-management/**,src/app/admin/platform-billing/**
+alwaysApply: false
+---
+
+# Tenant platform billing
+
+- **Read the guide before changing tenant fees**
+  - Start with [PLATFORM_TENANT_BILLING_GUIDE.md](mdc:documentation/tenant_management/platform_billing/PLATFORM_TENANT_BILLING_GUIDE.md), then [BUILD_PLAN.md](mdc:documentation/tenant_management/platform_billing/BUILD_PLAN.md) and [STRIPE_VS_ZOHO_ANALYSIS.md](mdc:documentation/tenant_management/platform_billing/STRIPE_VS_ZOHO_ANALYSIS.md).
+  - This bills the **tenant organization** for the event site or the gas-station tools. It does not bill a ticket buyer or a member.
+
+- **Charge switch stays off until a platform super-admin turns it on**
+  - A new tenant uses the product for free. Do not create a Stripe customer, subscription, or invoice while the switch is off.
+  - A review-by date is a reminder. It must not start a charge.
+  - Only a platform super-admin can change the switch, the catalog, the custom fee, or grace days. Enforce that on the server.
+
+- **Stripe Checkout, not Zoho, and not the membership wallet button**
+  - Pay page is Stripe Checkout (`subscription` or `payment`). Card and US bank account (`us_bank_account`). International tenants pay by card.
+  - A custom fee is a Stripe Price for that tenant only. Do not edit the shared catalog Price.
+  - Do not add Zoho Billing as the system that charges the card.
+
+- **Do not reuse ticket or membership code**
+  - Do not write tenant software fees through `createTransactionFromPaymentIntent` or `processMembershipSubscriptionFromPaymentIntent`.
+  - Do not store this fee on membership subscription rows.
+  - Checkout metadata must include `billingScope=platform_tenant`. Ticket and membership webhook branches must ignore those events.
+
+```typescript
+// ✅ DO: tag tenant software Checkout so ticket webhooks can skip it
+metadata: {
+  billingScope: 'platform_tenant',
+  tenantId,
+  product: 'EVENT_SITE',
+}
+
+// ❌ DON'T: create a Stripe subscription while the charge switch is off
+```

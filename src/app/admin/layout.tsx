@@ -6,6 +6,7 @@ import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerA
 import { AdminTenantLayoutClient } from './AdminTenantContext';
 import { fetchAdminAccessForClerkUser, resolveSessionTenantForAccess } from './adminAccessServer';
 import { isPlatformOnlyAdminPath } from '@/lib/adminTenantAccess';
+import { tenantHasLockedPlatformBilling } from '@/app/admin/platform-billing/ApiServerActions';
 
 /**
  * Admin Layout - Protects all /admin/* routes
@@ -86,6 +87,13 @@ export default async function AdminLayout({
 
     const session = await resolveSessionTenantForAccess(access);
     const pathOnly = pathname.split('?')[0] || '';
+    const billingPath = pathOnly === '/admin/billing' || pathOnly.startsWith('/admin/billing/');
+    if (!access.isPlatformSuperAdmin && session.tenantId && !billingPath) {
+      const locked = await tenantHasLockedPlatformBilling(session.tenantId);
+      if (locked) {
+        redirect('/admin/billing?reason=locked');
+      }
+    }
     const isAdminSubpath = pathOnly.startsWith('/admin/') && pathOnly !== '/admin/';
     const needsWorkspacePick =
       !access.canQueryAllTenants &&
