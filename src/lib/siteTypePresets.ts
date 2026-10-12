@@ -159,6 +159,7 @@ export function getSiteTypePresetSettings(siteType: TenantSiteType): SiteTypePre
     case 'HYBRID':
       return HYBRID_PRESET;
     case 'GAS_STATION':
+    case 'LIQUOR_STORE':
       return GAS_STATION_PRESET;
     case 'EVENT_ORG':
     default:

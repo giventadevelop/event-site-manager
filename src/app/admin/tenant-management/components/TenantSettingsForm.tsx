@@ -171,6 +171,11 @@ export default function TenantSettingsForm({
       gasAiEngineApiKeyRef: initialData?.gasAiEngineApiKeyRef || '',
       gasAiEngineWebhookToken: initialData?.gasAiEngineWebhookToken || '',
       gasDailyBriefHourLocal: initialData?.gasDailyBriefHourLocal ?? undefined,
+      enableRetailModule: initialData?.enableRetailModule ?? false,
+      retailAiEngineBaseUrl: initialData?.retailAiEngineBaseUrl || '',
+      retailAiEngineApiKeyRef: initialData?.retailAiEngineApiKeyRef || '',
+      retailAiEngineWebhookToken: initialData?.retailAiEngineWebhookToken || '',
+      retailDailyBriefHourLocal: initialData?.retailDailyBriefHourLocal ?? undefined,
       // Enhanced WhatsApp Integration Fields
       whatsappPhoneNumber: initialData?.whatsappPhoneNumber || '',
       twilioAccountSid: initialData?.twilioAccountSid || '',
@@ -1274,6 +1279,73 @@ export default function TenantSettingsForm({
                     {errors.gasDailyBriefHourLocal && (
                       <p className="mt-1 text-sm text-red-600">{errors.gasDailyBriefHourLocal.message}</p>
                     )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-6">
+              <div className="border-b border-gray-200 pb-4">
+                <h4 className="text-md font-medium text-gray-900">Retail AI Engine</h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  Shared morning brief for gas stations and liquor stores. Fuel rules stay on a gas tenant. Liquor rules stay on a liquor tenant.
+                </p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <ToggleSwitch
+                  name="enableRetailModule"
+                  label="Enable Retail Module"
+                  description="Turn on the shared retail morning brief for this tenant"
+                  checked={watchedValues.enableRetailModule || false}
+                  onChange={(checked) => setValue('enableRetailModule', checked)}
+                />
+              </div>
+              {watchedValues.enableRetailModule && (
+                <div className="space-y-6 bg-white border border-gray-200 rounded-lg p-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Retail AI Engine Base URL</label>
+                    <input
+                      type="url"
+                      {...register('retailAiEngineBaseUrl', {
+                        maxLength: { value: 1024, message: 'Base URL must be 1024 characters or less' },
+                      })}
+                      className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
+                      placeholder="https://engine.example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">API Key Reference</label>
+                    <input
+                      type="text"
+                      {...register('retailAiEngineApiKeyRef', {
+                        maxLength: { value: 512, message: 'API key reference must be 512 characters or less' },
+                      })}
+                      className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
+                      placeholder="secrets-manager reference"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Webhook Token</label>
+                    <input
+                      type="text"
+                      {...register('retailAiEngineWebhookToken', {
+                        maxLength: { value: 1048, message: 'Webhook token must be 1048 characters or less' },
+                      })}
+                      className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Daily Brief Hour (local)</label>
+                    <input
+                      type="number"
+                      {...register('retailDailyBriefHourLocal', {
+                        min: { value: 0, message: 'Hour must be 0-23' },
+                        max: { value: 23, message: 'Hour must be 0-23' },
+                        valueAsNumber: true,
+                      })}
+                      className="mt-1 block w-full border border-gray-400 rounded-xl focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base"
+                      placeholder="6"
+                    />
                   </div>
                 </div>
               )}

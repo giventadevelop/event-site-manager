@@ -18,6 +18,7 @@ export const ONBOARDING_SITE_TYPE_OPTIONS: { value: TenantSiteType; label: strin
   { value: 'PERSONAL_PROFILE', label: 'Personal profile', hint: 'Individual professional or personal site' },
   { value: 'HYBRID', label: 'Hybrid', hint: 'Profile plus events' },
   { value: 'GAS_STATION', label: 'Gas station', hint: 'Fuel station operations' },
+  { value: 'LIQUOR_STORE', label: 'Liquor store', hint: 'Beer, wine, and spirits shop' },
 ];
 
 export const DOMAIN_OWNERSHIP_OPTIONS: { value: DomainOwnership; label: string }[] = [

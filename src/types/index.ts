@@ -668,7 +668,7 @@ export interface TenantOrganizationDTO {
   zipCode?: string | null;
   country?: string | null;
   websiteUrl?: string | null;
-  /** Product archetype: EVENT_ORG | SPORTS_TEAM | MUSIC_BAND | CHURCH_ORG | PERSONAL_PROFILE | HYBRID | GAS_STATION */
+  /** Product archetype: EVENT_ORG | SPORTS_TEAM | MUSIC_BAND | CHURCH_ORG | PERSONAL_PROFILE | HYBRID | GAS_STATION | LIQUOR_STORE */
   siteType?: TenantSiteType;
   /** Optional theme/template variant within a siteType */
   siteTemplateVersion?: string;
@@ -760,6 +760,16 @@ export interface TenantSettingsDTO {
   gasAiEngineWebhookToken?: string;
   /** Local hour (0-23) the morning brief is expected/delivered */
   gasDailyBriefHourLocal?: number;
+  /** Master on/off for the shared retail morning brief (gas and liquor packs). */
+  enableRetailModule?: boolean;
+  /** Base URL of the retail AI engine. Invoked server-side only. */
+  retailAiEngineBaseUrl?: string;
+  /** Secrets-manager reference to the retail AI engine API key. */
+  retailAiEngineApiKeyRef?: string;
+  /** Token the retail AI engine presents on write-back callbacks. */
+  retailAiEngineWebhookToken?: string;
+  /** Local hour (0-23) the retail morning brief is expected. */
+  retailDailyBriefHourLocal?: number;
   // Contact and operational fields (email, phone remain on settings)
   /** @deprecated v2.0 — canonical source is tenant_organization; read fallback only */
   description?: string | null;
