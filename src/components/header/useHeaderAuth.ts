@@ -4,6 +4,7 @@ import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 import { useCallback, useEffect, useState } from 'react';
 import { isPrimaryHostname, isSatelliteHostname } from '@/lib/clerkSatellite';
 import { isAdminRole } from '@/lib/utils';
+import { BRAND_PRIMARY_HOST } from '@/lib/brand';
 
 type UseHeaderAuthOptions = {
   isTenantAdmin?: boolean;
@@ -164,7 +165,7 @@ export function useHeaderAuth({ isTenantAdmin, logPrefix = '[HeaderAuth]' }: Use
     localStorage.setItem('clerk_signout_broadcast', Date.now().toString());
 
     const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-    const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
+    const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || BRAND_PRIMARY_HOST;
     const primaryHost = primaryDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
     if (isPrimaryHostname(hostname)) {

@@ -3,6 +3,8 @@
  * Used by /oauth/zoho/start and /oauth/zoho/callback.
  */
 
+import { BRAND_APP_URL } from '@/lib/brand';
+
 export const DEFAULT_ZOHO_SCOPES =
   'SalesIQ.articles.READ,SalesIQ.articles.CREATE,SalesIQ.articles.DELETE,SalesIQ.faqs.READ,SalesIQ.faqs.CREATE,SalesIQ.faqs.DELETE,SalesIQ.departments.READ';
 
@@ -34,7 +36,7 @@ export function getZohoOAuthRedirectUri(requestOrigin?: string): string {
   if (requestOrigin) {
     return `${requestOrigin.replace(/\/$/, '')}/oauth/zoho/callback`;
   }
-  return 'https://www.event-site-manager.com/oauth/zoho/callback';
+  return `${BRAND_APP_URL}/oauth/zoho/callback`;
 }
 
 export function getZohoOAuthScopes(): string {

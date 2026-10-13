@@ -18,9 +18,9 @@ const logger = createLogger('MIDDLEWARE');
  * Protected routes call auth.protect() which redirects to sign-in if not authenticated.
  *
  * PROXY SETUP (Clerk v7 / Core 3):
- * The Clerk publishable key encodes FAPI domain as clerk.event-site-manager.com (no www).
- * But the site runs at www.event-site-manager.com. Without a proxy, Clerk tries to reach
- * clerk.www.event-site-manager.com which doesn't exist in DNS.
+ * The Clerk publishable key encodes FAPI domain as clerk.kluvo.io (no www).
+ * But the site runs at www.kluvo.io. Without a proxy, Clerk tries to reach
+ * clerk.www.kluvo.io which doesn't exist in DNS.
  *
  * Fix: clerkMiddleware's built-in frontendApiProxy option handles the proxy automatically.
  * It adds required headers (Clerk-Proxy-Url, Clerk-Secret-Key, X-Forwarded-For) that the
@@ -144,7 +144,7 @@ export default clerkMiddleware(async (auth, req) => {
     },
   });
 });
-// NOTE: frontendApiProxy has been REMOVED. The CNAME record clerk.event-site-manager.com
+// NOTE: frontendApiProxy has been REMOVED. The CNAME record clerk.kluvo.io
 // is verified and points to frontend-api.clerk.services, so Clerk can reach its FAPI
 // directly without a proxy. The old proxy (both the manual rewrite and frontendApiProxy)
 // was causing auth failures because it couldn't be registered in the Clerk Dashboard
@@ -155,7 +155,7 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Skip Next.js internals, static files, AND /__clerk path
-    // __clerk is EXCLUDED because we're using the CNAME (clerk.event-site-manager.com) directly
+    // __clerk is EXCLUDED because we're using the CNAME (clerk.kluvo.io) directly
     // instead of proxying through the app. No proxy = no need to match __clerk.
     '/((?!_next|__clerk|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes

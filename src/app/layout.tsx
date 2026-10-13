@@ -21,8 +21,16 @@ import { fetchFooterContactPropsServer } from "@/app/ApiServerActions";
 import { isAdminRole } from "@/lib/utils";
 import { pickFirstUserProfile } from "@/lib/pickFirstUserProfile";
 import { fetchAdminAccessForClerkUser } from "@/app/admin/adminAccessServer";
+import { BRAND_NAME, BRAND_PRIMARY_HOST, BRAND_TAGLINE } from "@/lib/brand";
+import type { Metadata } from "next";
 
 const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: { default: BRAND_NAME, template: `%s | ${BRAND_NAME}` },
+  description: BRAND_TAGLINE,
+  applicationName: BRAND_NAME,
+};
 
 // CRITICAL: Mark layout as dynamic to prevent Next.js 15+ from detecting headers() access during static analysis
 // This allows headers() to be called without triggering the "headers() should be awaited" error
@@ -87,7 +95,7 @@ export default async function RootLayout({
   const isPublicRoute = !pathname || publicRoutePatterns.some(pattern => pattern.test(pathname));
 
   // Get primary domain from environment variable
-  const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
+  const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || BRAND_PRIMARY_HOST;
 
   // Get satellite domain from environment variable
   const satelliteDomain = process.env.NEXT_PUBLIC_CLERK_DOMAIN || 'www.mosc-temp.com';

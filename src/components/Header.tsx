@@ -9,6 +9,7 @@ import { useTenantSettings } from '@/components/TenantSettingsProvider';
 import Image from 'next/image';
 import { isAdminRole } from '@/lib/utils';
 import { pickFirstUserProfile } from '@/lib/pickFirstUserProfile';
+import { BRAND_LOGO_PATH, BRAND_NAME, BRAND_PRIMARY_HOST } from '@/lib/brand';
 
 const navItemCatalog = [
   {
@@ -113,7 +114,7 @@ const adminSubmenuItems = [
 ];
 
 /** Prefer deployed branding PNG; repo often omits it — fallback avoids broken header image. */
-const HEADER_LOGO_PREFERRED = '/images/Event-Site-Manager/Event-Sit-Admin-Logo.png';
+const HEADER_LOGO_PREFERRED = BRAND_LOGO_PATH;
 const HEADER_LOGO_FALLBACK = '/images/logo.svg';
 
 type HeaderProps = {
@@ -674,7 +675,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
     localStorage.setItem('clerk_signout_broadcast', Date.now().toString());
 
     const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-    const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
+    const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || BRAND_PRIMARY_HOST;
     const primaryHost = primaryDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
     // Local dev: treat as primary for sign-out so we never send localhost to satellite signout-redirect.
@@ -886,7 +887,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
                 <div className="flex items-center justify-center h-full w-[102px] min-w-[102px] rounded-xl flex-shrink-0 overflow-hidden transition-all duration-300 group-hover:scale-105">
                   <Image
                     src={headerLogoSrc}
-                    alt="Site logo"
+                    alt={`${BRAND_NAME} logo`}
                     width={102}
                     height={72}
                     className="w-full h-full object-contain"
@@ -1171,7 +1172,7 @@ export default function Header({ hideMenuItems = false, variant = 'charity', isT
               <div className="flex items-center justify-center w-[86px] min-w-[86px] h-14 rounded-lg flex-shrink-0 overflow-hidden">
                 <Image
                   src={headerLogoSrc}
-                  alt="Site logo"
+                  alt={`${BRAND_NAME} logo`}
                   width={86}
                   height={56}
                   className="w-full h-full object-contain"

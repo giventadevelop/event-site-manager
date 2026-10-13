@@ -1,6 +1,7 @@
 'use client';
 
 import AdminHelpDialog from '@/components/admin/AdminHelpDialog';
+import { BRAND_PRIMARY_HOST } from '@/lib/brand';
 
 const DOCUMENTATION_URL = '/documentation/manage_usage/PROMOTE_USER_TO_ADMIN_GUIDELINES.html';
 
@@ -37,7 +38,7 @@ function ManageUsageGuidanceBanner() {
               Google — same flow). Their <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">user_profile</code>{' '}
               is created only after they sign in on the domain tied to the correct{' '}
               <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">tenantId</code>. Signing up on
-              the hub (<code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">event-site-manager.com</code>)
+              the hub (<code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">{BRAND_PRIMARY_HOST}</code>)
               creates a hub profile, not an org-admin profile.
             </li>
             <li>

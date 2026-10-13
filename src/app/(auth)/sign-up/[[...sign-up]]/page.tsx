@@ -8,6 +8,7 @@ import { SignUp } from '@clerk/nextjs';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
 import SatelliteAuthBranding from '@/components/auth/SatelliteAuthBranding';
+import { BRAND_PRIMARY_HOST } from '@/lib/brand';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -91,7 +92,7 @@ export default function SignUpPage() {
       }
 
       // Get primary domain from environment variable
-      const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
+      const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || BRAND_PRIMARY_HOST;
       const isPrimary = hostname === primaryDomain || hostname.includes(primaryDomain.replace('www.', ''));
 
       // If on primary domain, handle redirect_url parameter

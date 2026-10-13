@@ -29,6 +29,7 @@ const FALLBACK_SATELLITES = [
   'mcefee-temp.com',
   'mosc-temp.com',
   'md-strikers.com',
+  'kluvo.io',
   'event-site-manager.com',
   'localhost',
 ];
@@ -104,7 +105,7 @@ function SignOutRedirectInner() {
     [redirectUrlRaw, allowedDomains],
   );
 
-  // Safety-net: if Clerk never loads (e.g. DNS failure for clerk.event-site-manager.com),
+  // Safety-net: if Clerk never loads (e.g. DNS failure for clerk.kluvo.io),
   // redirect after timeout so the user isn't stuck on a blank spinner forever.
   useEffect(() => {
     const timer = setTimeout(() => {

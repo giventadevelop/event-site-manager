@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { SignIn, useAuth, useClerk, useUser } from '@clerk/nextjs';
 import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
 import SatelliteAuthBranding from '@/components/auth/SatelliteAuthBranding';
+import { BRAND_PRIMARY_HOST } from '@/lib/brand';
 
 /**
  * Minimal primary-domain landing at `/` (no main Header/Footer — see ConditionalLayout).
@@ -65,7 +66,7 @@ export default function RootAuthLanding() {
     const hostname = window.location.hostname;
     if (hostname === 'localhost' || hostname === '127.0.0.1') return;
 
-    const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
+    const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || BRAND_PRIMARY_HOST;
     const primaryHost = primaryDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
     const isPrimary =
       hostname === primaryHost ||

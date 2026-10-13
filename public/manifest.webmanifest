@@ -1,11 +1,11 @@
 {
-  "name": "MCEFEE - Event Management",
-  "short_name": "MCEFEE",
-  "description": "Malayalee Cultural Events and Entertainment Foundation",
+  "name": "Kluvo",
+  "short_name": "Kluvo",
+  "description": "Websites, events, payments and AI pricing for every organization",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0f766e",
+  "theme_color": "#2563eb",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
@@ -39,15 +39,13 @@
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/images/kluvo/kluvo-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
-  "categories": ["events", "entertainment", "culture"],
-  "screenshots": [
-    {
-      "src": "/images/spark_kerala_event_2025/spark_kerala_event_2025.jpg",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide"
-    }
-  ]
+  "categories": ["business", "productivity", "events"]
 }

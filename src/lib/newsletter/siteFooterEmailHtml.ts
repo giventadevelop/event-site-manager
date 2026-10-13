@@ -1,11 +1,12 @@
 import { formatAddressBlock } from '@/lib/formatAddress';
 import type { TenantOrganizationDTO, TenantSettingsDTO } from '@/types';
 import type { TenantOrganizationIdentity } from '@/lib/resolveTenantOrganizationIdentity';
+import { BRAND_NAME } from '@/lib/brand';
 
 const DEFAULT_LOGO_URL =
   'https://cdn.builder.io/api/v1/image/assets%2Fa70a28525f6f491aaa751610252a199c%2Fd7543f582d4f477599d341da96d48e2b?format=webp&width=800';
 
-const DEFAULT_ORG_NAME = 'Event Site Manager';
+const DEFAULT_ORG_NAME = BRAND_NAME;
 const DEFAULT_DESCRIPTION =
   'Connecting communities through events, culture, and shared experiences.';
 

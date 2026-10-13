@@ -4,6 +4,8 @@
  * not hardcoded domain names — so new satellites work without code changes.
  */
 
+import { BRAND_PRIMARY_HOST } from '@/lib/brand';
+
 function normalizeHostname(value: string): string {
   const withoutProtocol = value.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const withoutPort = withoutProtocol.split(':')[0];
@@ -14,7 +16,7 @@ export function getPrimaryHost(): string {
   const raw =
     process.env.NEXT_PUBLIC_PRIMARY_DOMAIN ||
     process.env.AMPLIFY_NEXT_PUBLIC_PRIMARY_DOMAIN ||
-    'www.event-site-manager.com';
+    BRAND_PRIMARY_HOST;
   return normalizeHostname(raw);
 }
 

@@ -1,10 +1,11 @@
+import { BRAND_APP_URL } from '@/lib/brand';
 import { NextRequest, NextResponse } from 'next/server';
 import { exchangeZohoAuthorizationCode, getZohoOAuthRedirectUri } from '@/lib/zoho/salesiq-oauth';
 
 function requestOrigin(req: NextRequest): string {
   const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
   if (!host) {
-    return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://www.event-site-manager.com';
+    return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || BRAND_APP_URL;
   }
   const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
   const proto = req.headers.get('x-forwarded-proto') || (isLocal ? 'http' : 'https');
@@ -76,7 +77,7 @@ function errorHtml(message: string): string {
 
 /**
  * Zoho redirects here with ?code=... after admin consent.
- * Register: https://www.event-site-manager.com/oauth/zoho/callback
+ * Register: https://www.kluvo.io/oauth/zoho/callback
  */
 export async function GET(req: NextRequest) {
   const oauthError = req.nextUrl.searchParams.get('error');
@@ -127,7 +128,7 @@ export async function GET(req: NextRequest) {
     let message = error instanceof Error ? error.message : String(error);
     if (message.includes('ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET must be set')) {
       const host = req.headers.get('host') || '';
-      const isProdHost = host.includes('event-site-manager.com');
+      const isProdHost = host === new URL(BRAND_APP_URL).host || host.includes('event-site-manager.com');
       if (isProdHost) {
         message +=
           ' Production does not have ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET in Amplify env yet. ' +

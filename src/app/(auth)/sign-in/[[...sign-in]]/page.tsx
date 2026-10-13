@@ -1,6 +1,6 @@
 // Satellite domain - redirect to primary domain for authentication
 // For localhost - show Clerk component directly for development
-// For primary domain (event-site-manager.com) - show Clerk SignIn and honor redirect_url for satellite return
+// For primary domain (www.kluvo.io) - show Clerk SignIn and honor redirect_url for satellite return
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ import { SignIn } from '@clerk/nextjs';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { bootstrapUserProfile } from '@/components/ProfileBootstrapperApiServerActions';
 import SatelliteAuthBranding from '@/components/auth/SatelliteAuthBranding';
+import { BRAND_PRIMARY_HOST } from '@/lib/brand';
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
@@ -51,7 +52,7 @@ export default function SignInPage() {
 
       // CRITICAL: If we're on the primary domain, never redirect - always show SignIn.
       // This prevents blank sign-in page when NEXT_PUBLIC_CLERK_DOMAIN is mis-set on primary app.
-      const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'www.event-site-manager.com';
+      const primaryDomain = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || BRAND_PRIMARY_HOST;
       const primaryHost = primaryDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
       const isPrimary =
         hostname === primaryHost ||
@@ -110,7 +111,7 @@ export default function SignInPage() {
     );
   }
 
-  // Primary domain (e.g. event-site-manager.com): show Clerk SignIn so the page is not blank.
+  // Primary domain (e.g. kluvo.io): show Clerk SignIn so the page is not blank.
   // When opened with ?redirect_url=https://www.mosc-temp.com (from satellite), pass it so Clerk redirects back after sign-in.
   if (!mounted) {
     return (
