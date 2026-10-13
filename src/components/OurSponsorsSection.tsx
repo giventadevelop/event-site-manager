@@ -42,7 +42,7 @@ const OurSponsorsSection: React.FC = () => {
           const { data, timestamp } = JSON.parse(cachedData);
           if (Date.now() - timestamp < CACHE_DURATION) {
             console.log('✅ Using cached sponsors data');
-            setSponsors(data);
+            setSponsors(Array.isArray(data) ? data.slice(0, 8) : []);
             setLoading(false);
             return;
           }
@@ -58,7 +58,7 @@ const OurSponsorsSection: React.FC = () => {
         const params = new URLSearchParams({
           sort: 'priorityRanking,asc',
           page: '0',
-          size: '15', // Maximum 15 sponsors
+          size: '8', // Maximum 8 sponsors
           'isActive.equals': 'true' // Only active sponsors
         });
 
@@ -72,8 +72,8 @@ const OurSponsorsSection: React.FC = () => {
           const data = await response.json();
           const sponsorsList = Array.isArray(data) ? data : [];
 
-          // Limit to maximum 15 sponsors (top priority ranking)
-          const limitedSponsors = sponsorsList.slice(0, 15);
+          // Limit to maximum 8 sponsors (top priority ranking)
+          const limitedSponsors = sponsorsList.slice(0, 8);
           console.log('✅ Fetched sponsors for homepage:', limitedSponsors.length, 'out of', sponsorsList.length);
 
           // Cache the data

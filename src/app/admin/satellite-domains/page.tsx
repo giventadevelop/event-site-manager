@@ -5,7 +5,7 @@ import { FaPlus, FaSearch, FaGlobe, FaToggleOn, FaToggleOff } from 'react-icons/
 import { useAuth } from '@clerk/nextjs';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
-import ConfirmModal from '@/components/ui/Modal';
+import { ConfirmModal } from '@/components/ui/Modal';
 import AdminNavigation from '@/components/AdminNavigation';
 import type { SatelliteDomainDTO } from '@/types';
 import { useAdminTenantId } from '../AdminTenantContext';

@@ -81,7 +81,7 @@ function tenantFromSearchParams(
 ): string | undefined {
   const raw = (searchParams.get('tenant') ?? '').trim();
   if (canQueryAllTenants) {
-    return raw || undefined;
+    return raw || defaultTenantId || undefined;
   }
   if (raw && allowedTenantIds.includes(raw)) {
     return raw;
@@ -90,7 +90,8 @@ function tenantFromSearchParams(
 }
 
 /**
- * Provides selected tenant from URL (?tenant=) and optional tenant selector bar.
+ * Provides selected tenant from URL (?tenant=), falling back to the session workspace
+ * (`defaultTenantId` = admin_session_tenant cookie), plus an optional tenant selector bar.
  * Tenant ADMIN cannot clear to "all tenants"; spoofed ?tenant= values are clamped client-side
  * (server actions also enforce the allowlist).
  */

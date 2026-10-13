@@ -99,8 +99,13 @@ export default function AdminTenantFilterField({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { canQueryAllTenants, allowedTenantIds, defaultTenantId } = useAdminAccess();
-  const tenantFromUrl = searchParams?.get('tenant') ?? '';
+  const {
+    canQueryAllTenants,
+    allowedTenantIds,
+    defaultTenantId,
+    tenantId: contextTenantId,
+  } = useAdminAccess();
+  const selectedTenantId = (searchParams?.get('tenant') ?? '').trim() || contextTenantId || '';
 
   const filterToAllowlist = useCallback(
     (orgs: TenantOrganizationDTO[]) => {
@@ -115,13 +120,13 @@ export default function AdminTenantFilterField({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastCommittedRef = useRef(tenantFromUrl);
+  const lastCommittedRef = useRef(selectedTenantId);
   /** Prevents repeated server searches for the same URL tenant id. */
   const resolveAttemptedRef = useRef<string | null>(null);
   const cachedOrgsRef = useRef<TenantOrganizationDTO[]>([]);
   const isTypingRef = useRef(false);
 
-  const [inputValue, setInputValue] = useState(tenantFromUrl);
+  const [inputValue, setInputValue] = useState(selectedTenantId);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [cachedOrgs, setCachedOrgs] = useState<TenantOrganizationDTO[]>([]);
@@ -130,8 +135,8 @@ export default function AdminTenantFilterField({
   cachedOrgsRef.current = cachedOrgs;
 
   const selectedOrg = useMemo(
-    () => cachedOrgs.find((org) => org.tenantId === tenantFromUrl.trim()) ?? null,
-    [cachedOrgs, tenantFromUrl],
+    () => cachedOrgs.find((org) => org.tenantId === selectedTenantId.trim()) ?? null,
+    [cachedOrgs, selectedTenantId],
   );
 
   const commitToUrl = useCallback(
@@ -187,24 +192,24 @@ export default function AdminTenantFilterField({
   // URL → input label (skip while user is actively typing)
   useEffect(() => {
     if (isTypingRef.current) return;
-    if (tenantFromUrl === lastCommittedRef.current && selectedOrg) {
+    if (selectedTenantId === lastCommittedRef.current && selectedOrg) {
       const label = formatOrgLabel(selectedOrg);
       setInputValue((prev) => (prev === label ? prev : label));
       return;
     }
-    if (tenantFromUrl !== lastCommittedRef.current) {
-      lastCommittedRef.current = tenantFromUrl;
+    if (selectedTenantId !== lastCommittedRef.current) {
+      lastCommittedRef.current = selectedTenantId;
     }
     if (selectedOrg) {
       setInputValue(formatOrgLabel(selectedOrg));
     } else if (!isTypingRef.current) {
-      setInputValue(tenantFromUrl);
+      setInputValue(selectedTenantId);
     }
-  }, [tenantFromUrl, selectedOrg]);
+  }, [selectedTenantId, selectedOrg]);
 
   // Resolve exact URL tenant id → org label at most once per id (no cachedOrgs dep → no loop)
   useEffect(() => {
-    const tid = tenantFromUrl.trim();
+    const tid = selectedTenantId.trim();
     if (!tid) {
       resolveAttemptedRef.current = null;
       return;
@@ -238,7 +243,7 @@ export default function AdminTenantFilterField({
     return () => {
       cancelled = true;
     };
-  }, [tenantFromUrl, filterToAllowlist]);
+  }, [selectedTenantId, filterToAllowlist]);
 
   const runSearch = useCallback((term: string) => {
     const trimmed = term.trim();
@@ -334,8 +339,8 @@ export default function AdminTenantFilterField({
         isTypingRef.current = false;
         if (selectedOrg) {
           setInputValue(formatOrgLabel(selectedOrg));
-        } else if (tenantFromUrl.trim()) {
-          setInputValue(tenantFromUrl);
+        } else if (selectedTenantId.trim()) {
+          setInputValue(selectedTenantId);
         }
       }
     }, 0);
@@ -364,7 +369,7 @@ export default function AdminTenantFilterField({
     }
   };
 
-  const comboboxActive = Boolean(tenantFromUrl.trim()) || inputValue.trim().length > 0;
+  const comboboxActive = Boolean(selectedTenantId.trim()) || inputValue.trim().length > 0;
   const isCompact = variant === 'compact';
 
   return (
@@ -440,7 +445,7 @@ export default function AdminTenantFilterField({
           ) : displayOrgs.length > 0 ? (
             displayOrgs.map((org) => {
               const tid = org.tenantId ?? '';
-              const selected = tid === tenantFromUrl.trim();
+              const selected = tid === selectedTenantId.trim();
               return (
                 <li key={org.id ?? tid} role="option" aria-selected={selected}>
                   <button
