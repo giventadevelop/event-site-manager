@@ -76,14 +76,18 @@ Used to obtain a `ZOHO_REFRESH_TOKEN` for SalesIQ automation (for example, bulk 
    ```
    Keep `http://localhost:3000/oauth/zoho/callback` for local runs. Remove `https://www.event-site-manager.com/oauth/zoho/callback` after the new one works.
 4. Click **Update**.
-5. Confirm `ZOHO_OAUTH_REDIRECT_URI=https://www.kluvo.ai/oauth/zoho/callback` in Amplify (already set on test-site, giventa, kcnj-temp, mcefee-temp, keralacenter).
+5. Confirm `ZOHO_OAUTH_REDIRECT_URI=https://www.kluvo.ai/oauth/zoho/callback` in Amplify (set on the hub, test-site, giventa, kcnj-temp, mcefee-temp, keralacenter).
+
+Verified Oct 13, 2026: the console app is **Giventa SalesIQ Automation** (Client ID `1000.EYHWE466VPE6MZIK45YCCLBFTL77TD`, owner Gain Joseph). Its redirect URIs are `http://localhost:3000/oauth/zoho/callback` and `https://www.kluvo.ai/oauth/zoho/callback`, and Zoho redirects to the kluvo.ai callback after consent.
 
 ### Running the flow
 
-The `/oauth/zoho/*` routes exist only in the **hub** (`event-site-manager`). The hub's Amplify app has no `ZOHO_CLIENT_ID` / `ZOHO_CLIENT_SECRET`, so the production callback reports that credentials are missing. Two options:
+The `/oauth/zoho/*` routes exist only in the **hub** (`event-site-manager`). Since Oct 13, 2026 the hub Amplify app (`d3gov7yn1ctow1`) has `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_OAUTH_REDIRECT_URI` and `ZOHO_SALESIQ_SCREEN_NAME` (copied from the satellite apps). `next.config.mjs` inlines them at build time, so redeploy the hub after changing any of them.
 
-- **Local (recommended):** put `ZOHO_CLIENT_ID` and `ZOHO_CLIENT_SECRET` in `event-site-manager/.env.local`, run `npm run dev`, open `http://localhost:3000/oauth/zoho/start`, then copy the refresh token from the success page into `.env.local`. Local runs always use the localhost callback regardless of `ZOHO_OAUTH_REDIRECT_URI`.
-- **Production:** add `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` and `ZOHO_OAUTH_REDIRECT_URI` to the hub Amplify app (`d3gov7yn1ctow1`), redeploy, then open `https://www.kluvo.ai/oauth/zoho/start`.
+- **Production:** open `https://www.kluvo.ai/oauth/zoho/start`, sign in to the `giventainc` Zoho account, approve, and copy the refresh token from the success page.
+- **Local:** put `ZOHO_CLIENT_ID` and `ZOHO_CLIENT_SECRET` in `event-site-manager/.env.local`, run `npm run dev`, and open `http://localhost:3000/oauth/zoho/start`. Local runs always use the localhost callback regardless of `ZOHO_OAUTH_REDIRECT_URI`.
+
+Store a new refresh token as `ZOHO_REFRESH_TOKEN` in `.env.local` and on the Amplify apps that use it. Never commit it.
 
 Zoho requires an exact match between the `redirect_uri` sent by the app and a registered URI, including scheme, host and path.
 
