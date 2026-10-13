@@ -6,12 +6,12 @@ export const BRAND_NAME = 'Kluvo';
 export const BRAND_TAGLINE = 'Websites, events, payments and AI pricing for every organization';
 
 /** Hub host used when NEXT_PUBLIC_PRIMARY_DOMAIN is not set. */
-export const BRAND_PRIMARY_HOST = 'www.kluvo.io';
+export const BRAND_PRIMARY_HOST = 'www.kluvo.ai';
 export const BRAND_APP_URL = `https://${BRAND_PRIMARY_HOST}`;
-export const BRAND_CLERK_FRONTEND_API = 'https://clerk.kluvo.io';
+export const BRAND_CLERK_FRONTEND_API = 'https://clerk.kluvo.ai';
 
 export const BRAND_LOGO_PATH = '/images/kluvo/kluvo-logo.svg';
 export const BRAND_ICON_PATH = '/images/kluvo/kluvo-icon.svg';
 
-/** Previous hub domain; still redirects to the current brand domain. */
-export const LEGACY_PRIMARY_BARE_DOMAINS = ['event-site-manager.com'];
+/** Previous and backup hub domains; they redirect to the current brand domain. */
+export const LEGACY_PRIMARY_BARE_DOMAINS = ['event-site-manager.com', 'kluvo.io'];

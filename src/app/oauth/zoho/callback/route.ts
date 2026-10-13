@@ -77,7 +77,7 @@ function errorHtml(message: string): string {
 
 /**
  * Zoho redirects here with ?code=... after admin consent.
- * Register: https://www.kluvo.io/oauth/zoho/callback
+ * Register: https://www.kluvo.ai/oauth/zoho/callback
  */
 export async function GET(req: NextRequest) {
   const oauthError = req.nextUrl.searchParams.get('error');
