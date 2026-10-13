@@ -1080,6 +1080,15 @@ async rewrites() {
 <div class="section-container">
     <div class="section-header">🔑 OAuth Configuration (Project: oauthlocal-310103)</div>
 
+    <table>
+        <tr><th>Setting</th><th>Value</th></tr>
+        <tr><td>Project (display name)</td><td><strong>OauthLocal</strong> (<code>oauthlocal-310103</code>)</td></tr>
+        <tr><td>OAuth client used by Clerk</td><td><strong>kccna_app</strong> (Web application)</td></tr>
+        <tr><td>Client ID</td><td><code>303554160954-0nkuttb13bjlfkpsu02sbm5dr3r5bp1m.apps.googleusercontent.com</code></td></tr>
+        <tr><td>Console path</td><td>Google Auth Platform → Clients → kccna_app</td></tr>
+        <tr><td>Step-by-step runbook</td><td><a href="../oauth/GOOGLE_AND_ZOHO_OAUTH_REDIRECT_RUNBOOK.md">GOOGLE_AND_ZOHO_OAUTH_REDIRECT_RUNBOOK.md</a></td></tr>
+    </table>
+
     <h4>OAuth Consent Screen</h4>
     <table>
         <tr><th>Setting</th><th>Value</th></tr>
@@ -1110,7 +1119,8 @@ async rewrites() {
         <tr><td>2</td><td><code>https://humble-monkey-3.clerk.accounts.dev/v1/oauth_callback</code></td></tr>
         <tr><td>3</td><td><code>https://feature-common-clerk.d1508w3f27cyps.amplifyapp.com/sso-callback</code></td></tr>
         <tr><td>4</td><td><code>https://www.mosc-temp.com/sso-callback</code></td></tr>
-        <tr><td>5</td><td><code>https://clerk.event-site-manager.com/v1/oauth_callback</code></td></tr>
+        <tr><td>5</td><td><code>https://clerk.event-site-manager.com/v1/oauth_callback</code> (previous primary; remove once kluvo.ai sign-in is confirmed)</td></tr>
+        <tr><td>6</td><td><code>https://clerk.kluvo.ai/v1/oauth_callback</code> (<strong>current production</strong>, added Oct 13, 2026 for the Kluvo domain move)</td></tr>
     </table>
 
     <h4>Clerk SSO Scopes</h4>
