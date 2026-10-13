@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Architecture guide for NEXT_PUBLIC_TENANT_ID on the primary event-site-manager.com admin deployment vs satellite tenant domains.">
+    <meta name="description" content="Architecture guide for NEXT_PUBLIC_TENANT_ID on the primary kluvo.ai admin deployment vs satellite tenant domains.">
     <title>Platform Admin Tenant ID — Architecture Guide</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -200,7 +200,7 @@
 
     <div class="lead">
         <p>
-            The same Next.js application is deployed as the <strong>primary</strong> domain (<code>www.event-site-manager.com</code>)
+            The same Next.js application is deployed as the <strong>primary</strong> domain (<code>www.kluvo.ai</code>)
             and as <strong>satellite</strong> domains (e.g. <code>www.mosc-temp.com</code>). Each deployment must set
             <code class="code-highlight">NEXT_PUBLIC_TENANT_ID</code> in environment variables. This document explains whether the
             primary admin deployment needs a tenant ID, where it is used, and whether
@@ -230,14 +230,14 @@
 
     <h2 id="architecture">1. Architecture overview</h2>
     <p>
-        One codebase serves two deployment roles. Clerk treats <strong>event-site-manager.com</strong> as the primary domain
+        One codebase serves two deployment roles. Clerk treats <strong>kluvo.ai</strong> as the primary domain
         (sign-in, sign-up, session source). Satellite domains redirect users to the primary for authentication, then sync
         the session back. Both deployments talk to the same backend API.
     </p>
 
     <div class="arch-diagram">
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  PRIMARY — www.event-site-manager.com                                       │
+│  PRIMARY — www.kluvo.ai                                       │
 │  • Clerk sign-in / sign-up (auth host)                                      │
 │  • Platform admin: Tenant Management, satellite domains, cross-tenant ops   │
 │  • NEXT_PUBLIC_ALL_TENANTS_ADMIN=true (recommended)                         │
@@ -267,7 +267,7 @@
         </thead>
         <tbody>
             <tr>
-                <td><code>event-site-manager.com</code> (primary)</td>
+                <td><code>kluvo.ai</code> (primary)</td>
                 <td>Clerk auth host + platform admin (manage all tenants)</td>
                 <td>A <strong>platform</strong> tenant ID — logical “home” tenant for this deployment</td>
             </tr>
@@ -358,7 +358,7 @@
                 </tr>
                 <tr>
                     <td><code>NEXT_PUBLIC_PRIMARY_DOMAIN</code></td>
-                    <td><code>www.event-site-manager.com</code></td>
+                    <td><code>www.kluvo.ai</code></td>
                     <td>N/A (satellite uses Clerk satellite config)</td>
                 </tr>
                 <tr>
@@ -414,7 +414,7 @@
             <strong>New organization admins:</strong> they register or sign in on <em>that tenant’s satellite</em>
             (email or Google). A hub SUPER_ADMIN then sets <code>user_role = ADMIN</code> on that satellite
             <code>user_profile</code> in Manage Usage. After sign-out/in they use
-            <code>event-site-manager.com/admin</code>. Operator steps:
+            <code>kluvo.ai/admin</code>. Operator steps:
             <a href="../../public/documentation/manage_usage/PROMOTE_USER_TO_ADMIN_GUIDELINES.html">Organization admin registration and promotion</a>
             (also the <strong>?</strong> help on Manage Usage).
         </li>
@@ -427,7 +427,7 @@
     <h2 id="env-example">6. Recommended .env configuration</h2>
 
     <div class="section-container parameters">
-        <div class="section-header parameters">Primary deployment (event-site-manager.com)</div>
+        <div class="section-header parameters">Primary deployment (kluvo.ai)</div>
         <pre># Platform admin hub — cross-tenant management
 NEXT_PUBLIC_ALL_TENANTS_ADMIN=true
 AMPLIFY_NEXT_PUBLIC_ALL_TENANTS_ADMIN=true
@@ -436,8 +436,8 @@ AMPLIFY_NEXT_PUBLIC_ALL_TENANTS_ADMIN=true
 NEXT_PUBLIC_TENANT_ID=event_site_manager_admin_00001
 AMPLIFY_NEXT_PUBLIC_TENANT_ID=event_site_manager_admin_00001
 
-NEXT_PUBLIC_PRIMARY_DOMAIN=www.event-site-manager.com
-NEXT_PUBLIC_APP_URL=https://www.event-site-manager.com
+NEXT_PUBLIC_PRIMARY_DOMAIN=www.kluvo.ai
+NEXT_PUBLIC_APP_URL=https://www.kluvo.ai
 NEXT_PUBLIC_API_BASE_URL=https://your-backend-api.example.com</pre>
     </div>
 
@@ -461,7 +461,7 @@ AMPLIFY_DISABLE_ADMIN_ON_SATELLITE=true</pre>
     <div class="section-container usage">
         <div class="section-header usage">Authorization model</div>
         <p>
-            Admin CRUD lives on the primary hub (<code>event-site-manager.com</code>). Satellite deploys stay public
+            Admin CRUD lives on the primary hub (<code>kluvo.ai</code>). Satellite deploys stay public
             (branding, checkout, webhooks). A MOSC operator with <code>user_role = ADMIN</code> on
             <code>mosc_malankara_orthodox_2</code> is granted <code>/admin</code> on the hub from <strong>any</strong>
             admin profile for their Clerk user ID — not only the platform env tenant.
@@ -484,7 +484,7 @@ AMPLIFY_DISABLE_ADMIN_ON_SATELLITE=true</pre>
                 <tr>
                     <td>Satellite visitor</td>
                     <td>No <code>/admin</code> on satellite hosts</td>
-                    <td>Redirect to <code>https://www.event-site-manager.com/admin?tenant=&lt;envTenant&gt;</code></td>
+                    <td>Redirect to <code>https://www.kluvo.ai/admin?tenant=&lt;envTenant&gt;</code></td>
                 </tr>
             </tbody>
         </table>
@@ -504,7 +504,7 @@ AMPLIFY_DISABLE_ADMIN_ON_SATELLITE=true</pre>
             Same-codebase satellites (mosc-temp, md-strikers, mcefee-temp) share this central admin immediately.
             <strong>kcnj-prod is a separate repository</strong> with its own <code>/admin</code> and no
             <code>AdminTenantContext</code>. Concentrating admin here does <strong>not</strong> delete that fork.
-            It only stops feature-replicating <em>if</em> KCNJ operators sign in on event-site-manager.com and
+            It only stops feature-replicating <em>if</em> KCNJ operators sign in on kluvo.ai and
             kcnj-prod is treated as a public satellite (or later merged). Until then, KCNJ still duplicates admin work.
         </p>
     </div>
@@ -515,7 +515,7 @@ AMPLIFY_DISABLE_ADMIN_ON_SATELLITE=true</pre>
         <p><strong>Public homepage on the primary domain</strong></p>
         <p>
             Events, gallery, and hero content load for whatever <code>NEXT_PUBLIC_TENANT_ID</code> is set. If
-            event-site-manager.com is auth + admin only, public data may be empty or irrelevant unless you configure
+            kluvo.ai is auth + admin only, public data may be empty or irrelevant unless you configure
             the platform org’s tenant settings and content.
         </p>
     </div>
