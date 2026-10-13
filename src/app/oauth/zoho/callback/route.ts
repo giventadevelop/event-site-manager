@@ -137,7 +137,7 @@ export async function GET(req: NextRequest) {
       } else {
         message +=
           ' Restart the dev server after adding ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET to event-site-manager/.env.local. ' +
-          'Run npm run dev from F:\\project_workspace\\event-site-manager (not mosc-temp).';
+          'Run npm run dev from F:\\project_workspace\\kluvo-ai-admin (not mosc-temp).';
       }
     }
     return new NextResponse(errorHtml(message), {
