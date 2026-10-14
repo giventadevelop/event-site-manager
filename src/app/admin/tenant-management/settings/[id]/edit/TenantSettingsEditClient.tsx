@@ -17,6 +17,7 @@ interface TenantSettingsEditClientProps {
   settingsId: number;
   organizations: TenantOrganizationDTO[];
   initialTab?: TenantSettingsTab;
+  canEditRepositoryUrl?: boolean;
 }
 
 export default function TenantSettingsEditClient({
@@ -24,6 +25,7 @@ export default function TenantSettingsEditClient({
   settingsId,
   organizations,
   initialTab = 'general',
+  canEditRepositoryUrl = false,
 }: TenantSettingsEditClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -69,6 +71,7 @@ export default function TenantSettingsEditClient({
         organizations={organizations}
         loading={loading}
         initialTab={initialTab}
+        canEditRepositoryUrl={canEditRepositoryUrl}
         initialData={{
           ...settings,
           tenantId: settings?.tenantId || '',

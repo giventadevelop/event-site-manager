@@ -17,6 +17,7 @@ interface TenantSettingsFormWrapperProps {
   settingsId: number;
   organizations?: TenantOrganizationDTO[];
   initialTab?: TenantSettingsTab;
+  canEditRepositoryUrl?: boolean;
 }
 
 export default function TenantSettingsFormWrapper({
@@ -27,6 +28,7 @@ export default function TenantSettingsFormWrapper({
   settingsId,
   organizations = [],
   initialTab = 'general',
+  canEditRepositoryUrl = false,
 }: TenantSettingsFormWrapperProps) {
   const router = useRouter();
 
@@ -49,6 +51,7 @@ export default function TenantSettingsFormWrapper({
       availableOrganizations={organizations}
       settingsId={settingsId}
       initialTab={initialTab}
+      canEditRepositoryUrl={canEditRepositoryUrl}
     />
   );
 }

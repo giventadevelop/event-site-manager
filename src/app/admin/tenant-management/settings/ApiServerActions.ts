@@ -1,5 +1,5 @@
 'use server';
-import { appendAdminTenantFilter, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
+import { appendAdminTenantFilter, getCurrentAdminAccess, resolveAdminMutationTenantId } from '@/app/admin/adminAccessServer';
 
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { withTenantId } from '@/lib/withTenantId';
@@ -280,6 +280,27 @@ function parseTenantSettingsApiError(errorText: string, action: 'create' | 'upda
   return action === 'create' ? 'Failed to create tenant settings.' : 'Failed to update tenant settings.';
 }
 
+async function repositoryUrlForSave(
+  requested: unknown,
+  existingUrl: string | null | undefined,
+): Promise<string | null> {
+  const access = await getCurrentAdminAccess();
+  if (!access.isPlatformSuperAdmin) {
+    const kept = existingUrl?.trim();
+    return kept && kept.length > 0 ? kept : null;
+  }
+  if (typeof requested !== 'string') {
+    const kept = existingUrl?.trim();
+    return kept && kept.length > 0 ? kept : null;
+  }
+  const trimmed = requested.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > 1024) {
+    throw new Error('Repository URL must be 1024 characters or less.');
+  }
+  return trimmed;
+}
+
 export async function createTenantSetting(data: TenantSettingsFormDTO): Promise<TenantSettingsDTO> {
   try {
     const heroDefaults =
@@ -293,9 +314,11 @@ export async function createTenantSetting(data: TenantSettingsFormDTO): Promise<
       'createTenantSetting',
     );
 
+    const repositoryUrl = await repositoryUrlForSave(data.repositoryUrl, null);
     const payload = withTenantId({
       ...stripDeprecatedSettingsIdentityFields(data as Record<string, unknown>),
       ...heroDefaults,
+      repositoryUrl,
       displayEventHeroImages: data.displayEventHeroImages ?? true,
       tenantOrganization: tenantOrganization || null,
       createdAt: new Date().toISOString(),
@@ -362,8 +385,10 @@ export async function updateTenantSetting(
         undefined;
     }
 
+    const repositoryUrl = await repositoryUrlForSave(data.repositoryUrl, existingSetting.repositoryUrl);
     const payload = withTenantId({
       ...stripDeprecatedSettingsIdentityFields(data as Record<string, unknown>),
+      repositoryUrl,
       id,
       createdAt: existingSetting.createdAt, // Preserve original createdAt
       updatedAt: new Date().toISOString(),
@@ -431,8 +456,13 @@ export async function patchTenantSetting(
         undefined;
     }
 
+    const repositoryUrl = await repositoryUrlForSave(
+      'repositoryUrl' in data ? data.repositoryUrl : existingSetting.repositoryUrl,
+      existingSetting.repositoryUrl,
+    );
     const payload = withTenantId({
       ...stripDeprecatedSettingsIdentityFields(data as Record<string, unknown>),
+      repositoryUrl,
       id,
       updatedAt: new Date().toISOString(),
       // Include the tenantOrganization relationship (either existing or newly fetched)

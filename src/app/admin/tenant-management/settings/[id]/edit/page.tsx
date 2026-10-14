@@ -8,6 +8,7 @@ import SatelliteDomainsGuidance from '@/components/admin/SatelliteDomainsGuidanc
 import TenantConfigurationContextLabel from '@/app/admin/tenant-management/components/TenantConfigurationContextLabel';
 import { adminPageTopStyle } from '@/lib/admin/adminPageLayout';
 import { parseTenantSettingsTab, tenantSettingsTabQuery } from '@/lib/tenantSettingsTabs';
+import { getCurrentAdminAccess } from '@/app/admin/adminAccessServer';
 
 interface PageProps {
   params: { id: string };
@@ -23,6 +24,7 @@ export default async function EditTenantSettingsPage({ params, searchParams }: P
       ? await searchParams
       : searchParams;
   const initialTab = parseTenantSettingsTab(resolvedSearchParams?.tab);
+  const access = await getCurrentAdminAccess();
   const settingsId = parseInt(id);
 
   if (isNaN(settingsId)) {
@@ -233,6 +235,7 @@ export default async function EditTenantSettingsPage({ params, searchParams }: P
               settingsId={settingsId}
               organizations={organizations}
               initialTab={initialTab}
+              canEditRepositoryUrl={access.isPlatformSuperAdmin}
             />
           )}
         </div>

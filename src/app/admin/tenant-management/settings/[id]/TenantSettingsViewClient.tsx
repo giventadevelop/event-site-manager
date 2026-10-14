@@ -138,6 +138,23 @@ export default function TenantSettingsViewClient({ settings, settingsId, organiz
               <dt className="text-sm font-medium text-gray-500">Tenant ID</dt>
               <dd className="mt-1 text-sm text-gray-900 font-mono">{settings?.tenantId}</dd>
             </div>
+            <div className="sm:col-span-2">
+              <dt className="text-sm font-medium text-gray-500">Repository URL</dt>
+              <dd className="mt-1 text-sm text-gray-900 break-all">
+                {settings?.repositoryUrl ? (
+                  <a
+                    href={settings.repositoryUrl}
+                    className="text-blue-600 hover:text-blue-500"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {settings.repositoryUrl}
+                  </a>
+                ) : (
+                  <span className="text-gray-500">No dedicated repository</span>
+                )}
+              </dd>
+            </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Organization</dt>
               <dd className="mt-1 text-sm text-gray-900">

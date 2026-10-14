@@ -8,6 +8,7 @@ import { FaArrowLeft } from 'react-icons/fa';
 import { TenantOrganizationDTO, TenantOrganizationFormDTO } from '@/app/admin/tenant-management/types';
 import TenantConfigurationContextLabel from '@/app/admin/tenant-management/components/TenantConfigurationContextLabel';
 import { adminPageTopStyle } from '@/lib/admin/adminPageLayout';
+import { getCurrentAdminAccess } from '@/app/admin/adminAccessServer';
 
 interface PageProps {
   params: { id: string };
@@ -22,6 +23,8 @@ export default async function EditTenantOrganizationPage({ params }: PageProps) 
   if (isNaN(organizationId)) {
     notFound();
   }
+
+  const access = await getCurrentAdminAccess();
 
   // Fetch organization data
   let organization: TenantOrganizationDTO | null = null;
@@ -195,6 +198,7 @@ export default async function EditTenantOrganizationPage({ params }: PageProps) 
             mode="edit"
             onSubmit={handleSubmit}
             initialData={organization ?? undefined}
+            canEditTenantId={access.isPlatformSuperAdmin}
           />
         </div>
       </div>

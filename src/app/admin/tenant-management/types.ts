@@ -47,6 +47,8 @@ export interface TenantOrganizationDTO {
 export interface TenantSettingsDTO {
   id?: number;
   tenantId: string;
+  /** Git repository URL for the project that belongs to this tenant. Empty when no dedicated repo exists. */
+  repositoryUrl?: string | null;
   allowUserRegistration?: boolean;
   requireAdminApproval?: boolean;
   enableWhatsappIntegration?: boolean;

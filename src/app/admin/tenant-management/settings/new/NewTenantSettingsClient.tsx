@@ -10,11 +10,13 @@ import type { TenantOrganizationDTO, TenantSettingsFormDTO } from '@/app/admin/t
 interface NewTenantSettingsClientProps {
   organizations: TenantOrganizationDTO[];
   initialTenantId?: string;
+  canEditRepositoryUrl?: boolean;
 }
 
 export default function NewTenantSettingsClient({
   organizations,
   initialTenantId,
+  canEditRepositoryUrl = false,
 }: NewTenantSettingsClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -60,6 +62,7 @@ export default function NewTenantSettingsClient({
         onCancel={() => router.push('/admin/tenant-management/settings')}
         loading={loading}
         availableOrganizations={organizations}
+        canEditRepositoryUrl={canEditRepositoryUrl}
         initialData={{
           tenantId: initialTenantId || '',
           allowUserRegistration: true,

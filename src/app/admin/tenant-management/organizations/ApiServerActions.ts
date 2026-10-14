@@ -1,5 +1,5 @@
 'use server';
-import { appendAdminTenantFilter } from '@/app/admin/adminAccessServer';
+import { appendAdminTenantFilter, getCurrentAdminAccess } from '@/app/admin/adminAccessServer';
 import { appendTenantIfPresent, effectiveTenantId, getApiBaseUrl } from '@/lib/env';
 import { fetchWithJwtRetry } from '@/lib/proxyHandler';
 import { withTenantId } from '@/lib/withTenantId';
@@ -199,8 +199,29 @@ export async function createTenantOrganization(data: TenantOrganizationFormDTO):
   }
 }
 
+const TENANT_ID_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
+
+async function tenantIdForUpdate(
+  existingTenantId: string,
+  requestedTenantId: string | undefined,
+): Promise<string> {
+  const access = await getCurrentAdminAccess();
+  const requested = requestedTenantId?.trim();
+  if (!access.isPlatformSuperAdmin) {
+    return existingTenantId;
+  }
+  if (!requested || requested === existingTenantId) {
+    return existingTenantId;
+  }
+  if (requested.length > 255 || !TENANT_ID_PATTERN.test(requested)) {
+    throw new Error('Tenant ID must use lowercase letters, numbers, and underscores.');
+  }
+  return requested;
+}
+
 /**
- * Update an existing tenant organization
+ * Update an existing tenant organization.
+ * Tenant ID changes are applied only for a platform super admin.
  */
 export async function updateTenantOrganization(
   id: number,
@@ -209,9 +230,11 @@ export async function updateTenantOrganization(
   try {
     // First fetch the existing tenant organization to get the original createdAt
     const existingOrganization = await fetchTenantOrganization(id);
+    const tenantId = await tenantIdForUpdate(existingOrganization.tenantId, data.tenantId);
 
     const payload = withTenantId({
       ...normalizeTenantOrganizationPayload(data),
+      tenantId,
       id,
       createdAt: existingOrganization.createdAt, // Preserve original createdAt
       updatedAt: new Date().toISOString(),
@@ -248,8 +271,13 @@ export async function patchTenantOrganization(
   data: Partial<TenantOrganizationFormDTO>
 ): Promise<TenantOrganizationDTO> {
   try {
+    const existingOrganization = await fetchTenantOrganization(id);
+    const tenantId = data.tenantId
+      ? await tenantIdForUpdate(existingOrganization.tenantId, data.tenantId)
+      : undefined;
     const payload = withTenantId({
       ...normalizeTenantOrganizationPayload(data),
+      ...(tenantId ? { tenantId } : {}),
       id,
       updatedAt: new Date().toISOString(),
     });

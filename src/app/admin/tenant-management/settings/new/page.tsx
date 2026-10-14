@@ -3,6 +3,7 @@ import NewTenantSettingsClient from '@/app/admin/tenant-management/settings/new/
 import Link from 'next/link';
 import TenantConfigurationContextLabel from '@/app/admin/tenant-management/components/TenantConfigurationContextLabel';
 import { adminPageTopStyle } from '@/lib/admin/adminPageLayout';
+import { getCurrentAdminAccess } from '@/app/admin/adminAccessServer';
 
 interface PageProps {
   searchParams: Promise<{ tenantId?: string }> | { tenantId?: string };
@@ -15,6 +16,7 @@ export default async function NewTenantSettingsPage({ searchParams }: PageProps)
       : (searchParams as { tenantId?: string });
 
   const organizations = await fetchRecentTenantOrganizationsForSelectServer();
+  const access = await getCurrentAdminAccess();
   const initialTenantId = resolvedSearchParams.tenantId?.trim();
   const organizationForTenant = initialTenantId
     ? organizations.find((org) => org.tenantId === initialTenantId)
@@ -107,6 +109,7 @@ export default async function NewTenantSettingsPage({ searchParams }: PageProps)
           <NewTenantSettingsClient
             organizations={organizations}
             initialTenantId={resolvedSearchParams.tenantId}
+            canEditRepositoryUrl={access.isPlatformSuperAdmin}
           />
         </div>
       </div>

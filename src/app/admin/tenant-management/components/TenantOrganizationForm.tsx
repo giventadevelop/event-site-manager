@@ -28,6 +28,8 @@ interface TenantOrganizationFormProps {
   onCancel?: () => void;
   loading?: boolean;
   mode: 'create' | 'edit';
+  /** Platform super admin may change an existing tenant ID. Regular admins see it read-only. */
+  canEditTenantId?: boolean;
 }
 
 export default function TenantOrganizationForm({
@@ -35,7 +37,8 @@ export default function TenantOrganizationForm({
   onSubmit,
   onCancel,
   loading = false,
-  mode
+  mode,
+  canEditTenantId = false,
 }: TenantOrganizationFormProps) {
   const router = useRouter();
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -405,11 +408,32 @@ export default function TenantOrganizationForm({
                 </label>
                 <input
                   type="text"
-                  readOnly
-                  {...register('tenantId')}
-                  className="mt-1 block w-full border border-gray-300 rounded-xl bg-gray-50 text-gray-700 px-4 py-3 text-base font-mono"
+                  readOnly={!canEditTenantId}
+                  {...register('tenantId', {
+                    validate: (value) => {
+                      if (!canEditTenantId) return true;
+                      const trimmed = (value || '').trim();
+                      if (!trimmed) return 'Tenant ID is required';
+                      if (trimmed.length > 255) return 'Tenant ID must be 255 characters or less';
+                      return /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(trimmed)
+                        ? true
+                        : 'Use lowercase letters, numbers, and underscores (e.g. tenant_demo_002)';
+                    },
+                  })}
+                  className={`mt-1 block w-full border rounded-xl px-4 py-3 text-base font-mono ${
+                    canEditTenantId
+                      ? 'border-gray-400 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500'
+                      : 'border-gray-300 bg-gray-50 text-gray-700'
+                  }`}
                 />
-                <p className="mt-1 text-xs text-gray-500">Tenant ID cannot be changed after creation.</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {canEditTenantId
+                    ? 'Changing the Tenant ID updates every record that belongs to this tenant. Only a platform super admin can do this.'
+                    : 'Tenant ID can be changed only by a platform super admin.'}
+                </p>
+                {errors.tenantId && (
+                  <p className="mt-1 text-sm text-red-600">{errors.tenantId.message}</p>
+                )}
               </div>
             )}
 

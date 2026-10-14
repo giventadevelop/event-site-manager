@@ -45,6 +45,8 @@ interface TenantSettingsFormProps {
   availableOrganizations?: TenantOrganizationDTO[];
   settingsId?: number; // Pass settingsId explicitly for uploads
   initialTab?: TenantSettingsTab;
+  /** Platform super admin may edit the project repository URL. */
+  canEditRepositoryUrl?: boolean;
 }
 
 export default function TenantSettingsForm({
@@ -56,6 +58,7 @@ export default function TenantSettingsForm({
   availableOrganizations = [],
   settingsId: propSettingsId,
   initialTab = 'general',
+  canEditRepositoryUrl = false,
 }: TenantSettingsFormProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -118,6 +121,7 @@ export default function TenantSettingsForm({
   } = useForm<TenantSettingsFormDTO>({
     defaultValues: {
       tenantId: initialData?.tenantId || '',
+      repositoryUrl: initialData?.repositoryUrl || '',
       allowUserRegistration: initialData?.allowUserRegistration ?? true,
       requireAdminApproval: initialData?.requireAdminApproval ?? false,
       enableWhatsappIntegration: initialData?.enableWhatsappIntegration ?? false,
@@ -869,6 +873,37 @@ export default function TenantSettingsForm({
                 />
               </div>
             )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="repositoryUrl">
+                Repository URL
+              </label>
+              <input
+                id="repositoryUrl"
+                type="url"
+                readOnly={!canEditRepositoryUrl}
+                {...register('repositoryUrl', {
+                  maxLength: {
+                    value: 1024,
+                    message: 'Repository URL must be 1024 characters or less',
+                  },
+                })}
+                className={`mt-1 block w-full border rounded-xl px-4 py-3 text-base ${
+                  canEditRepositoryUrl
+                    ? 'border-gray-400 bg-white focus:border-blue-500 focus:ring-blue-500'
+                    : 'border-gray-300 bg-gray-50 text-gray-700'
+                }`}
+                placeholder={canEditRepositoryUrl ? 'https://github.com/org/project.git' : ''}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {canEditRepositoryUrl
+                  ? 'Git repository for this tenant. Leave empty when the tenant has no dedicated repository. Only a platform super admin can change this.'
+                  : 'Repository URL can be changed only by a platform super admin.'}
+              </p>
+              {errors.repositoryUrl && (
+                <p className="mt-1 text-sm text-red-600">{errors.repositoryUrl.message}</p>
+              )}
+            </div>
 
             {/* Contact Information Section */}
             <div className="space-y-4">
