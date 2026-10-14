@@ -6,6 +6,7 @@ import { useAuth } from "@clerk/nextjs";
 import { UserButton } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
+import { BRAND_NAME } from "@/lib/brand";
 
 const menuItems = [
   { href: "/", label: "Home" },
@@ -38,7 +39,7 @@ const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string
   }
 };
 
-const ORG_NAME = "Adwiise";
+const ORG_NAME = BRAND_NAME;
 
 type HeaderProps = {
   hideMenuItems?: boolean;

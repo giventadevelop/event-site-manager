@@ -2,8 +2,9 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
+import { BRAND_NAME } from "@/lib/brand";
 
-const ORG_NAME = "nextjs-template";
+const ORG_NAME = BRAND_NAME;
 
 export function UserRoleDisplay() {
   const { user, isLoaded: userLoaded } = useUser();

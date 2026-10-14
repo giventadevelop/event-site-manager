@@ -8,6 +8,7 @@ import { useAuth } from "@clerk/nextjs";
 import { UserButton } from "@clerk/nextjs";
 import { useUser } from "@clerk/nextjs";
 import { useTenantSettings } from '@/components/TenantSettingsProvider';
+import { BRAND_NAME } from '@/lib/brand';
 
 const navItems = [
   {
@@ -67,7 +68,7 @@ const adminSubmenuItems = [
   { name: 'Event Sponsors', href: '/admin/event-sponsors' }
 ];
 
-const ORG_NAME = "Adwiise";
+const ORG_NAME = BRAND_NAME;
 
 type HeaderProps = {
   hideMenuItems?: boolean;
