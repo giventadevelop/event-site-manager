@@ -1,8 +1,8 @@
 # Google and Zoho OAuth Redirect Runbook
 
-Step-by-step guide for updating the OAuth redirect URIs used by the Kluvo platform. Use it after a domain change, when adding a Clerk domain, or when Google or Zoho sign-in fails with `redirect_uri_mismatch`.
+Step-by-step guide for updating the OAuth redirect URIs used by the AdwiiseAgent platform. Use it after a domain change, when adding a Clerk domain, or when Google or Zoho sign-in fails with `redirect_uri_mismatch`.
 
-Current primary domain: **www.kluvo.ai** (Clerk frontend API `https://clerk.kluvo.ai`). `kluvo.io` and `event-site-manager.com` 301-redirect to it.
+Current primary domain: **www.adwiiseagent.ai** (Clerk frontend API `https://clerk.adwiiseagent.ai`). `kluvo.io` and `event-site-manager.com` 301-redirect to it.
 
 ---
 
@@ -27,10 +27,10 @@ Google sign-in on every site (hub and satellites) goes through Clerk. Google sen
 2. Go to **Google Auth Platform → Clients** and click **kccna_app**.
 3. Under **Authorized redirect URIs**, click **+ Add URI** and enter:
    ```
-   https://clerk.kluvo.ai/v1/oauth_callback
+   https://clerk.adwiiseagent.ai/v1/oauth_callback
    ```
 4. Click **Save**. Google notes it can take from 5 minutes to a few hours to take effect.
-5. Test: sign out, open `https://www.kluvo.ai/sign-in`, choose **Continue with Google**, and confirm you land back signed in.
+5. Test: sign out, open `https://www.adwiiseagent.ai/sign-in`, choose **Continue with Google**, and confirm you land back signed in.
 
 ### Current redirect URIs (Oct 13, 2026)
 
@@ -40,8 +40,8 @@ Google sign-in on every site (hub and satellites) goes through Clerk. Google sen
 | 2 | `https://humble-monkey-3.clerk.accounts.dev/v1/oauth_callback` | Clerk development instance |
 | 3 | `https://feature-common-clerk.d1508w3f27cyps.amplifyapp.com/sso-callback` | Legacy |
 | 4 | `https://www.mosc-temp.com/sso-callback` | Legacy |
-| 5 | `https://clerk.event-site-manager.com/v1/oauth_callback` | Previous primary; remove once kluvo.ai sign-in is confirmed |
-| 6 | `https://clerk.kluvo.ai/v1/oauth_callback` | **Current production** |
+| 5 | `https://clerk.event-site-manager.com/v1/oauth_callback` | Previous primary; remove once adwiiseagent.ai sign-in is confirmed |
+| 6 | `https://clerk.adwiiseagent.ai/v1/oauth_callback` | **Current production** |
 
 ### Notes
 
@@ -72,19 +72,19 @@ Used to obtain a `ZOHO_REFRESH_TOKEN` for SalesIQ automation (for example, bulk 
 2. Open the **Server-based Application** whose Client ID starts with `1000.EYHWE46`.
 3. In **Client Details → Authorized Redirect URIs**, add:
    ```
-   https://www.kluvo.ai/oauth/zoho/callback
+   https://www.adwiiseagent.ai/oauth/zoho/callback
    ```
    Keep `http://localhost:3000/oauth/zoho/callback` for local runs. Remove `https://www.event-site-manager.com/oauth/zoho/callback` after the new one works.
 4. Click **Update**.
-5. Confirm `ZOHO_OAUTH_REDIRECT_URI=https://www.kluvo.ai/oauth/zoho/callback` in Amplify (set on the hub, test-site, giventa, kcnj-temp, mcefee-temp, keralacenter).
+5. Confirm `ZOHO_OAUTH_REDIRECT_URI=https://www.adwiiseagent.ai/oauth/zoho/callback` in Amplify (set on the hub, test-site, giventa, kcnj-temp, mcefee-temp, keralacenter).
 
-Verified Oct 13, 2026: the console app is **Giventa SalesIQ Automation** (Client ID `1000.EYHWE466VPE6MZIK45YCCLBFTL77TD`, owner Gain Joseph). Its redirect URIs are `http://localhost:3000/oauth/zoho/callback` and `https://www.kluvo.ai/oauth/zoho/callback`, and Zoho redirects to the kluvo.ai callback after consent.
+Verified Oct 13, 2026: the console app is **Giventa SalesIQ Automation** (Client ID `1000.EYHWE466VPE6MZIK45YCCLBFTL77TD`, owner Gain Joseph). Its redirect URIs are `http://localhost:3000/oauth/zoho/callback` and `https://www.adwiiseagent.ai/oauth/zoho/callback`, and Zoho redirects to the adwiiseagent.ai callback after consent.
 
 ### Running the flow
 
 The `/oauth/zoho/*` routes exist only in the **hub** (`event-site-manager`). Since Oct 13, 2026 the hub Amplify app (`d3gov7yn1ctow1`) has `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_OAUTH_REDIRECT_URI` and `ZOHO_SALESIQ_SCREEN_NAME` (copied from the satellite apps). `next.config.mjs` inlines them at build time, so redeploy the hub after changing any of them.
 
-- **Production:** open `https://www.kluvo.ai/oauth/zoho/start`, sign in to the `giventainc` Zoho account, approve, and copy the refresh token from the success page.
+- **Production:** open `https://www.adwiiseagent.ai/oauth/zoho/start`, sign in to the `giventainc` Zoho account, approve, and copy the refresh token from the success page.
 - **Local:** put `ZOHO_CLIENT_ID` and `ZOHO_CLIENT_SECRET` in `event-site-manager/.env.local`, run `npm run dev`, and open `http://localhost:3000/oauth/zoho/start`. Local runs always use the localhost callback regardless of `ZOHO_OAUTH_REDIRECT_URI`.
 
 Store a new refresh token as `ZOHO_REFRESH_TOKEN` in `.env.local` and on the Amplify apps that use it. Never commit it.

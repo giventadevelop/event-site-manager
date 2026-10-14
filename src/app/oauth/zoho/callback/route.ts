@@ -77,7 +77,7 @@ function errorHtml(message: string): string {
 
 /**
  * Zoho redirects here with ?code=... after admin consent.
- * Register: https://www.kluvo.ai/oauth/zoho/callback
+ * Register: https://www.adwiiseagent.ai/oauth/zoho/callback
  */
 export async function GET(req: NextRequest) {
   const oauthError = req.nextUrl.searchParams.get('error');
@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
     let message = error instanceof Error ? error.message : String(error);
     if (message.includes('ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET must be set')) {
       const host = req.headers.get('host') || '';
-      const isProdHost = host === new URL(BRAND_APP_URL).host || host.includes('kluvo.ai');
+      const isProdHost = host === new URL(BRAND_APP_URL).host || host.includes('adwiiseagent.ai');
       if (isProdHost) {
         message +=
           ' Production does not have ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET in Amplify env yet. ' +

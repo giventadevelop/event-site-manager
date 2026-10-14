@@ -29,6 +29,7 @@ const FALLBACK_SATELLITES = [
   'mcefee-temp.com',
   'mosc-temp.com',
   'md-strikers.com',
+  'adwiiseagent.ai',
   'kluvo.ai',
   'kluvo.io',
   'event-site-manager.com',

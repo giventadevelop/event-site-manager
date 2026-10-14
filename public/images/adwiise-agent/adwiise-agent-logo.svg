@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="64" viewBox="0 0 360 64" role="img" aria-label="AdwiiseAgent">
+  <defs>
+    <linearGradient id="adwiise-agent-mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#adwiise-agent-mark)"/>
+  <path d="M18 48L32 16L46 48M23 37h18" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="74" y="44" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="0.3" fill="#1E293B">Adwiise<tspan fill="#4F46E5">Agent</tspan></text>
+</svg>

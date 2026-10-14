@@ -1,6 +1,6 @@
 {
-  "name": "Kluvo",
-  "short_name": "Kluvo",
+  "name": "AdwiiseAgent",
+  "short_name": "AdwiiseAgent",
   "description": "Websites, events, payments and AI pricing for every organization",
   "start_url": "/",
   "display": "standalone",
@@ -41,7 +41,7 @@
       "purpose": "any"
     },
     {
-      "src": "/images/kluvo/kluvo-icon.svg",
+      "src": "/images/adwiise-agent/adwiise-agent-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
